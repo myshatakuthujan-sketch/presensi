@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>ProCam Ultra - Cinema Suite v14</title>
+    <title>ProCam Ultra - Cinema Suite v16</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
@@ -65,14 +65,25 @@
         .filter-tray::-webkit-scrollbar { display: none; }
 
         .zoom-overlay, .speed-overlay { 
-            bottom: 140px; 
+            bottom: 160px;
             display: flex; 
             flex-direction: column; 
             align-items: center; 
             padding-bottom: 15px;
         }
 
-        /* --- FULL EXTENDED FILTER LIBRARY --- */
+        .speed-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            padding: 12px;
+            background: rgba(0,0,0,0.85);
+            border-radius: 24px;
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255,255,255,0.15);
+        }
+
+        /* --- FILTER LIBRARY --- */
         .filter-none { filter: none; }
         .filter-bw { filter: grayscale(1) contrast(1.2); }
         .filter-noir { filter: grayscale(1) contrast(1.8) brightness(0.7); }
@@ -106,7 +117,7 @@
         .hidden-tray { transform: translateY(-20px); opacity: 0; pointer-events: none; }
         .speed-overlay.hidden-tray, .zoom-overlay.hidden-tray { transform: translateY(20px); }
 
-        .shutter-photo { width: 70px; height: 70px; background: #fff; border-radius: 50%; border: 5px solid rgba(255, 255, 255, 0.3); transition: transform 0.1s; }
+        .shutter-photo { width: 72px; height: 72px; background: #fff; border-radius: 50%; border: 5px solid rgba(255, 255, 255, 0.3); transition: transform 0.1s; }
         .shutter-photo:active { transform: scale(0.9); }
         #recording-dot { width: 18px; height: 18px; background: #ff0000; border-radius: 50%; transition: all 0.3s; }
         .recording-active #recording-dot { border-radius: 4px; transform: scale(0.8); }
@@ -128,7 +139,7 @@
 
     <div class="camera-container">
         <!-- Header Controls -->
-        <div class="absolute top-0 left-0 w-full pt-10 pb-4 px-4 flex justify-between items-center z-[60] bg-gradient-to-b from-black/90 to-transparent">
+        <div class="absolute top-0 left-0 w-full pt-12 pb-4 px-4 flex justify-between items-center z-[60] bg-gradient-to-b from-black/90 to-transparent">
             <div class="flex items-center gap-2">
                 <div id="recording-indicator" class="hidden flex items-center bg-red-600/90 px-3 py-1 rounded-full text-[10px] font-bold">
                     <span class="w-2 h-2 rounded-full bg-white animate-ping mr-2"></span>
@@ -160,19 +171,23 @@
         <div id="filter-tray" class="ui-tray filter-tray hidden-tray"></div>
         
         <div id="zoom-tray" class="ui-tray zoom-overlay hidden-tray">
-            <input type="range" id="zoom-slider" min="1" max="5" step="0.1" value="1" class="w-2/3 accent-yellow-400" oninput="updateZoom(this.value)">
+            <input type="range" id="zoom-slider" min="0.5" max="5" step="0.1" value="1" class="w-2/3 accent-yellow-400" oninput="updateZoom(this.value)">
             <span class="text-[11px] font-extrabold text-yellow-400 mt-2 bg-black/60 px-3 py-1 rounded-full" id="zoom-text">1.0x</span>
         </div>
 
         <div id="speed-tray" class="ui-tray speed-overlay hidden-tray">
-            <div class="flex gap-4">
-                <button onclick="setVideoSpeed(0.5)" id="speed-05" class="px-5 py-2 rounded-full bg-white/10 border border-white/20 text-[10px] font-bold">0.5x SLOW</button>
-                <button onclick="setVideoSpeed(1)" id="speed-1" class="px-5 py-2 rounded-full bg-white/10 border border-white/20 text-[10px] font-bold active-btn">1x NORMAL</button>
+            <div class="speed-grid">
+                <button onclick="setVideoSpeed(0.5)" id="speed-0.5" class="px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-[9px] font-bold">0.5x</button>
+                <button onclick="setVideoSpeed(1)" id="speed-1" class="px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-[9px] font-bold active-btn">1x</button>
+                <button onclick="setVideoSpeed(2)" id="speed-2" class="px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-[9px] font-bold">2x</button>
+                <button onclick="setVideoSpeed(4)" id="speed-4" class="px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-[9px] font-bold">4x</button>
+                <button onclick="setVideoSpeed(8)" id="speed-8" class="px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-[9px] font-bold">8x</button>
+                <button onclick="setVideoSpeed(16)" id="speed-16" class="px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-[9px] font-bold">16x</button>
             </div>
         </div>
 
         <!-- Bottom Controls -->
-        <div class="w-full px-10 pt-4 pb-12 flex justify-between items-center bg-black">
+        <div class="w-full px-10 pt-4 pb-16 flex justify-between items-center bg-black">
             <div id="gallery-preview" class="w-12 h-12 rounded-lg border-2 border-white/30 bg-cover bg-center overflow-hidden" onclick="openEditor()">
                 <div class="w-full h-full bg-white/5 flex items-center justify-center opacity-40 text-[9px] font-bold">PREV</div>
             </div>
@@ -251,15 +266,16 @@
             currentSpeed = speed;
             video.playbackRate = speed;
             document.getElementById('btn-speed-toggle').innerText = speed + 'x';
-            document.querySelectorAll('[id^="speed-"]').forEach(b => b.classList.remove('active-btn'));
-            document.getElementById('speed-' + (speed === 0.5 ? '05' : '1')).classList.add('active-btn');
-            toggleTray('speed');
+            document.querySelectorAll('.speed-grid button').forEach(b => b.classList.remove('active-btn'));
+            document.getElementById('speed-' + speed).classList.add('active-btn');
         }
 
         function updateZoom(val) {
             currentZoom = val;
+            // Handle digital zoom by scaling the video element
             video.style.transform = `scale(${val})`;
             document.getElementById('zoom-text').innerText = parseFloat(val).toFixed(1) + 'x';
+            document.getElementById('btn-zoom-toggle').classList.toggle('active-btn', val != 1);
         }
 
         function setFilter(id) {
@@ -277,7 +293,6 @@
             const trays = ['filter', 'zoom', 'speed'];
             trays.forEach(t => {
                 const el = document.getElementById(`${t}-tray`);
-                const btn = document.getElementById(`btn-${t}-toggle`);
                 if(t === type) {
                     el.classList.toggle('hidden-tray');
                 } else {
@@ -304,13 +319,17 @@
             canvas.height = video.videoHeight;
             const c = canvas.getContext('2d');
             c.filter = getComputedStyle(video).filter;
+            
+            // Adjust source mapping for zoom
             const sw = video.videoWidth / currentZoom;
             const sh = video.videoHeight / currentZoom;
             const sx = (video.videoWidth - sw) / 2;
             const sy = (video.videoHeight - sh) / 2;
+            
             c.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
             lastCapturedImage = canvas.toDataURL('image/jpeg', 0.95);
             galleryPreview.style.backgroundImage = `url(${lastCapturedImage})`;
+            
             document.getElementById('flash-overlay').style.opacity = '1';
             setTimeout(() => document.getElementById('flash-overlay').style.opacity = '0', 100);
             showToast("Foto Berhasil Diambil");
@@ -323,7 +342,6 @@
 
         function startRecording() {
             recordedChunks = [];
-            // Standar MP4 H.264 untuk kompatibilitas iPhone & Android
             const options = {
                 mimeType: 'video/mp4;codecs=avc1',
                 videoBitsPerSecond: 3000000
@@ -371,7 +389,7 @@
                 document.body.removeChild(a);
                 window.URL.revokeObjectURL(url);
             }, 1000);
-            showToast(`Video ${currentSpeed}x Tersimpan (MP4)`);
+            showToast(`Video ${currentSpeed}x Tersimpan`);
         }
 
         function updateTimer() {
