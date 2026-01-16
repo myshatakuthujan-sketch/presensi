@@ -45,14 +45,14 @@
         .filter-f2 { filter: sepia(0.2) contrast(0.9) brightness(1.1) saturate(0.7) blur(0.2px); }
         .filter-g3 { filter: contrast(1.05) saturate(1.2) brightness(1.05) hue-rotate(-5deg); }
         
-        /* Cinematic & Tone Populer (NEW) */
+        /* Cinematic & Tone Populer */
         .filter-teal-orange { filter: contrast(1.25) saturate(1.4) hue-rotate(-15deg) brightness(0.95); }
         .filter-warm-nostalgia { filter: sepia(0.5) saturate(1.4) brightness(1.05) contrast(1.1); }
         .filter-cool-desat { filter: hue-rotate(190deg) saturate(0.5) contrast(1.1) brightness(1.1); }
         .filter-dark-moody { filter: brightness(0.6) contrast(1.6) saturate(0.8) sepia(0.1); }
         .filter-desaturated { filter: saturate(0.4) contrast(1.2) brightness(1.1); }
         
-        /* Visual Texture & Effects (NEW) */
+        /* Visual Texture & Effects */
         .filter-diffusion { filter: blur(0.8px) brightness(1.1) contrast(0.9) saturate(1.1); }
         .filter-grainy { filter: contrast(1.2) brightness(1.1) grayscale(0.2) url(#noise); }
         .filter-light-leak { filter: sepia(0.3) saturate(1.5) brightness(1.1) hue-rotate(340deg); }
@@ -279,7 +279,7 @@
         let mediaRecorder;
         let recordedChunks = [];
 
-        // --- UPDATED EXTENDED FILTERS LIST ---
+        // --- FILTERS LIST ---
         const FILTERS = [
             { id: 'none', name: 'Asli' },
             { id: 'teal-orange', name: 'Teal Orange' },
@@ -393,7 +393,6 @@
             canvas.height = video.videoHeight;
             const c = canvas.getContext('2d');
             
-            // Apply CSS filters to canvas
             c.filter = getComputedStyle(video).filter;
             
             const sw = video.videoWidth / currentZoom;
@@ -417,19 +416,20 @@
 
         function startRecording() {
             recordedChunks = [];
-            const types = [
-                'video/mp4;codecs=h264',
+            // Daftar prioritas MIME type untuk mendukung MP4 secara optimal
+            const mimeTypes = [
+                'video/mp4;codecs=h264', // Standar MP4 (terbaik untuk iOS/Android)
+                'video/mp4',
                 'video/webm;codecs=h264',
-                'video/webm;codecs=vp9',
                 'video/webm'
             ];
             
-            let selectedType = types.find(t => MediaRecorder.isTypeSupported(t)) || 'video/webm';
+            let selectedType = mimeTypes.find(t => MediaRecorder.isTypeSupported(t)) || 'video/webm';
             
             try {
                 mediaRecorder = new MediaRecorder(window.stream, { 
                     mimeType: selectedType,
-                    videoBitsPerSecond: 2500000 
+                    videoBitsPerSecond: 4000000 // High Quality 4Mbps
                 });
                 
                 mediaRecorder.ondataavailable = (e) => {
@@ -460,19 +460,27 @@
         }
 
         function saveVideo() {
+            // Memaksa Blob menjadi tipe video/mp4 agar dikenali oleh galeri Android/iOS
             const blob = new Blob(recordedChunks, { type: 'video/mp4' });
             const url = URL.createObjectURL(blob);
+            
             const a = document.createElement('a');
             a.style.display = 'none';
             a.href = url;
-            a.download = `ProCam_Video_${Date.now()}.mp4`;
+            // Penamaan file yang jelas membantu sistem operasi mengenali tipe file
+            const fileName = `ProCam_${currentSpeed}x_${Date.now()}.mp4`;
+            a.download = fileName;
+            
             document.body.appendChild(a);
             a.click();
+            
+            // Memberikan jeda sebelum revoke URL agar pengunduhan di mobile tidak terinterupsi
             setTimeout(() => {
                 document.body.removeChild(a);
                 window.URL.revokeObjectURL(url);
-            }, 100);
-            showToast("Video MP4 Tersimpan");
+            }, 500);
+            
+            showToast(`Video ${currentSpeed}x Tersimpan (MP4)`);
         }
 
         function updateTimer() {
@@ -484,13 +492,10 @@
 
         function openEditor() {
             if(!lastCapturedImage) return showToast("Ambil foto terlebih dahulu");
-            
             const overlay = document.getElementById('editor-overlay');
             const loader = document.getElementById('editor-loading');
-            
             overlay.classList.remove('hidden');
             loader.classList.remove('hidden');
-            
             const img = new Image();
             img.onload = () => {
                 editorCanvas.width = img.width;
@@ -499,16 +504,10 @@
                 ctx.drawImage(img, 0, 0);
                 loader.classList.add('hidden');
             };
-            img.onerror = () => {
-                showToast("Gagal memuat pratinjau");
-                overlay.classList.add('hidden');
-            };
             img.src = lastCapturedImage;
         }
 
-        function closeEditor() { 
-            document.getElementById('editor-overlay').classList.add('hidden'); 
-        }
+        function closeEditor() { document.getElementById('editor-overlay').classList.add('hidden'); }
         
         function saveEditedPhoto() {
             try {
@@ -522,10 +521,7 @@
                 setTimeout(() => { document.body.removeChild(a); }, 100);
                 showToast("Hasil Edit Disimpan");
                 closeEditor();
-            } catch (e) {
-                console.error(e);
-                showToast("Gagal Simpan Edit");
-            }
+            } catch (e) { showToast("Gagal Simpan Edit"); }
         }
         
         function showToast(msg) {
