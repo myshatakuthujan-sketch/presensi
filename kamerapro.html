@@ -256,6 +256,7 @@
         const bokehOverlay = document.getElementById('bokeh-overlay');
         const filterNameDisplay = document.getElementById('filter-name-display');
         const previewContainer = document.getElementById('preview-container');
+        const timerDisplay = document.getElementById('timer');
         const ctx = editorCanvas.getContext('2d');
 
         let isFrontCamera = false;
@@ -268,7 +269,13 @@
         let isMagicAuto = false;
         let lastCapturedImage = null;
         let trays = { filter: false, zoom: false };
+        
+        // RECORDING STATE
         let isRecording = false;
+        let mediaRecorder = null;
+        let recordedChunks = [];
+        let recordInterval = null;
+        let recordSeconds = 0;
 
         const FILTERS = [
             { id: 'none', name: 'Original', cat: 'Basic' },
@@ -337,13 +344,20 @@
         async function initCamera() {
             if (window.stream) window.stream.getTracks().forEach(t => t.stop());
             try {
-                const s = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: isFrontCamera ? 'user' : 'environment', width: { ideal: 1920 } },
+                const constraints = {
+                    video: { 
+                        facingMode: isFrontCamera ? 'user' : 'environment', 
+                        width: { ideal: 1920 } 
+                    },
                     audio: true
-                });
+                };
+                const s = await navigator.mediaDevices.getUserMedia(constraints);
                 window.stream = s;
                 video.srcObject = s;
-            } catch (e) { console.error(e); }
+            } catch (e) { 
+                console.error("Camera Init Error:", e);
+                showToast("Gagal mengakses kamera/audio.");
+            }
         }
 
         function toggleTray(type) {
@@ -464,22 +478,101 @@
             const f = document.getElementById('flash-overlay');
             f.style.opacity = '1'; setTimeout(() => f.style.opacity = '0', 100);
             
-            const t = document.getElementById('save-toast');
-            t.innerText = "Capture Disimpan";
-            t.classList.add('translate-y-24'); setTimeout(() => t.classList.remove('translate-y-24'), 2000);
+            showToast("Capture Disimpan");
         }
 
+        // --- FIXED VIDEO RECORDING LOGIC ---
         function toggleRecording() {
-            isRecording = !isRecording;
-            const indicator = document.getElementById('recording-indicator');
-            const vIcon = document.getElementById('v-icon');
             if (isRecording) {
-                indicator.classList.remove('hidden');
-                vIcon.classList.replace('rounded-full', 'rounded-sm');
+                stopRecording();
             } else {
-                indicator.classList.add('hidden');
-                vIcon.classList.replace('rounded-sm', 'rounded-full');
+                startRecording();
             }
+        }
+
+        async function startRecording() {
+            if (!window.stream) return;
+            
+            recordedChunks = [];
+            try {
+                // Gunakan stream yang sedang aktif
+                mediaRecorder = new MediaRecorder(window.stream, {
+                    mimeType: 'video/webm;codecs=vp9,opus'
+                });
+            } catch (e) {
+                // Fallback jika vp9 tidak didukung
+                mediaRecorder = new MediaRecorder(window.stream);
+            }
+
+            mediaRecorder.ondataavailable = (event) => {
+                if (event.data.size > 0) {
+                    recordedChunks.push(event.data);
+                }
+            };
+
+            mediaRecorder.onstop = () => {
+                const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                const url = URL.createObjectURL(blob);
+                
+                // Simulasi simpan ke galeri preview (menggunakan thumbnail frame pertama jika memungkinkan)
+                // Di sini kita buat link download otomatis sebagai bukti berhasil merekam
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = `ProCam_Video_${Date.now()}.webm`;
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                }, 100);
+
+                showToast("Video Disimpan");
+            };
+
+            mediaRecorder.start();
+            isRecording = true;
+            
+            // UI Feedback
+            document.getElementById('recording-indicator').classList.remove('hidden');
+            document.getElementById('v-icon').classList.replace('rounded-full', 'rounded-sm');
+            document.getElementById('video-trigger').classList.add('bg-red-500/20');
+            
+            // Start Timer
+            recordSeconds = 0;
+            updateTimerDisplay();
+            recordInterval = setInterval(() => {
+                recordSeconds++;
+                updateTimerDisplay();
+            }, 1000);
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+            }
+            isRecording = false;
+            
+            // UI Feedback
+            document.getElementById('recording-indicator').classList.add('hidden');
+            document.getElementById('v-icon').classList.replace('rounded-sm', 'rounded-full');
+            document.getElementById('video-trigger').classList.remove('bg-red-500/20');
+            
+            // Stop Timer
+            clearInterval(recordInterval);
+        }
+
+        function updateTimerDisplay() {
+            const mins = Math.floor(recordSeconds / 60).toString().padStart(2, '0');
+            const secs = (recordSeconds % 60).toString().padStart(2, '0');
+            timerDisplay.innerText = `${mins}:${secs}`;
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById('save-toast');
+            t.innerText = msg;
+            t.classList.add('translate-y-24'); 
+            setTimeout(() => t.classList.remove('translate-y-24'), 2000);
         }
 
         function initFilterTray() {
@@ -503,10 +596,7 @@
 
         function openEditor() {
             if(!lastCapturedImage) {
-                const t = document.getElementById('save-toast');
-                t.innerText = "Ambil foto dulu untuk mengedit!";
-                t.classList.add('translate-y-24'); 
-                setTimeout(() => t.classList.remove('translate-y-24'), 2000);
+                showToast("Ambil foto dulu untuk mengedit!");
                 return;
             }
             
