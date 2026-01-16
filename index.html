@@ -681,8 +681,8 @@
                     timer: 1000, 
                     showConfirmButton: false
                 }).then((result) => {
-                    // --- PERUBAHAN: REDIRECT CAMERA DENGAN DATA LENGKAP (NISN, NAMA, KELAS) ---
-                    window.location.href = "camera.html?nisn=" + found.id + "&nama=" + encodeURIComponent(found.nama) + "&kelas=" + encodeURIComponent(found.ket); 
+                    // --- PERUBAHAN DI SINI: REDIRECT KE FILE CAMERA.HTML ---
+                    window.location.href = "camera.html"; 
                 });
                 
                 $('#idKartu').val("");
