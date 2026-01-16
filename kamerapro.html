@@ -164,7 +164,6 @@
         </div>
 
         <div class="camera-preview">
-            <!-- Canvas hidden untuk analisis kecerahan -->
             <canvas id="brightness-canvas" style="display:none;"></canvas>
             <video id="video" autoplay playsinline muted></video>
             <div id="grid-lines" class="absolute inset-0 pointer-events-none hidden">
@@ -239,7 +238,7 @@
         let timerInterval = null;
         let mediaRecorder;
         let recordedChunks = [];
-        let flashMode = 'off'; // off, on, auto
+        let flashMode = 'off';
 
         const FILTERS = [
             { id: 'none', name: 'Asli' }, { id: 'teal-orange', name: 'Teal' }, { id: 'warm-nostalgia', name: 'Warm' },
@@ -255,9 +254,9 @@
             const constraints = {
                 video: { 
                     facingMode: isFrontCamera ? 'user' : 'environment', 
-                    width: { ideal: 1920 }, 
-                    height: { ideal: 1080 },
-                    frameRate: { ideal: 60 } // Mendukung slow motion lebih baik
+                    width: { ideal: 1280 }, 
+                    height: { ideal: 720 },
+                    frameRate: { ideal: 60 }
                 },
                 audio: true
             };
@@ -267,12 +266,11 @@
                 window.stream = stream;
                 video.srcObject = stream;
                 
-                // Mirror mode untuk kamera depan
-                if(isFrontCamera) {
-                    video.classList.add('mirror-mode');
-                } else {
-                    video.classList.remove('mirror-mode');
-                }
+                if(isFrontCamera) video.classList.add('mirror-mode');
+                else video.classList.remove('mirror-mode');
+                
+                // iPhone fix: paksa play
+                video.play().catch(() => {});
             } catch (e) { 
                 showToast("Kamera tidak tersedia"); 
             }
@@ -281,29 +279,20 @@
         function cycleFlash() {
             const btn = document.getElementById('btn-flash');
             if(flashMode === 'off') {
-                flashMode = 'on';
-                btn.innerText = '⚡ On';
-                btn.classList.add('active-btn');
+                flashMode = 'on'; btn.innerText = '⚡ On'; btn.classList.add('active-btn');
             } else if(flashMode === 'on') {
-                flashMode = 'auto';
-                btn.innerText = '⚡ Auto';
-                btn.classList.add('active-btn');
+                flashMode = 'auto'; btn.innerText = '⚡ Auto'; btn.classList.add('active-btn');
             } else {
-                flashMode = 'off';
-                btn.innerText = '⚡ Off';
-                btn.classList.remove('active-btn');
+                flashMode = 'off'; btn.innerText = '⚡ Off'; btn.classList.remove('active-btn');
             }
         }
 
         function getBrightness() {
-            brightnessCanvas.width = 50;
-            brightnessCanvas.height = 50;
+            brightnessCanvas.width = 50; brightnessCanvas.height = 50;
             bCtx.drawImage(video, 0, 0, 50, 50);
             const data = bCtx.getImageData(0, 0, 50, 50).data;
             let total = 0;
-            for(let i=0; i<data.length; i+=4) {
-                total += (data[i] + data[i+1] + data[i+2]) / 3;
-            }
+            for(let i=0; i<data.length; i+=4) total += (data[i] + data[i+1] + data[i+2]) / 3;
             return total / (data.length / 4);
         }
 
@@ -320,12 +309,10 @@
 
         function setVideoSpeed(speed) {
             currentSpeed = speed;
-            // Preview kecepatan di layar
-            video.playbackRate = 1.0; // Biar preview lancar saat rekam
             document.getElementById('btn-speed-toggle').innerText = speed + 'x';
             document.querySelectorAll('.speed-grid button').forEach(b => b.classList.remove('active-btn'));
             document.getElementById('speed-' + speed).classList.add('active-btn');
-            showToast(`Mode Kecepatan: ${speed}x`);
+            showToast(`Kecepatan: ${speed}x`);
         }
 
         function updateZoom(val) {
@@ -333,14 +320,12 @@
             video.style.transform = `scale(${val}) ${isFrontCamera ? 'scaleX(-1)' : ''}`;
             document.getElementById('zoom-text').innerText = parseFloat(val).toFixed(1) + 'x';
             document.getElementById('btn-zoom-toggle').innerText = parseFloat(val).toFixed(1) + 'x';
-            document.getElementById('btn-zoom-toggle').classList.toggle('active-btn', val != 1);
         }
 
         function setFilter(id) {
             activeFilter = id;
             updateFilters();
             renderFilters();
-            document.getElementById('btn-filter-toggle').classList.toggle('active-btn', id !== 'none');
         }
 
         function updateFilters() {
@@ -351,11 +336,8 @@
             const trays = ['filter', 'zoom', 'speed'];
             trays.forEach(t => {
                 const el = document.getElementById(`${t}-tray`);
-                if(t === type) {
-                    el.classList.toggle('hidden-tray');
-                } else {
-                    el.classList.add('hidden-tray');
-                }
+                if(t === type) el.classList.toggle('hidden-tray');
+                else el.classList.add('hidden-tray');
             });
         }
 
@@ -372,48 +354,29 @@
         }
 
         function handleCapture() {
-            // Flash logic
-            let needsFlash = false;
-            if(flashMode === 'on') needsFlash = true;
-            if(flashMode === 'auto' && getBrightness() < 60) needsFlash = true;
-
+            let needsFlash = (flashMode === 'on' || (flashMode === 'auto' && getBrightness() < 70));
             if(needsFlash) {
                 document.getElementById('flash-overlay').style.opacity = '1';
-                setTimeout(() => {
-                    capturePhoto();
-                    document.getElementById('flash-overlay').style.opacity = '0';
-                }, 50);
+                setTimeout(() => { capturePhoto(); document.getElementById('flash-overlay').style.opacity = '0'; }, 50);
             } else {
                 capturePhoto();
-                document.getElementById('flash-overlay').style.opacity = '0.4';
+                document.getElementById('flash-overlay').style.opacity = '0.3';
                 setTimeout(() => document.getElementById('flash-overlay').style.opacity = '0', 50);
             }
         }
 
         function capturePhoto() {
             const canvas = document.createElement('canvas');
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
+            canvas.width = video.videoWidth; canvas.height = video.videoHeight;
             const c = canvas.getContext('2d');
-            
-            // Mirroring if front camera
-            if(isFrontCamera) {
-                c.translate(canvas.width, 0);
-                c.scale(-1, 1);
-            }
-
+            if(isFrontCamera) { c.translate(canvas.width, 0); c.scale(-1, 1); }
             c.filter = getComputedStyle(video).filter;
-            
             const sw = video.videoWidth / currentZoom;
             const sh = video.videoHeight / currentZoom;
-            const sx = (video.videoWidth - sw) / 2;
-            const sy = (video.videoHeight - sh) / 2;
-            
-            c.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
-            
-            lastCapturedImage = canvas.toDataURL('image/jpeg', 0.95);
+            c.drawImage(video, (video.videoWidth-sw)/2, (video.videoHeight-sh)/2, sw, sh, 0, 0, canvas.width, canvas.height);
+            lastCapturedImage = canvas.toDataURL('image/jpeg', 0.9);
             galleryPreview.style.backgroundImage = `url(${lastCapturedImage})`;
-            showToast("Foto Berhasil Diambil");
+            showToast("Foto Disimpan");
         }
 
         function toggleRecording() {
@@ -423,34 +386,23 @@
 
         function startRecording() {
             recordedChunks = [];
-            // Gunakan format yang mendukung metadata kecepatan jika memungkinkan, 
-            // namun standar browser biasanya hanya webm/mp4 mentah.
-            const options = {
-                mimeType: 'video/webm;codecs=vp9,opus',
-                videoBitsPerSecond: 5000000
-            };
             
-            if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-                options.mimeType = 'video/mp4;codecs=avc1';
-                if(!MediaRecorder.isTypeSupported(options.mimeType)) options.mimeType = '';
-            }
-
+            // Pengecekan tipe media yang didukung iPhone vs Android
+            const types = ['video/mp4', 'video/webm;codecs=vp9', 'video/webm'];
+            let supportedType = types.find(t => MediaRecorder.isTypeSupported(t)) || '';
+            
             try {
-                mediaRecorder = new MediaRecorder(window.stream, options);
+                mediaRecorder = new MediaRecorder(window.stream, { mimeType: supportedType });
                 mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunks.push(e.data); };
                 mediaRecorder.onstop = saveVideo;
-                
-                // Mulai rekam
-                mediaRecorder.start(100); // chunk setiap 100ms
+                mediaRecorder.start();
                 
                 isRecording = true;
                 document.getElementById('video-trigger').classList.add('recording-active');
                 document.getElementById('recording-indicator').classList.remove('hidden');
                 recordStartTime = Date.now();
                 timerInterval = setInterval(updateTimer, 1000);
-            } catch (e) { 
-                showToast("Gagal memulai rekam"); 
-            }
+            } catch (e) { showToast("Gagal merekam"); }
         }
 
         function stopRecording() {
@@ -464,23 +416,16 @@
         }
 
         function saveVideo() {
+            const extension = mediaRecorder.mimeType.includes('mp4') ? 'mp4' : 'webm';
             const blob = new Blob(recordedChunks, { type: mediaRecorder.mimeType });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.style.display = 'none';
             a.href = url;
-            
-            // Nama file menginfokan kecepatan agar user tahu ini slowmo/timelapse
-            const typeLabel = currentSpeed < 1 ? 'SlowMo' : (currentSpeed > 1 ? 'TimeLapse' : 'Video');
-            a.download = `ProCam_${typeLabel}_${currentSpeed}x_${Date.now()}.mp4`;
-            
+            a.download = `VIDEO_${Date.now()}.${extension}`;
             document.body.appendChild(a);
             a.click();
-            setTimeout(() => {
-                document.body.removeChild(a);
-                window.URL.revokeObjectURL(url);
-            }, 1000);
-            showToast(`${typeLabel} ${currentSpeed}x Tersimpan`);
+            setTimeout(() => { document.body.removeChild(a); window.URL.revokeObjectURL(url); }, 500);
+            showToast(`Video .${extension} Tersimpan`);
         }
 
         function updateTimer() {
@@ -494,23 +439,18 @@
             if(!lastCapturedImage) return;
             document.getElementById('editor-overlay').classList.remove('hidden');
             const img = new Image();
-            img.onload = () => {
-                editorCanvas.width = img.width;
-                editorCanvas.height = img.height;
-                ctx.drawImage(img, 0, 0);
-            };
+            img.onload = () => { editorCanvas.width = img.width; editorCanvas.height = img.height; ctx.drawImage(img, 0, 0); };
             img.src = lastCapturedImage;
         }
 
         function closeEditor() { document.getElementById('editor-overlay').classList.add('hidden'); }
         
         function saveEditedPhoto() {
-            const dataURL = editorCanvas.toDataURL('image/jpeg', 0.95);
             const a = document.createElement('a');
-            a.href = dataURL;
-            a.download = `Edit_${Date.now()}.jpg`;
+            a.href = editorCanvas.toDataURL('image/jpeg', 0.9);
+            a.download = `EDIT_${Date.now()}.jpg`;
             a.click();
-            showToast("Hasil Edit Tersimpan");
+            showToast("Edit Tersimpan");
             closeEditor();
         }
         
@@ -524,13 +464,9 @@
         function switchCamera() { 
             isFrontCamera = !isFrontCamera; 
             initCamera(); 
-            showToast(isFrontCamera ? "Kamera Depan (Mirror On)" : "Kamera Belakang");
         }
 
-        window.onload = () => {
-            initCamera();
-            renderFilters();
-        };
+        window.onload = () => { initCamera(); renderFilters(); };
     </script>
 </body>
 </html>
