@@ -58,6 +58,8 @@
         .filter-brown { filter: sepia(0.5) contrast(1.1) brightness(0.9) saturate(0.9); }
         .filter-minimalist { filter: contrast(1.05) brightness(1.05) saturate(0.9); }
         .filter-bokeh { filter: contrast(1.1) brightness(1.05); }
+        .filter-ultrabokeh { filter: contrast(1.15) brightness(1.05) saturate(1.1); }
+        .filter-beauty { filter: contrast(0.85) brightness(1.15) saturate(1.2) sepia(0.05); }
         .filter-painting { filter: contrast(1.3) saturate(1.6) posterize(5) brightness(1.1); }
         .filter-lightlens { filter: brightness(1.2) saturate(1.1) sepia(0.1); }
         .filter-hiphop-blue { filter: contrast(1.3) hue-rotate(180deg) saturate(1.4) brightness(0.9); }
@@ -71,6 +73,7 @@
             backdrop-filter: blur(0px); transition: all 0.5s; z-index: 4;
         }
         .bokeh-active { opacity: 1 !important; backdrop-filter: blur(4px) !important; }
+        .ultrabokeh-active { opacity: 1 !important; backdrop-filter: blur(8px) !important; }
 
         #filter-name-display {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
@@ -164,7 +167,7 @@
             </div>
             
             <div class="flex gap-2">
-                <!-- NEW: TOMBOL EDIT LANGSUNG -->
+                <!-- TOMBOL EDIT LANGSUNG -->
                 <button id="direct-edit" onclick="openEditor()" class="bg-yellow-400/90 p-3 rounded-full backdrop-blur-xl border border-black/10 active:scale-90 transition-all">
                     <svg width="20" height="20" fill="black" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
                 </button>
@@ -269,6 +272,9 @@
 
         const FILTERS = [
             { id: 'none', name: 'Original', cat: 'Basic' },
+            { id: 'beauty', name: 'Smart Beauty', cat: 'Portret' },
+            { id: 'bokeh', name: 'Bokeh Lite', cat: 'Portret' },
+            { id: 'ultrabokeh', name: 'Ultra Bokeh', cat: 'Portret' },
             { id: 'bw', name: 'Black&White', cat: 'Classic' },
             { id: 'noir', name: 'Noir Drama', cat: 'Classic' },
             { id: 'cpm35', name: 'CPM35', cat: 'DazzCam' },
@@ -277,7 +283,6 @@
             { id: 'pastel', name: 'Soft Pastel', cat: 'Modern' },
             { id: 'brown', name: 'Aesthetic Brown', cat: 'Modern' },
             { id: 'minimalist', name: 'Minimalist', cat: 'Modern' },
-            { id: 'bokeh', name: 'Bokeh Blur', cat: 'Creative' },
             { id: 'painting', name: 'Lukisan', cat: 'Creative' },
             { id: 'lightlens', name: 'Light Lens', cat: 'Creative' },
             { id: 'hiphop-blue', name: 'TikTok Blue', cat: 'Viral' },
@@ -390,8 +395,11 @@
         function updateCameraFilters() {
             let filterClass = `filter-${activeFilter}`;
             video.className = isMagicAuto ? `${filterClass} magic-auto` : filterClass;
+            
+            // Manage Overlay layers
+            bokehOverlay.className = ''; 
             if(activeFilter === 'bokeh') bokehOverlay.classList.add('bokeh-active');
-            else bokehOverlay.classList.remove('bokeh-active');
+            else if(activeFilter === 'ultrabokeh') bokehOverlay.classList.add('ultrabokeh-active');
         }
 
         function setZoom(v) { 
@@ -418,11 +426,26 @@
             const sy = (canvas.height - sh) / 2;
             c.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
 
-            if(activeFilter === 'bokeh') {
-                c.filter = 'blur(10px)';
-                c.globalAlpha = 0.4;
-                c.drawImage(canvas, 0, 0);
+            // Manual Bokeh Drawing for Output
+            if(activeFilter === 'bokeh' || activeFilter === 'ultrabokeh') {
+                const blurAmount = activeFilter === 'ultrabokeh' ? '20px' : '10px';
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = canvas.width;
+                tempCanvas.height = canvas.height;
+                const tempCtx = tempCanvas.getContext('2d');
+                
+                tempCtx.filter = `blur(${blurAmount})`;
+                tempCtx.drawImage(canvas, 0, 0);
+                
+                // Create radial mask (sharper center)
+                const grad = c.createRadialGradient(canvas.width/2, canvas.height/2, canvas.width*0.1, canvas.width/2, canvas.height/2, canvas.width*0.5);
+                grad.addColorStop(0, 'rgba(0,0,0,0)');
+                grad.addColorStop(1, 'rgba(0,0,0,1)');
+                
+                c.globalCompositeOperation = 'source-over';
+                c.fillStyle = grad;
                 c.globalAlpha = 1.0;
+                c.drawImage(tempCanvas, 0, 0);
             }
 
             if(showDate) {
@@ -470,7 +493,7 @@
                 };
                 div.innerHTML = `
                     <div class="filter-item-box w-14 h-14 rounded-2xl border-2 ${index === activeFilterIndex ? 'border-yellow-400' : 'border-white/10'} overflow-hidden mb-1 filter-${f.id} bg-zinc-800 flex items-center justify-center text-[10px] font-black">
-                        ${f.id === 'none' ? 'ORI' : 'FX'}
+                        ${f.id === 'none' ? 'ORI' : (f.id === 'beauty' ? '✨' : 'FX')}
                     </div>
                     <span class="text-[7px] font-bold uppercase opacity-80 text-center tracking-tighter">${f.name}</span>
                 `;
