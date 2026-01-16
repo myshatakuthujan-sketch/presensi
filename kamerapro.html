@@ -69,11 +69,12 @@
 
         #bokeh-overlay {
             position: absolute; inset: 0; pointer-events: none; opacity: 0;
-            background: radial-gradient(circle, transparent 30%, rgba(0,0,0,0.4) 100%);
+            background: radial-gradient(circle, transparent 40%, rgba(0,0,0,0.3) 100%);
             backdrop-filter: blur(0px); transition: all 0.5s; z-index: 4;
         }
-        .bokeh-active { opacity: 1 !important; backdrop-filter: blur(4px) !important; }
-        .ultrabokeh-active { opacity: 1 !important; backdrop-filter: blur(8px) !important; }
+        /* Penyesuaian Blur Agar Tidak Terlalu Maksimal di Pratinjau */
+        .bokeh-active { opacity: 1 !important; backdrop-filter: blur(3px) !important; }
+        .ultrabokeh-active { opacity: 1 !important; backdrop-filter: blur(6px) !important; }
 
         #filter-name-display {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
@@ -362,7 +363,6 @@
                 const s = await navigator.mediaDevices.getUserMedia(constraints);
                 window.stream = s;
                 video.srcObject = s;
-                // Pastikan playback rate sesuai setting saat kamera restart
                 video.playbackRate = currentVideoSpeed;
             } catch (e) { 
                 console.error("Camera Init Error:", e);
@@ -405,20 +405,15 @@
             }
         }
 
-        /**
-         * SET VIDEO SPEED (SLO-MO CONTROLLER)
-         */
         function setVideoSpeed(speed) {
             currentVideoSpeed = speed;
-            video.playbackRate = speed; // Visual preview
+            video.playbackRate = speed; 
             currentSpeedText.innerText = speed + 'x';
             
-            // Highlight button
             document.querySelectorAll('.speed-overlay button').forEach(btn => btn.classList.remove('active-btn'));
             const targetBtn = Array.from(document.querySelectorAll('.speed-overlay button')).find(b => b.innerText.includes(speed + 'x'));
             if(targetBtn) targetBtn.classList.add('active-btn');
 
-            // Visual feedback indicator
             if(speed < 1) {
                 document.getElementById('btn-slomo').classList.add('active-btn');
                 showToast(`Slow Motion Aktif: ${speed}x`);
@@ -427,7 +422,6 @@
                 showToast("Mode Normal");
             }
             
-            // Tutup tray setelah pilih
             setTimeout(() => toggleTray('speed'), 300);
         }
 
@@ -472,20 +466,29 @@
             const sy = (canvas.height - sh) / 2;
             c.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
 
+            // LOGIKA BOKEH YANG DISESUAIKAN (Halus & Terukur)
             if(activeFilter === 'bokeh' || activeFilter === 'ultrabokeh') {
-                const blurAmount = activeFilter === 'ultrabokeh' ? '20px' : '10px';
+                // Blur dikurangi agar tidak berlebihan (12px untuk ultra, 6px untuk lite)
+                const blurAmount = activeFilter === 'ultrabokeh' ? '12px' : '6px';
+                
                 const tempCanvas = document.createElement('canvas');
                 tempCanvas.width = canvas.width;
                 tempCanvas.height = canvas.height;
                 const tempCtx = tempCanvas.getContext('2d');
                 tempCtx.filter = `blur(${blurAmount})`;
                 tempCtx.drawImage(canvas, 0, 0);
-                const grad = c.createRadialGradient(canvas.width/2, canvas.height/2, canvas.width*0.1, canvas.width/2, canvas.height/2, canvas.width*0.5);
+
+                // Gradien diperluas (radius tengah lebih besar) agar subjek lebih jelas
+                const grad = c.createRadialGradient(
+                    canvas.width/2, canvas.height/2, canvas.width * 0.2, // Radius dalam (fokus tetap tajam)
+                    canvas.width/2, canvas.height/2, canvas.width * 0.7  // Radius luar (transisi blur)
+                );
                 grad.addColorStop(0, 'rgba(0,0,0,0)');
+                grad.addColorStop(0.3, 'rgba(0,0,0,0.1)'); // Transisi sangat halus
                 grad.addColorStop(1, 'rgba(0,0,0,1)');
+
                 c.globalCompositeOperation = 'source-over';
                 c.fillStyle = grad;
-                c.globalAlpha = 1.0;
                 c.drawImage(tempCanvas, 0, 0);
             }
 
@@ -513,7 +516,6 @@
             if (!window.stream) return;
             recordedChunks = [];
             
-            // Konfigurasi Recorder
             try {
                 mediaRecorder = new MediaRecorder(window.stream, {
                     mimeType: 'video/webm;codecs=vp9,opus'
@@ -528,13 +530,6 @@
 
             mediaRecorder.onstop = async () => {
                 const blob = new Blob(recordedChunks, { type: 'video/webm' });
-                
-                // LOGIKA PROSES SLOW MOTION PADA HASIL AKHIR
-                // Karena MediaRecorder menangkap stream real-time, kita mensimulasikan slowmo 
-                // dengan mengatur metadata atau menggunakan teknik pengolahan blob jika didukung,
-                // namun cara termudah adalah mengingatkan bahwa preview sudah diset. 
-                // Catatan: File WebM akan menyimpan FPS asli.
-                
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.style.display = 'none';
@@ -554,7 +549,6 @@
             mediaRecorder.start();
             isRecording = true;
             
-            // UI Update
             document.getElementById('recording-indicator').classList.remove('hidden');
             document.getElementById('rec-type').innerText = currentVideoSpeed < 1 ? 'SLO-MO' : 'REC';
             document.getElementById('v-icon').classList.replace('rounded-full', 'rounded-sm');
