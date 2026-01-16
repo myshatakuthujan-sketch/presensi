@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Web Selfie Cam - Drive Sync (Ringan)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { 
+            overscroll-behavior: none; 
+            touch-action: none; 
+            background-color: #000;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .mirror-mode { transform: scaleX(-1); }
+        .safe-h-screen { height: 100vh; height: 100dvh; }
+        
+        @keyframes flash-animation {
+            0% { opacity: 0; }
+            50% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+        .flash-active { animation: flash-animation 0.2s ease-out; }
+        
+        .loader {
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top: 3px solid #ffffff;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="text-white overflow-hidden safe-h-screen relative font-sans">
+
+    <!-- Efek Lampu Kilat -->
+    <div id="flash-overlay" class="absolute inset-0 bg-white opacity-0 z-50 pointer-events-none"></div>
+
+    <!-- Tampilan Kamera Real-time -->
+    <video id="camera-feed" class="absolute inset-0 w-full h-full object-cover mirror-mode" autoplay playsinline muted></video>
+    
+    <!-- Canvas untuk memproses gambar -->
+    <canvas id="photo-canvas" class="hidden"></canvas>
+
+    <!-- UI Kontrol Kamera -->
+    <div class="absolute inset-0 flex flex-col justify-between z-10 p-6">
+        
+        <!-- Bar Atas -->
+        <div class="flex justify-between items-center bg-black/40 backdrop-blur-md p-3 rounded-full mt-2 border border-white/10">
+            <button id="toggle-mirror" class="text-white p-2 active:scale-90 transition-transform">
+                <i data-lucide="flip-horizontal"></i>
+            </button>
+            <span class="text-[10px] font-bold tracking-[0.3em] uppercase text-white/90 text-center">Auto Close Camera</span>
+            <button id="switch-camera" class="text-white p-2 active:scale-90 transition-transform">
+                <i data-lucide="refresh-cw"></i>
+            </button>
+        </div>
+
+        <!-- Tombol Shutter Utama -->
+        <div class="flex flex-col items-center gap-6 mb-12">
+            <!-- Notifikasi Status -->
+            <div id="status-message" class="hidden px-5 py-2.5 rounded-full text-xs font-bold shadow-2xl backdrop-blur-md border border-white/10"></div>
+            
+            <div class="flex items-center justify-center w-full">
+                <button id="shutter-btn" class="w-20 h-20 rounded-full border-[6px] border-white flex items-center justify-center bg-transparent active:scale-90 transition-all duration-75">
+                    <div class="w-14 h-14 bg-white rounded-full"></div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Konfirmasi Unggah -->
+    <div id="preview-modal" class="fixed inset-0 bg-black z-[60] hidden flex-col items-center justify-center p-6">
+        <!-- Background Blur -->
+        <div class="absolute inset-0 opacity-40">
+            <img id="bg-blur" class="w-full h-full object-cover blur-3xl" src="">
+        </div>
+        
+        <div class="relative z-10 w-full max-w-sm flex flex-col items-center text-center">
+            <h3 class="text-white mb-6 font-bold text-xl tracking-tight">Kirim & Selesai?</h3>
+            
+            <!-- Frame Foto -->
+            <div class="w-full aspect-[3/4] mb-8 shadow-2xl rounded-3xl overflow-hidden border border-white/20 bg-gray-900">
+                <img id="preview-image" class="w-full h-full object-cover" src="">
+            </div>
+            
+            <!-- Tombol Konfirmasi -->
+            <div class="flex flex-col gap-4 w-full">
+                <button id="upload-btn" class="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold flex items-center justify-center gap-3 shadow-lg transition active:scale-95 disabled:opacity-50">
+                    <span id="btn-text">Kirim Sekarang</span>
+                    <div id="btn-loader" class="loader hidden"></div>
+                </button>
+                <button id="retake-btn" class="w-full py-4 bg-white/10 hover:bg-white/20 rounded-2xl text-white font-semibold transition active:scale-95">
+                    Ambil Ulang
+                </button>
+            </div>
+            <p class="mt-4 text-[10px] text-white/60">Aplikasi akan otomatis tertutup setelah berhasil mengirim.</p>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        // --- KONFIGURASI SCRIPT URL ---
+        // URL Web App terbaru yang Anda berikan
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby_eUnzheGNCgvz2IdOQK1-oryY087tPsY68BPvh_RnrPPtsvwx0gHgkwU9eDXa1gPPcQ/exec"; 
+
+        const video = document.getElementById('camera-feed');
+        const canvas = document.getElementById('photo-canvas');
+        const shutterBtn = document.getElementById('shutter-btn');
+        const flashOverlay = document.getElementById('flash-overlay');
+        const statusMsg = document.getElementById('status-message');
+        
+        const previewModal = document.getElementById('preview-modal');
+        const previewImage = document.getElementById('preview-image');
+        const bgBlur = document.getElementById('bg-blur');
+        const retakeBtn = document.getElementById('retake-btn');
+        const uploadBtn = document.getElementById('upload-btn');
+        const btnText = document.getElementById('btn-text');
+        const btnLoader = document.getElementById('btn-loader');
+
+        let currentStream = null;
+        let facingMode = 'user'; 
+        let isMirrored = true;
+        let hasUploaded = false;
+
+        async function initCamera() {
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+            }
+            try {
+                const constraints = {
+                    audio: false,
+                    video: { 
+                        facingMode: facingMode,
+                        width: { ideal: 640 }, 
+                        height: { ideal: 480 }
+                    }
+                };
+                currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+                video.srcObject = currentStream;
+            } catch (err) {
+                showStatus("⚠️ Akses Kamera Ditolak", true);
+            }
+        }
+
+        document.getElementById('switch-camera').addEventListener('click', () => {
+            facingMode = (facingMode === 'user') ? 'environment' : 'user';
+            isMirrored = (facingMode === 'user');
+            video.classList.toggle('mirror-mode', isMirrored);
+            initCamera();
+        });
+
+        document.getElementById('toggle-mirror').addEventListener('click', () => {
+            isMirrored = !isMirrored;
+            video.classList.toggle('mirror-mode', isMirrored);
+        });
+
+        shutterBtn.addEventListener('click', () => {
+            if(hasUploaded) return;
+
+            flashOverlay.classList.add('flash-active');
+            setTimeout(() => flashOverlay.classList.remove('flash-active'), 300);
+
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            
+            if (isMirrored) {
+                ctx.translate(canvas.width, 0);
+                ctx.scale(-1, 1);
+            }
+            ctx.drawImage(video, 0, 0);
+            
+            const imageDataUrl = canvas.toDataURL('image/jpeg', 0.3);
+            showPreview(imageDataUrl);
+        });
+
+        function showPreview(url) {
+            previewImage.src = url;
+            bgBlur.src = url;
+            previewModal.classList.replace('hidden', 'flex');
+            
+            uploadBtn.disabled = false;
+            btnText.textContent = "Kirim Sekarang";
+            btnLoader.classList.add('hidden');
+
+            uploadBtn.onclick = () => uploadPhoto(url);
+            retakeBtn.onclick = () => {
+                previewModal.classList.replace('flex', 'hidden');
+            };
+        }
+
+        function uploadPhoto(base64Data) {
+            if(hasUploaded) return;
+            
+            uploadBtn.disabled = true;
+            retakeBtn.classList.add('hidden');
+            btnText.textContent = "Sedang Mengirim...";
+            btnLoader.classList.remove('hidden');
+
+            fetch(SCRIPT_URL, {
+                method: "POST",
+                body: JSON.stringify({ image: base64Data }),
+                mode: "no-cors" 
+            })
+            .then(() => {
+                hasUploaded = true;
+                btnText.textContent = "Berhasil Terkirim!";
+                btnLoader.classList.add('hidden');
+                showStatus("✅ Berhasil! Menutup aplikasi...", false);
+                
+                setTimeout(() => {
+                    closeApplication();
+                }, 2000);
+            })
+            .catch(error => {
+                console.error("Upload Error:", error);
+                alert("Gagal mengirim foto. Pastikan koneksi internet stabil.");
+                uploadBtn.disabled = false;
+                retakeBtn.classList.remove('hidden');
+                btnText.textContent = "Coba Lagi";
+                btnLoader.classList.add('hidden');
+            });
+        }
+
+        function closeApplication() {
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+            }
+            window.close();
+            setTimeout(() => {
+                document.body.innerHTML = `
+                    <div class="h-screen w-screen flex flex-col items-center justify-center bg-black p-10 text-center">
+                        <i data-lucide="check-circle" class="text-green-500 w-20 h-20 mb-4"></i>
+                        <h1 class="text-2xl font-bold mb-2">Selesai</h1>
+                        <p class="text-gray-400">Foto sudah aman di sistem.<br>Silakan tutup tab ini.</p>
+                    </div>
+                `;
+                lucide.createIcons();
+            }, 500);
+        }
+
+        function showStatus(msg, isError) {
+            statusMsg.textContent = msg;
+            statusMsg.className = `px-5 py-2.5 rounded-full text-xs font-bold transition-all duration-300 ${isError ? 'bg-red-600' : 'bg-green-600/90'} text-white shadow-xl`;
+            statusMsg.classList.remove('hidden');
+            setTimeout(() => statusMsg.classList.add('hidden'), 5000);
+        }
+
+        window.addEventListener('load', initCamera);
+    </script>
+</body>
+</html>
