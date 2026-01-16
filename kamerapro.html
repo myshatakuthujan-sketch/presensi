@@ -24,7 +24,7 @@
             justify-content: center;
             overflow: hidden;
             background: #000;
-            touch-action: none; /* Penting untuk menangani swipe secara manual */
+            touch-action: none;
         }
 
         video, #editor-canvas {
@@ -72,7 +72,6 @@
         }
         .bokeh-active { opacity: 1 !important; backdrop-filter: blur(4px) !important; }
 
-        /* Nama Filter muncul saat di swipe */
         #filter-name-display {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
             font-size: 24px; font-weight: 900; text-transform: uppercase; letter-spacing: 4px;
@@ -113,6 +112,15 @@
             70% { box-shadow: 0 0 0 10px rgba(255, 204, 0, 0); }
             100% { box-shadow: 0 0 0 0 rgba(255, 204, 0, 0); }
         }
+
+        /* Gallery/Edit Button specific style */
+        #gallery-preview {
+            cursor: pointer;
+            transition: transform 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+        #gallery-preview:active { transform: scale(0.9); }
     </style>
 </head>
 <body>
@@ -145,10 +153,10 @@
                     <span id="timer" class="font-mono">00:00</span>
                 </div>
                 <div class="flex flex-wrap gap-2 max-w-[200px]">
-                    <button onclick="toggleGrid()" id="btn-grid" class="bg-black/40 px-3 py-2 rounded-lg backdrop-blur-md border border-white/10 text-[9px] font-bold">GRID</button>
-                    <button onclick="toggleDateStamp()" id="btn-date" class="bg-black/40 px-3 py-2 rounded-lg backdrop-blur-md border border-white/10 text-[9px] font-bold">DATE</button>
-                    <button onclick="toggleSlowMo()" id="btn-slomo" class="bg-black/40 px-3 py-2 rounded-lg backdrop-blur-md border border-white/10 text-[9px] font-bold">SLO-MO</button>
-                    <button onclick="toggleMagicAuto()" id="btn-magic" class="bg-black/40 px-3 py-2 rounded-lg backdrop-blur-md border border-white/10 text-[9px] font-bold flex items-center gap-1">
+                    <button onclick="toggleGrid()" id="btn-grid" class="bg-black/40 px-3 py-2 rounded-lg backdrop-blur-md border border-white/10 text-[9px] font-bold tracking-tighter">GRID</button>
+                    <button onclick="toggleDateStamp()" id="btn-date" class="bg-black/40 px-3 py-2 rounded-lg backdrop-blur-md border border-white/10 text-[9px] font-bold tracking-tighter">DATE</button>
+                    <button onclick="toggleSlowMo()" id="btn-slomo" class="bg-black/40 px-3 py-2 rounded-lg backdrop-blur-md border border-white/10 text-[9px] font-bold tracking-tighter">SLO-MO</button>
+                    <button onclick="toggleMagicAuto()" id="btn-magic" class="bg-black/40 px-3 py-2 rounded-lg backdrop-blur-md border border-white/10 text-[9px] font-bold flex items-center gap-1 tracking-tighter">
                         <svg width="10" height="10" fill="currentColor" viewBox="0 0 24 24"><path d="M7.5 5.6L10 7L8.6 4.5L10 2L7.5 3.4L5 2L6.4 4.5L5 7L7.5 5.6M13.38 5.07L4.57 13.89C4.39 14.07 4.39 14.39 4.57 14.57L9.43 19.43C9.61 19.61 9.93 19.61 10.11 19.43L18.93 10.62C19.11 10.44 19.11 10.12 18.93 9.94L14.07 5.07M16.3 9.83L9.77 16.36L7.64 14.23L14.17 7.7L16.3 9.83Z"/></svg>
                         AUTO
                     </button>
@@ -156,6 +164,10 @@
             </div>
             
             <div class="flex gap-2">
+                <!-- NEW: TOMBOL EDIT LANGSUNG -->
+                <button id="direct-edit" onclick="openEditor()" class="bg-yellow-400/90 p-3 rounded-full backdrop-blur-xl border border-black/10 active:scale-90 transition-all">
+                    <svg width="20" height="20" fill="black" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                </button>
                 <button id="toggle-zoom" onclick="toggleTray('zoom')" class="bg-black/40 p-3 rounded-full backdrop-blur-xl border border-white/10 active:scale-90 transition-all">
                     <svg width="20" height="20" fill="white" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/><path d="M12 10h-2v2H9v-2H7V9h2V7h1v2h2v1z"/></svg>
                 </button>
@@ -185,7 +197,10 @@
     <!-- BOTTOM BAR -->
     <div class="fixed bottom-0 left-0 w-full bg-black p-4 pb-10">
         <div class="flex justify-between items-center max-w-md mx-auto px-6">
-            <div id="gallery-preview" class="w-12 h-12 rounded-lg bg-white/10 bg-cover bg-center border border-white/20 shadow-lg" onclick="openEditor()"></div>
+            <!-- Galeri Preview -->
+            <div id="gallery-preview" class="w-12 h-12 rounded-lg bg-white/10 bg-cover bg-center border border-white/20 shadow-lg flex items-center justify-center" onclick="openEditor()">
+                <svg id="gallery-placeholder" width="20" height="20" fill="white" opacity="0.3" viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+            </div>
             
             <div class="shutter-btn">
                 <button onclick="capturePhoto()" class="shutter-photo active:scale-90 transition-transform shadow-2xl"></button>
@@ -207,17 +222,18 @@
         <div class="flex-1 flex items-center justify-center bg-zinc-950 p-4">
             <canvas id="editor-canvas" class="max-w-full max-h-full"></canvas>
         </div>
+        <!-- Filter/Adjustments area -->
         <div class="p-6 bg-black flex gap-4 overflow-x-auto no-scrollbar border-t border-white/10">
             <div class="flex flex-col items-center gap-1 min-w-[100px]">
-                <span class="text-[8px] opacity-50 font-bold uppercase">Brightness</span>
+                <span class="text-[8px] opacity-50 font-bold uppercase tracking-wider">Brightness</span>
                 <input type="range" id="adj-bright" min="50" max="150" value="100" oninput="applyEditorFilters()" class="w-full accent-yellow-400">
             </div>
             <div class="flex flex-col items-center gap-1 min-w-[100px]">
-                <span class="text-[8px] opacity-50 font-bold uppercase">Contrast</span>
+                <span class="text-[8px] opacity-50 font-bold uppercase tracking-wider">Contrast</span>
                 <input type="range" id="adj-contrast" min="50" max="150" value="100" oninput="applyEditorFilters()" class="w-full accent-yellow-400">
             </div>
             <div class="flex flex-col items-center gap-1 min-w-[100px]">
-                <span class="text-[8px] opacity-50 font-bold uppercase">Saturation</span>
+                <span class="text-[8px] opacity-50 font-bold uppercase tracking-wider">Saturation</span>
                 <input type="range" id="adj-saturate" min="50" max="150" value="100" oninput="applyEditorFilters()" class="w-full accent-yellow-400">
             </div>
         </div>
@@ -231,6 +247,7 @@
         const gridLines = document.getElementById('grid-lines');
         const dateStampEl = document.getElementById('date-stamp');
         const galleryPreview = document.getElementById('gallery-preview');
+        const galleryPlaceholder = document.getElementById('gallery-placeholder');
         const editorOverlay = document.getElementById('editor-overlay');
         const editorCanvas = document.getElementById('editor-canvas');
         const bokehOverlay = document.getElementById('bokeh-overlay');
@@ -267,7 +284,7 @@
             { id: 'vsco-bright', name: 'VSCO Bright', cat: 'Viral' }
         ];
 
-        // --- SWIPE GESTURE LOGIC ---
+        // SWIPE GESTURE
         let touchStartX = 0;
         let touchEndX = 0;
 
@@ -283,12 +300,10 @@
         function handleSwipe() {
             const threshold = 50;
             if (touchEndX < touchStartX - threshold) {
-                // Swipe Left -> Next Filter
                 activeFilterIndex = (activeFilterIndex + 1) % FILTERS.length;
                 applyFilterFromIndex();
             }
             if (touchEndX > touchStartX + threshold) {
-                // Swipe Right -> Prev Filter
                 activeFilterIndex = (activeFilterIndex - 1 + FILTERS.length) % FILTERS.length;
                 applyFilterFromIndex();
             }
@@ -300,7 +315,6 @@
             updateCameraFilters();
             showFilterName(filter.name);
             
-            // Update UI tray if open
             const allFilterBoxes = document.querySelectorAll('.filter-item-box');
             if(allFilterBoxes.length > 0) {
                 allFilterBoxes.forEach(el => el.style.borderColor = 'rgba(255,255,255,0.1)');
@@ -312,9 +326,7 @@
         function showFilterName(name) {
             filterNameDisplay.innerText = name;
             filterNameDisplay.style.opacity = '1';
-            setTimeout(() => {
-                filterNameDisplay.style.opacity = '0';
-            }, 800);
+            setTimeout(() => { filterNameDisplay.style.opacity = '0'; }, 800);
         }
 
         async function initCamera() {
@@ -378,12 +390,8 @@
         function updateCameraFilters() {
             let filterClass = `filter-${activeFilter}`;
             video.className = isMagicAuto ? `${filterClass} magic-auto` : filterClass;
-            
-            if(activeFilter === 'bokeh') {
-                bokehOverlay.classList.add('bokeh-active');
-            } else {
-                bokehOverlay.classList.remove('bokeh-active');
-            }
+            if(activeFilter === 'bokeh') bokehOverlay.classList.add('bokeh-active');
+            else bokehOverlay.classList.remove('bokeh-active');
         }
 
         function setZoom(v) { 
@@ -425,12 +433,16 @@
             }
 
             lastCapturedImage = canvas.toDataURL('image/jpeg', 0.9);
+            
+            // Perbarui Preview Galeri
             galleryPreview.style.backgroundImage = `url(${lastCapturedImage})`;
+            galleryPlaceholder.style.display = 'none';
             
             const f = document.getElementById('flash-overlay');
             f.style.opacity = '1'; setTimeout(() => f.style.opacity = '0', 100);
             
             const t = document.getElementById('save-toast');
+            t.innerText = "Capture Disimpan";
             t.classList.add('translate-y-24'); setTimeout(() => t.classList.remove('translate-y-24'), 2000);
         }
 
@@ -460,27 +472,40 @@
                     <div class="filter-item-box w-14 h-14 rounded-2xl border-2 ${index === activeFilterIndex ? 'border-yellow-400' : 'border-white/10'} overflow-hidden mb-1 filter-${f.id} bg-zinc-800 flex items-center justify-center text-[10px] font-black">
                         ${f.id === 'none' ? 'ORI' : 'FX'}
                     </div>
-                    <span class="text-[7px] font-bold uppercase opacity-80 text-center">${f.name}</span>
-                    <span class="text-[5px] font-bold uppercase opacity-40">${f.cat}</span>
+                    <span class="text-[7px] font-bold uppercase opacity-80 text-center tracking-tighter">${f.name}</span>
                 `;
                 filterTray.appendChild(div);
             });
         }
 
         function openEditor() {
-            if(!lastCapturedImage) return;
+            if(!lastCapturedImage) {
+                const t = document.getElementById('save-toast');
+                t.innerText = "Ambil foto dulu untuk mengedit!";
+                t.classList.add('translate-y-24'); 
+                setTimeout(() => t.classList.remove('translate-y-24'), 2000);
+                return;
+            }
+            
             editorOverlay.classList.remove('hidden');
             const img = new Image();
             img.onload = () => {
                 editorCanvas.width = img.width;
                 editorCanvas.height = img.height;
+                ctx.filter = 'none';
                 ctx.drawImage(img, 0, 0);
                 editorCanvas.original = img;
+                
+                // Reset slider
+                document.getElementById('adj-bright').value = 100;
+                document.getElementById('adj-contrast').value = 100;
+                document.getElementById('adj-saturate').value = 100;
             };
             img.src = lastCapturedImage;
         }
 
         function applyEditorFilters() {
+            if(!editorCanvas.original) return;
             const b = document.getElementById('adj-bright').value;
             const c = document.getElementById('adj-contrast').value;
             const s = document.getElementById('adj-saturate').value;
