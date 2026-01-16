@@ -109,13 +109,8 @@
         lucide.createIcons();
 
         // --- KONFIGURASI SCRIPT URL ---
+        // URL Web App terbaru yang Anda berikan
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby_eUnzheGNCgvz2IdOQK1-oryY087tPsY68BPvh_RnrPPtsvwx0gHgkwU9eDXa1gPPcQ/exec"; 
-
-        // --- BACA DATA DARI URL (DARI INDEX.HTML) ---
-        const urlParams = new URLSearchParams(window.location.search);
-        const nisn = urlParams.get('nisn');
-        const nama = urlParams.get('nama');
-        const kelas = urlParams.get('kelas');
 
         const video = document.getElementById('camera-feed');
         const canvas = document.getElementById('photo-canvas');
@@ -211,15 +206,9 @@
             btnText.textContent = "Sedang Mengirim...";
             btnLoader.classList.remove('hidden');
 
-            // --- KIRIM DATA LENGKAP: NISN, NAMA, KELAS, DAN FOTO ---
             fetch(SCRIPT_URL, {
                 method: "POST",
-                body: JSON.stringify({ 
-                    nisn: nisn,
-                    nama: nama,
-                    kelas: kelas,
-                    image: base64Data 
-                }),
+                body: JSON.stringify({ image: base64Data }),
                 mode: "no-cors" 
             })
             .then(() => {
