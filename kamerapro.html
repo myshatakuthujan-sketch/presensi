@@ -34,7 +34,7 @@
             align-items: center;
             justify-content: center;
             overflow: hidden;
-            background: #000;
+            background: #111;
         }
 
         #video {
@@ -45,12 +45,11 @@
             transform-origin: center center;
         }
 
-        /* Mode Mirror untuk Kamera Depan */
-        .mirror-mode {
+        /* Logic for Mirror Effect */
+        .mirror-active {
             transform: scaleX(-1) !important;
         }
 
-        /* UI Trays */
         .ui-tray {
             position: absolute; left: 0; width: 100%; z-index: 50;
             transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -143,7 +142,7 @@
     <div id="flash-overlay" class="fixed inset-0 bg-white opacity-0 pointer-events-none z-[100] transition-opacity duration-100"></div>
 
     <div class="camera-container">
-        <!-- Header Controls -->
+        <!-- Kontrol Header -->
         <div class="absolute top-0 left-0 w-full pt-12 pb-4 px-4 flex justify-between items-center z-[60] bg-gradient-to-b from-black/90 to-transparent">
             <div class="flex items-center gap-2">
                 <div id="recording-indicator" class="hidden flex items-center bg-red-600/90 px-3 py-1 rounded-full text-[10px] font-bold">
@@ -151,10 +150,11 @@
                     <span id="timer">00:00</span>
                 </div>
                 <button onclick="toggleMagicAuto()" id="btn-magic" class="bg-black/50 px-3 py-2 rounded-full border border-white/20 text-[9px] font-bold uppercase">Magic</button>
-                <button onclick="cycleFlash()" id="btn-flash" class="bg-black/50 px-3 py-2 rounded-full border border-white/20 text-[9px] font-bold uppercase">⚡ Off</button>
+                <button onclick="toggleMirror()" id="btn-mirror" class="bg-black/50 px-3 py-2 rounded-full border border-white/20 text-[9px] font-bold uppercase">Mirror</button>
             </div>
             
             <div class="flex gap-2">
+                <button onclick="cycleFlash()" id="btn-flash" class="bg-black/50 p-2.5 rounded-full border border-white/20 text-[9px] font-bold uppercase">⚡ Off</button>
                 <button onclick="toggleGrid()" id="btn-grid-top" class="bg-black/50 p-2.5 rounded-full border border-white/20"><svg width="18" height="18" fill="white" viewBox="0 0 24 24"><path d="M4 8h4V4H4v4zm6 0h4V4h-4v4zm6-4v4h4V4h-4zM4 14h4v-4H4v4zm6 0h4v-4h-4v4zm6 0h4v-4h-4v4zM4 20h4v-4H4v4zm6 0h4v-4h-4v4zm6 0h4v-4h-4v4z"/></svg></button>
                 <button onclick="toggleTray('filter')" id="btn-filter-toggle" class="bg-black/50 p-2.5 rounded-full border border-white/20"><svg width="18" height="18" fill="white" viewBox="0 0 24 24"><path d="M14.73 20.83L17.58 18L14.73 15.17L15.85 14.03L20 18.17L15.85 22.31L14.73 20.83M10.5 12.78L12.75 15L8.5 19.25L4.25 15L6.5 12.78L10.5 12.78M10.5 3L15 7.5L10.5 12L6 7.5L10.5 3Z"/></svg></button>
                 <button onclick="toggleTray('speed')" id="btn-speed-toggle" class="bg-black/50 p-2.5 rounded-full border border-white/20 text-[10px] font-bold min-w-[42px]">1x</button>
@@ -164,6 +164,11 @@
         </div>
 
         <div class="camera-preview">
+            <div id="camera-error-msg" class="absolute inset-0 z-10 flex flex-col items-center justify-center p-6 text-center hidden">
+                <svg class="w-12 h-12 text-gray-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                <p id="error-text" class="text-sm text-gray-400 font-medium">Meminta akses kamera...</p>
+                <button onclick="initCamera()" class="mt-4 px-6 py-2 bg-white text-black text-xs font-bold rounded-full uppercase tracking-widest">Coba Lagi</button>
+            </div>
             <canvas id="brightness-canvas" style="display:none;"></canvas>
             <video id="video" autoplay playsinline muted></video>
             <div id="grid-lines" class="absolute inset-0 pointer-events-none hidden">
@@ -226,11 +231,14 @@
         const ctx = editorCanvas.getContext('2d');
         const brightnessCanvas = document.getElementById('brightness-canvas');
         const bCtx = brightnessCanvas.getContext('2d');
+        const errorMsg = document.getElementById('camera-error-msg');
+        const errorText = document.getElementById('error-text');
         
         let isFrontCamera = false;
         let activeFilter = 'none';
         let currentZoom = 1;
         let isMagicAuto = false;
+        let isMirror = false; // New state for mirror mode
         let lastCapturedImage = null;
         let isRecording = false;
         let currentSpeed = 1;
@@ -239,6 +247,7 @@
         let mediaRecorder;
         let recordedChunks = [];
         let flashMode = 'off';
+        let currentStream = null;
 
         const FILTERS = [
             { id: 'none', name: 'Asli' }, { id: 'teal-orange', name: 'Teal' }, { id: 'warm-nostalgia', name: 'Warm' },
@@ -249,30 +258,56 @@
         ];
 
         async function initCamera() {
-            if (window.stream) window.stream.getTracks().forEach(t => t.stop());
+            errorMsg.classList.add('hidden');
+            if (currentStream) {
+                currentStream.getTracks().forEach(t => t.stop());
+            }
             
-            const constraints = {
-                video: { 
-                    facingMode: isFrontCamera ? 'user' : 'environment', 
-                    width: { ideal: 1280 }, 
-                    height: { ideal: 720 },
-                    frameRate: { ideal: 60 }
+            const configs = [
+                {
+                    video: { 
+                        facingMode: isFrontCamera ? 'user' : 'environment', 
+                        width: { ideal: 3840 },
+                        height: { ideal: 2160 }
+                    },
+                    audio: true
                 },
-                audio: true
-            };
-            
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia(constraints);
-                window.stream = stream;
-                video.srcObject = stream;
-                
-                if(isFrontCamera) video.classList.add('mirror-mode');
-                else video.classList.remove('mirror-mode');
-                
-                // iPhone fix: paksa play
-                video.play().catch(() => {});
-            } catch (e) { 
-                showToast("Kamera tidak tersedia"); 
+                {
+                    video: { 
+                        facingMode: isFrontCamera ? 'user' : 'environment', 
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 }
+                    },
+                    audio: true
+                },
+                {
+                    video: { facingMode: isFrontCamera ? 'user' : 'environment' },
+                    audio: true
+                }
+            ];
+
+            let success = false;
+            for (let config of configs) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia(config);
+                    currentStream = stream;
+                    video.srcObject = stream;
+                    
+                    updateFilters(); // Refresh transform classes
+                    
+                    video.onloadedmetadata = () => {
+                        video.play().catch(e => console.error("Video play failed:", e));
+                    };
+                    success = true;
+                    break;
+                } catch (e) {
+                    console.warn(`Gagal dengan config:`, config, e);
+                }
+            }
+
+            if (!success) {
+                errorMsg.classList.remove('hidden');
+                errorText.innerText = "Kamera tidak dapat dimulai. Pastikan izin kamera diaktifkan.";
             }
         }
 
@@ -288,17 +323,25 @@
         }
 
         function getBrightness() {
-            brightnessCanvas.width = 50; brightnessCanvas.height = 50;
-            bCtx.drawImage(video, 0, 0, 50, 50);
-            const data = bCtx.getImageData(0, 0, 50, 50).data;
-            let total = 0;
-            for(let i=0; i<data.length; i+=4) total += (data[i] + data[i+1] + data[i+2]) / 3;
-            return total / (data.length / 4);
+            try {
+                brightnessCanvas.width = 50; brightnessCanvas.height = 50;
+                bCtx.drawImage(video, 0, 0, 50, 50);
+                const data = bCtx.getImageData(0, 0, 50, 50).data;
+                let total = 0;
+                for(let i=0; i<data.length; i+=4) total += (data[i] + data[i+1] + data[i+2]) / 3;
+                return total / (data.length / 4);
+            } catch(e) { return 100; }
         }
 
         function toggleMagicAuto() {
             isMagicAuto = !isMagicAuto;
             document.getElementById('btn-magic').classList.toggle('active-btn', isMagicAuto);
+            updateFilters();
+        }
+
+        function toggleMirror() {
+            isMirror = !isMirror;
+            document.getElementById('btn-mirror').classList.toggle('active-btn', isMirror);
             updateFilters();
         }
 
@@ -311,13 +354,14 @@
             currentSpeed = speed;
             document.getElementById('btn-speed-toggle').innerText = speed + 'x';
             document.querySelectorAll('.speed-grid button').forEach(b => b.classList.remove('active-btn'));
-            document.getElementById('speed-' + speed).classList.add('active-btn');
+            const target = document.getElementById('speed-' + speed);
+            if(target) target.classList.add('active-btn');
             showToast(`Kecepatan: ${speed}x`);
         }
 
         function updateZoom(val) {
             currentZoom = val;
-            video.style.transform = `scale(${val}) ${isFrontCamera ? 'scaleX(-1)' : ''}`;
+            applyTransform();
             document.getElementById('zoom-text').innerText = parseFloat(val).toFixed(1) + 'x';
             document.getElementById('btn-zoom-toggle').innerText = parseFloat(val).toFixed(1) + 'x';
         }
@@ -329,7 +373,19 @@
         }
 
         function updateFilters() {
-            video.className = `filter-${activeFilter} ${isMagicAuto ? 'magic-auto-active' : ''} ${isFrontCamera ? 'mirror-mode' : ''}`;
+            video.className = `filter-${activeFilter} ${isMagicAuto ? 'magic-auto-active' : ''}`;
+            applyTransform();
+        }
+
+        function applyTransform() {
+            // Combine zoom and mirror/facing flips
+            // Default: scale(zoom)
+            // If Front Cam: scale(zoom) scaleX(-1)
+            // If Mirror Toggle Active: Flip the current horizontal scale
+            let scaleX = (isFrontCamera) ? -1 : 1;
+            if (isMirror) scaleX *= -1;
+            
+            video.style.transform = `scale(${currentZoom}) scaleX(${scaleX})`;
         }
 
         function toggleTray(type) {
@@ -354,6 +410,10 @@
         }
 
         function handleCapture() {
+            if(!video.videoWidth) {
+                showToast("Kamera belum siap");
+                return;
+            }
             let needsFlash = (flashMode === 'on' || (flashMode === 'auto' && getBrightness() < 70));
             if(needsFlash) {
                 document.getElementById('flash-overlay').style.opacity = '1';
@@ -367,14 +427,29 @@
 
         function capturePhoto() {
             const canvas = document.createElement('canvas');
-            canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+            canvas.width = video.videoWidth; 
+            canvas.height = video.videoHeight;
             const c = canvas.getContext('2d');
-            if(isFrontCamera) { c.translate(canvas.width, 0); c.scale(-1, 1); }
+            
+            c.imageSmoothingEnabled = true;
+            c.imageSmoothingQuality = 'high';
+
+            // Apply Mirror/Flip to Canvas to match Preview
+            let scaleX = (isFrontCamera) ? -1 : 1;
+            if (isMirror) scaleX *= -1;
+
+            if(scaleX === -1) { 
+                c.translate(canvas.width, 0); 
+                c.scale(-1, 1); 
+            }
+            
             c.filter = getComputedStyle(video).filter;
+            
             const sw = video.videoWidth / currentZoom;
             const sh = video.videoHeight / currentZoom;
             c.drawImage(video, (video.videoWidth-sw)/2, (video.videoHeight-sh)/2, sw, sh, 0, 0, canvas.width, canvas.height);
-            lastCapturedImage = canvas.toDataURL('image/jpeg', 0.9);
+            
+            lastCapturedImage = canvas.toDataURL('image/jpeg', 1.0);
             galleryPreview.style.backgroundImage = `url(${lastCapturedImage})`;
             showToast("Foto Disimpan");
         }
@@ -385,24 +460,48 @@
         }
 
         function startRecording() {
+            const stream = video.srcObject;
+            if (!stream || stream.getTracks().length === 0) {
+                showToast("Kamera belum siap");
+                return;
+            }
+
             recordedChunks = [];
             
-            // Pengecekan tipe media yang didukung iPhone vs Android
-            const types = ['video/mp4', 'video/webm;codecs=vp9', 'video/webm'];
-            let supportedType = types.find(t => MediaRecorder.isTypeSupported(t)) || '';
+            const mimeTypes = [
+                'video/mp4;codecs=h264',
+                'video/webm;codecs=h264',
+                'video/webm;codecs=vp9',
+                'video/webm'
+            ];
+            
+            let selectedMimeType = '';
+            for (let type of mimeTypes) {
+                if (MediaRecorder.isTypeSupported(type)) {
+                    selectedMimeType = type;
+                    break;
+                }
+            }
             
             try {
-                mediaRecorder = new MediaRecorder(window.stream, { mimeType: supportedType });
+                const options = { 
+                    mimeType: selectedMimeType,
+                    videoBitsPerSecond: 8000000 
+                };
+                mediaRecorder = new MediaRecorder(stream, options);
                 mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunks.push(e.data); };
                 mediaRecorder.onstop = saveVideo;
-                mediaRecorder.start();
+                mediaRecorder.start(1000); 
                 
                 isRecording = true;
                 document.getElementById('video-trigger').classList.add('recording-active');
                 document.getElementById('recording-indicator').classList.remove('hidden');
                 recordStartTime = Date.now();
                 timerInterval = setInterval(updateTimer, 1000);
-            } catch (e) { showToast("Gagal merekam"); }
+            } catch (e) { 
+                console.error("Recording Error:", e);
+                showToast("Gagal merekam"); 
+            }
         }
 
         function stopRecording() {
@@ -416,16 +515,20 @@
         }
 
         function saveVideo() {
-            const extension = mediaRecorder.mimeType.includes('mp4') ? 'mp4' : 'webm';
+            if (recordedChunks.length === 0) return;
+            
+            let extension = 'webm';
+            if (mediaRecorder.mimeType.includes('mp4')) extension = 'mp4';
+            
             const blob = new Blob(recordedChunks, { type: mediaRecorder.mimeType });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `VIDEO_${Date.now()}.${extension}`;
+            a.download = `VIDEO_PRO_${Date.now()}.${extension}`;
             document.body.appendChild(a);
             a.click();
             setTimeout(() => { document.body.removeChild(a); window.URL.revokeObjectURL(url); }, 500);
-            showToast(`Video .${extension} Tersimpan`);
+            showToast(`Video Tersimpan`);
         }
 
         function updateTimer() {
@@ -436,10 +539,17 @@
         }
 
         function openEditor() {
-            if(!lastCapturedImage) return;
+            if(!lastCapturedImage) {
+                showToast("Ambil foto dulu");
+                return;
+            }
             document.getElementById('editor-overlay').classList.remove('hidden');
             const img = new Image();
-            img.onload = () => { editorCanvas.width = img.width; editorCanvas.height = img.height; ctx.drawImage(img, 0, 0); };
+            img.onload = () => { 
+                editorCanvas.width = img.width; 
+                editorCanvas.height = img.height; 
+                ctx.drawImage(img, 0, 0); 
+            };
             img.src = lastCapturedImage;
         }
 
@@ -447,8 +557,8 @@
         
         function saveEditedPhoto() {
             const a = document.createElement('a');
-            a.href = editorCanvas.toDataURL('image/jpeg', 0.9);
-            a.download = `EDIT_${Date.now()}.jpg`;
+            a.href = editorCanvas.toDataURL('image/jpeg', 1.0);
+            a.download = `EDIT_PRO_${Date.now()}.jpg`;
             a.click();
             showToast("Edit Tersimpan");
             closeEditor();
@@ -466,7 +576,10 @@
             initCamera(); 
         }
 
-        window.onload = () => { initCamera(); renderFilters(); };
+        window.onload = () => { 
+            initCamera(); 
+            renderFilters(); 
+        };
     </script>
 </body>
 </html>
