@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ProCam Ultra - Ultimate Filters</title>
+    <title>ProCam Ultra - Full Suite v3</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
@@ -25,86 +25,71 @@
             background: #000;
         }
 
-        video {
+        video, #editor-canvas {
             width: 100%;
             height: 100%;
             object-fit: cover;
             image-rendering: high-quality;
-            transition: transform 0.8s cubic-bezier(0.2, 1, 0.2, 1), filter 0.3s ease;
+            transition: transform 0.4s cubic-bezier(0.2, 1, 0.2, 1), filter 0.3s ease;
             transform-origin: center center;
         }
 
         /* --- KOLEKSI FILTER PROFESIONAL --- */
         .filter-none { filter: none; }
-        
-        /* VSCO Series */
-        .filter-m3 { filter: sepia(0.3) contrast(0.9) brightness(1.05) saturate(0.8) hue-rotate(-5deg); } /* M3: Warm Fade */
-        .filter-m5 { filter: sepia(0.4) contrast(0.85) brightness(1.1) saturate(0.7); } /* M5: Aesthetic Classic */
-        .filter-c1 { filter: contrast(1.2) saturate(1.4) brightness(1.05); } /* C1: Vibrant Nature */
-        .filter-f2 { filter: contrast(0.9) brightness(1.1) saturate(0.8) opacity(0.9) sepia(0.1); } /* F2: Matte Analog */
-        .filter-g3 { filter: contrast(1.05) saturate(1.1) sepia(0.2) brightness(1.02); } /* G3: Portrait Friendly */
+        .filter-m3 { filter: sepia(0.3) contrast(1.1) brightness(1.05) saturate(1.1); }
+        .filter-m5 { filter: sepia(0.4) contrast(0.9) brightness(1.1) saturate(0.6); }
+        .filter-c1 { filter: contrast(1.25) saturate(1.5) brightness(1.05); }
+        .filter-f2 { filter: contrast(0.95) brightness(1.1) saturate(0.8) sepia(0.2); }
+        .filter-g3 { filter: contrast(1.1) saturate(1.2) sepia(0.1) brightness(1.05); }
+        .filter-kodak { filter: contrast(1.2) saturate(1.4) sepia(0.2) brightness(0.9); }
+        .filter-fuji { filter: contrast(1.1) saturate(1.3) hue-rotate(10deg) brightness(1.05); }
+        .filter-teal-orange { filter: contrast(1.3) brightness(1.05) saturate(1.4) hue-rotate(-20deg); }
+        .filter-moody { filter: brightness(0.7) contrast(1.4) saturate(0.6) sepia(0.3); }
+        .filter-hdr { filter: contrast(1.5) brightness(1.1) saturate(1.3); }
+        .filter-noir { filter: grayscale(1) contrast(1.5) brightness(0.9); }
+        .filter-cinematic { filter: contrast(1.1) brightness(1.05) saturate(1.1) sepia(0.1) hue-rotate(-5deg); }
 
-        /* Film & Cinematic */
-        .filter-kodak { filter: contrast(1.1) saturate(1.3) sepia(0.15) brightness(0.95); }
-        .filter-fuji { filter: contrast(1.05) saturate(1.2) hue-rotate(5deg) brightness(1.02); }
-        .filter-teal-orange { filter: contrast(1.2) brightness(1.05) saturate(1.3) hue-rotate(-15deg) sepia(0.1); }
-        
-        /* Lightroom & Editorial */
-        .filter-moody { filter: brightness(0.8) contrast(1.3) saturate(0.7) sepia(0.2); }
-        .filter-vintage { filter: sepia(0.5) contrast(0.9) brightness(1.05) grayscale(0.2); }
-        .filter-grunge { filter: contrast(1.5) brightness(0.8) grayscale(0.3) saturate(0.6); }
-
-        /* Snapseed & Creative */
-        .filter-hdr { filter: contrast(1.4) brightness(1.1) saturate(1.2) drop-shadow(0 0 1px black); }
-        .filter-artistic { filter: contrast(1.6) saturate(0.4) brightness(1.1) hue-rotate(10deg); }
-        .filter-beauty { filter: contrast(0.95) brightness(1.1) saturate(1.1) blur(0.3px); }
-
-        /* Instagram Style */
-        .filter-clarendon { filter: contrast(1.2) saturate(1.35) brightness(1.1); }
-        .filter-gingham { filter: brightness(1.05) sepia(0.15) opacity(0.9) contrast(0.9); }
-
-        /* UI Styles */
-        .btn-action {
+        /* UI Shutter Styles */
+        .shutter-btn {
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.2s ease;
         }
 
         .shutter-photo {
-            width: 68px;
-            height: 68px;
+            width: 72px;
+            height: 72px;
             background: #fff;
             border-radius: 50%;
             border: 4px solid rgba(255, 255, 255, 0.2);
             position: relative;
-            box-shadow: 0 0 20px rgba(255,255,255,0.1);
         }
 
         .shutter-photo::after {
             content: '';
             position: absolute;
-            inset: 3px;
+            inset: 4px;
             border-radius: 50%;
             border: 2px solid #000;
         }
 
         .shutter-video, .shutter-slomo {
-            width: 68px;
-            height: 68px;
+            width: 58px;
+            height: 58px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.3s ease;
+            border: 3px solid rgba(255, 255, 255, 0.15);
         }
 
-        .shutter-video { background: rgba(255, 59, 48, 0.15); border: 4px solid rgba(255, 59, 48, 0.3); }
-        .shutter-slomo { background: rgba(0, 122, 255, 0.15); border: 4px solid rgba(0, 122, 255, 0.3); }
+        .shutter-video { background: rgba(255, 59, 48, 0.15); }
+        .shutter-slomo { background: rgba(0, 122, 255, 0.15); }
 
-        .shutter-inner-red { width: 48px; height: 48px; background: #ff3b30; border-radius: 50%; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        .shutter-inner-blue { width: 48px; height: 48px; background: #007aff; border-radius: 50%; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .shutter-inner-red { width: 42px; height: 42px; background: #ff3b30; border-radius: 50%; transition: all 0.3s; }
+        .shutter-inner-blue { width: 42px; height: 42px; background: #007aff; border-radius: 50%; transition: all 0.3s; }
 
         .recording .shutter-inner-red, 
         .recording .shutter-inner-blue {
@@ -113,122 +98,115 @@
             border-radius: 6px;
         }
 
-        .zoom-tray {
-            position: absolute;
-            bottom: 230px;
-            left: 0;
-            width: 100%;
-            display: flex;
-            justify-content: center;
-            gap: 8px;
-            padding: 0 20px;
-            z-index: 10;
-            overflow-x: auto;
-        }
-
-        .zoom-pill {
-            background: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(20px);
-            border-radius: 20px;
-            min-width: 48px;
-            height: 32px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 11px;
-            font-weight: 800;
-            border: 1px solid rgba(255,255,255,0.1);
-            transition: all 0.2s;
-            flex-shrink: 0;
-        }
-
-        .active-zoom { 
-            color: #ffcc00; 
-            border-color: #ffcc00; 
-            background: rgba(255, 204, 0, 0.15);
-        }
-
-        #flash-overlay {
-            position: fixed;
-            inset: 0;
-            background: white;
-            opacity: 0;
-            pointer-events: none;
-            z-index: 100;
-        }
-
-        #save-toast {
-            position: fixed;
-            top: 30px;
-            left: 50%;
-            transform: translateX(-50%) translateY(-150px);
-            background: rgba(255, 255, 255, 0.95);
-            color: #000;
-            padding: 12px 28px;
-            border-radius: 40px;
-            font-size: 14px;
-            font-weight: 700;
-            z-index: 200;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            transition: transform 0.6s cubic-bezier(0.19, 1, 0.22, 1);
-        }
-
-        #save-toast.show { transform: translateX(-50%) translateY(0); }
-
         .filter-tray {
             position: absolute;
-            bottom: 120px;
+            bottom: 220px;
             left: 0;
             width: 100%;
             display: flex;
-            gap: 12px;
+            gap: 14px;
             overflow-x: auto;
-            padding: 10px 20px;
-            background: linear-gradient(to top, rgba(0,0,0,0.5), transparent);
+            padding: 12px 24px;
+            background: linear-gradient(to top, rgba(0,0,0,0.6), transparent);
             z-index: 15;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .filter-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            flex-shrink: 0;
-            width: 60px;
-            cursor: pointer;
-        }
+        .hidden-tray { transform: translateY(120px); opacity: 0; pointer-events: none; }
 
-        .filter-preview {
-            width: 50px;
-            height: 50px;
-            border-radius: 12px;
-            background: #222;
+        .filter-preview-box {
+            width: 54px;
+            height: 54px;
+            border-radius: 14px;
             border: 2px solid transparent;
             margin-bottom: 6px;
             transition: all 0.2s;
-            overflow: hidden;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 10px;
-            font-weight: bold;
-            color: rgba(255,255,255,0.3);
+            font-weight: 900;
+            background: #222;
+            overflow: hidden;
+            color: white;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
         }
 
-        .active-filter .filter-preview {
+        .active-filter .filter-preview-box { border-color: #ffcc00; transform: scale(1.1); }
+
+        /* Zoom Controls */
+        .zoom-overlay {
+            position: absolute;
+            bottom: 140px;
+            left: 0;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            z-index: 20;
+            pointer-events: none;
+        }
+
+        .zoom-presets {
+            display: flex;
+            gap: 8px;
+            pointer-events: auto;
+        }
+
+        .zoom-btn {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: rgba(0,0,0,0.5);
+            backdrop-blur: 10px;
+            border: 1px solid rgba(255,255,255,0.2);
+            color: white;
+            font-size: 10px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .zoom-btn.active {
+            background: #ffcc00;
+            color: black;
             border-color: #ffcc00;
             transform: scale(1.1);
         }
 
-        .active-filter span {
-            color: #ffcc00;
-            font-weight: bold;
+        .zoom-slider-container {
+            width: 80%;
+            max-width: 300px;
+            pointer-events: auto;
+            background: rgba(0,0,0,0.3);
+            padding: 8px 16px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
         }
 
-        .filter-name {
-            font-size: 9px;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            opacity: 0.6;
+        /* Editor Overlay */
+        #editor-overlay {
+            position: fixed;
+            inset: 0;
+            background: #000;
+            z-index: 50;
+            display: none;
+            flex-direction: column;
+        }
+
+        .slider-group {
+            background: rgba(255,255,255,0.06);
+            padding: 14px;
+            border-radius: 14px;
+            margin-bottom: 10px;
+        }
+
+        input[type=range] {
+            width: 100%;
+            accent-color: #ffcc00;
         }
 
         .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -236,248 +214,280 @@
 </head>
 <body>
 
-    <div id="flash-overlay"></div>
-    <div id="save-toast">Pro-Quality Capture Saved</div>
+    <div id="flash-overlay" class="fixed inset-0 bg-white opacity-0 pointer-events-none z-[100] transition-opacity duration-100"></div>
+    <div id="save-toast" class="fixed top-8 left-1/2 -translate-x-1/2 -translate-y-20 bg-white text-black px-6 py-3 rounded-full font-bold z-[200] transition-transform duration-500 shadow-2xl text-center min-w-[200px]">Capture Disimpan</div>
 
+    <!-- MAIN CAMERA INTERFACE -->
     <div class="camera-preview">
         <video id="video" autoplay playsinline muted></video>
         
-        <!-- UI Atas -->
         <div class="absolute top-0 left-0 w-full p-8 flex justify-between items-start z-10">
             <div class="flex flex-col gap-2">
-                <div id="recording-indicator" class="hidden flex items-center bg-red-600/90 backdrop-blur-xl px-5 py-2 rounded-full text-[12px] font-black tracking-widest">
-                    <span id="rec-dot" class="w-2.5 h-2.5 rounded-full mr-3 animate-pulse bg-white"></span>
-                    <span id="rec-type" class="mr-3">4K PRO</span>
+                <div id="recording-indicator" class="hidden flex items-center bg-red-600/90 backdrop-blur-xl px-4 py-1.5 rounded-full text-[11px] font-black tracking-widest shadow-lg">
+                    <span class="w-2 h-2 rounded-full mr-2 animate-pulse bg-white"></span>
+                    <span id="rec-type" class="mr-2 uppercase">REC</span>
                     <span id="timer" class="font-mono">00:00</span>
                 </div>
-                <div id="res-badge" class="text-[10px] font-bold text-white/40 tracking-[0.2em] uppercase pl-2">Ultra HD Mode</div>
+                <div id="res-badge" class="text-[9px] font-bold text-white/50 tracking-[0.2em] uppercase pl-2">Ultra HD 4K • Pro-RAW</div>
             </div>
-            <button onclick="switchCamera()" class="bg-black/40 p-3.5 rounded-full backdrop-blur-xl border border-white/10 active:scale-90 transition-transform">
-                <svg width="24" height="24" fill="white" viewBox="0 0 24 24"><path d="M19 8l-4 4h3c0 3.31-2.69 6-6 6-1.01 0-1.97-.25-2.8-.7l-1.46 1.46C8.97 19.54 10.43 20 12 20c4.42 0 8-3.58 8-8h3l-4-4zM6 12c0-3.31 2.69-6 6-6 1.01 0 1.97.25 2.8.7l1.46-1.46C15.03 4.46 13.57 4 12 4c-4.42 0-8 3.58-8 8H1l4 4 4-4H6z"/></svg>
-            </button>
+            
+            <div class="flex gap-3">
+                <button id="toggle-filter" onclick="toggleFilterTray()" class="bg-black/40 p-3 rounded-full backdrop-blur-xl border border-white/10 active:scale-90 transition-all">
+                    <svg width="22" height="22" fill="white" viewBox="0 0 24 24"><path d="M7.5 5.6L10 7L8.6 4.5L10 2L7.5 3.4L5 2L6.4 4.5L5 7L7.5 5.6M13.38 5.07L4.57 13.89C4.39 14.07 4.39 14.39 4.57 14.57L9.43 19.43C9.61 19.61 9.93 19.61 10.11 19.43L18.93 10.62C19.11 10.44 19.11 10.12 18.93 9.94L14.07 5.07M16.3 9.83L9.77 16.36L7.64 14.23L14.17 7.7L16.3 9.83Z"/></svg>
+                </button>
+                <button onclick="switchCamera()" class="bg-black/40 p-3 rounded-full backdrop-blur-xl border border-white/10 active:scale-90">
+                    <svg width="22" height="22" fill="white" viewBox="0 0 24 24"><path d="M19 8l-4 4h3c0 3.31-2.69 6-6 6-1.01 0-1.97-.25-2.8-.7l-1.46 1.46C8.97 19.54 10.43 20 12 20c4.42 0 8-3.58 8-8h3l-4-4zM6 12c0-3.31 2.69-6 6-6 1.01 0 1.97.25 2.8.7l1.46-1.46C15.03 4.46 13.57 4 12 4c-4.42 0-8 3.58-8 8H1l4 4 4-4H6z"/></svg>
+                </button>
+            </div>
         </div>
 
-        <!-- Zoom Tray -->
-        <div class="zoom-tray no-scrollbar">
-            <button onclick="setZoom(0.5)" id="zoom-0.5" class="zoom-pill">.5</button>
-            <button onclick="setZoom(1)" id="zoom-1" class="zoom-pill active-zoom">1x</button>
-            <button onclick="setZoom(2)" id="zoom-2" class="zoom-pill">2x</button>
-            <button onclick="setZoom(4)" id="zoom-4" class="zoom-pill">4x</button>
-            <button onclick="setZoom(8)" id="zoom-8" class="zoom-pill">8x</button>
-            <button onclick="setZoom(16)" id="zoom-16" class="zoom-pill">16x</button>
-        </div>
+        <!-- Filter Tray -->
+        <div id="filter-tray" class="filter-tray no-scrollbar"></div>
 
-        <!-- Filter Tray Dinamis -->
-        <div id="filter-tray" class="filter-tray no-scrollbar">
-            <!-- Filter items akan di-inject via JS -->
+        <!-- Zoom Controls -->
+        <div class="zoom-overlay">
+            <div class="zoom-presets" id="zoom-presets">
+                <button class="zoom-btn" onclick="setZoom(0.5)">.5</button>
+                <button class="zoom-btn active" onclick="setZoom(1)">1x</button>
+                <button class="zoom-btn" onclick="setZoom(2)">2</button>
+                <button class="zoom-btn" onclick="setZoom(5)">5</button>
+                <button class="zoom-btn" onclick="setZoom(16)">16</button>
+            </div>
+            <div class="zoom-slider-container">
+                <input type="range" id="zoom-slider" min="0.5" max="16" step="0.1" value="1" oninput="updateZoomFromSlider(this.value)">
+                <div class="flex justify-between mt-1 text-[8px] font-bold opacity-40 px-1">
+                    <span>ULTRA WIDE</span>
+                    <span>TELEPHOTO</span>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- UI Kontrol Bawah -->
-    <div id="controls-container" class="fixed bottom-0 left-0 w-full bg-gradient-to-t from-black via-black/80 to-transparent p-6 pb-12">
-        <div class="flex justify-between items-center max-w-lg mx-auto px-4">
-            <div class="w-12 h-12 rounded-xl bg-white/5 border border-white/10 overflow-hidden shadow-inner">
-                <div id="gallery-preview" class="w-full h-full bg-cover bg-center transition-all duration-500"></div>
+    <!-- BOTTOM CONTROLS -->
+    <div class="fixed bottom-0 left-0 w-full bg-gradient-to-t from-black via-black/95 to-transparent p-4 pb-12">
+        <div class="flex justify-between items-center max-w-md mx-auto px-4">
+            
+            <!-- Gallery & Edit Combined Group -->
+            <div class="flex flex-col items-center gap-3">
+                <div id="gallery-preview" class="w-12 h-12 rounded-xl bg-white/5 border border-white/20 bg-cover bg-center overflow-hidden shadow-inner"></div>
+                <button onclick="openEditor()" class="bg-white/10 p-2.5 rounded-xl border border-white/10 active:scale-90 transition-transform">
+                    <svg width="20" height="20" fill="white" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                </button>
             </div>
 
-            <div class="btn-action">
+            <!-- Slo-Mo -->
+            <div class="shutter-btn">
                 <button onclick="toggleRecording('slomo')" id="slomo-trigger" class="shutter-slomo active:scale-95">
                     <div class="shutter-inner-blue"></div>
                 </button>
-                <span class="text-[9px] mt-2 font-bold opacity-40 uppercase tracking-widest">Slo-Mo</span>
+                <span class="text-[9px] mt-2 font-black opacity-40 uppercase tracking-tighter">Slo-Mo</span>
             </div>
 
-            <div class="btn-action">
-                <button onclick="capturePhoto()" id="photo-trigger" class="shutter-photo active:scale-90"></button>
-                <span class="text-[9px] mt-2 font-bold opacity-40 uppercase tracking-widest">Foto</span>
+            <!-- Foto -->
+            <div class="shutter-btn">
+                <button onclick="capturePhoto()" class="shutter-photo active:scale-90 shadow-2xl"></button>
+                <span class="text-[9px] mt-2 font-black opacity-40 uppercase tracking-tighter">Foto</span>
             </div>
 
-            <div class="btn-action">
+            <!-- Video -->
+            <div class="shutter-btn">
                 <button onclick="toggleRecording('video')" id="video-trigger" class="shutter-video active:scale-95">
                     <div class="shutter-inner-red"></div>
                 </button>
-                <span class="text-[9px] mt-2 font-bold opacity-40 uppercase tracking-widest">Video</span>
+                <span class="text-[9px] mt-2 font-black opacity-40 uppercase tracking-tighter">Video</span>
             </div>
 
-            <button class="w-12 h-12 flex items-center justify-center bg-white/5 rounded-full active:bg-white/10">
-                <svg width="22" height="22" fill="white" opacity="0.6" viewBox="0 0 24 24"><path d="M12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5zm7-9h-1.72l-.91-1h-4.74l-.91 1H9C7.9 6.5 7 7.4 7 8.5v7c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2v-7c0-1.1-.9-2-2-2zM12 9c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3z"/></svg>
+            <!-- More Options -->
+            <button class="w-12 h-12 flex items-center justify-center bg-white/5 rounded-full border border-white/5 active:bg-white/10">
+                <svg width="24" height="24" fill="white" opacity="0.4" viewBox="0 0 24 24"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
             </button>
+        </div>
+    </div>
+
+    <!-- EDITOR OVERLAY -->
+    <div id="editor-overlay">
+        <div class="p-6 flex justify-between items-center border-b border-white/10 bg-black/50 backdrop-blur-md">
+            <button onclick="closeEditor()" class="text-sm font-bold opacity-60">Batal</button>
+            <h2 class="text-xs font-black tracking-widest uppercase text-[#ffcc00]">Editor Pro</h2>
+            <button onclick="saveEditedImage()" class="text-sm font-bold text-[#ffcc00]">Simpan</button>
+        </div>
+        
+        <div class="flex-1 relative flex items-center justify-center bg-[#050505]">
+            <canvas id="editor-canvas" class="max-w-full max-h-full shadow-2xl"></canvas>
+        </div>
+
+        <div class="p-5 bg-black border-t border-white/10 no-scrollbar overflow-y-auto max-h-[38%] pb-12">
+            <div class="slider-group">
+                <div class="flex justify-between mb-1.5 text-[10px] font-bold opacity-50 uppercase tracking-wider"><span>Brightness</span><span id="val-bright">100%</span></div>
+                <input type="range" id="adj-bright" min="0" max="200" value="100" oninput="applyEditorFilters()">
+            </div>
+            <div class="slider-group">
+                <div class="flex justify-between mb-1.5 text-[10px] font-bold opacity-50 uppercase tracking-wider"><span>Contrast</span><span id="val-contrast">100%</span></div>
+                <input type="range" id="adj-contrast" min="0" max="200" value="100" oninput="applyEditorFilters()">
+            </div>
+            <div class="slider-group">
+                <div class="flex justify-between mb-1.5 text-[10px] font-bold opacity-50 uppercase tracking-wider"><span>Saturation</span><span id="val-saturate">100%</span></div>
+                <input type="range" id="adj-saturate" min="0" max="200" value="100" oninput="applyEditorFilters()">
+            </div>
+            <div class="slider-group">
+                <div class="flex justify-between mb-1.5 text-[10px] font-bold opacity-50 uppercase tracking-wider"><span>Warmth / Sepia</span><span id="val-warm">0%</span></div>
+                <input type="range" id="adj-warm" min="0" max="100" value="0" oninput="applyEditorFilters()">
+            </div>
         </div>
     </div>
 
     <script>
         const video = document.getElementById('video');
-        const flashOverlay = document.getElementById('flash-overlay');
+        const filterTray = document.getElementById('filter-tray');
         const galleryPreview = document.getElementById('gallery-preview');
+        const editorOverlay = document.getElementById('editor-overlay');
+        const editorCanvas = document.getElementById('editor-canvas');
         const recIndicator = document.getElementById('recording-indicator');
         const recType = document.getElementById('rec-type');
         const timerDisplay = document.getElementById('timer');
-        const toast = document.getElementById('save-toast');
-        const resBadge = document.getElementById('res-badge');
-        const filterTray = document.getElementById('filter-tray');
+        const zoomSlider = document.getElementById('zoom-slider');
+        const ctx = editorCanvas.getContext('2d');
         
-        let currentStream = null;
+        let lastCapturedImage = null;
         let isFrontCamera = false;
+        let activeFilter = 'none';
+        let isFilterTrayVisible = true;
         let isRecording = false;
-        let recordingMode = null; 
         let recordingStartTime;
         let timerInterval;
         let currentZoom = 1;
-        let activeFilter = 'none';
 
-        // Definisi Koleksi Filter
         const FILTERS = [
-            { id: 'none', name: 'Original' },
+            { id: 'none', name: 'Asli' },
             { id: 'm3', name: 'M3 Warm' },
             { id: 'm5', name: 'M5 Fade' },
             { id: 'c1', name: 'C1 Vivid' },
             { id: 'f2', name: 'F2 Analog' },
-            { id: 'g3', name: 'G3 Portrait' },
-            { id: 'kodak', name: 'Kodak Film' },
+            { id: 'g3', name: 'G3 Soft' },
+            { id: 'kodak', name: 'Kodak' },
             { id: 'fuji', name: 'Fuji Pro' },
-            { id: 'teal-orange', name: 'Teal Orange' },
-            { id: 'moody', name: 'Moody Dark' },
-            { id: 'vintage', name: 'Vintage' },
-            { id: 'grunge', name: 'Grunge' },
-            { id: 'hdr', name: 'HDR Scape' },
-            { id: 'artistic', name: 'Prisma' },
-            { id: 'beauty', name: 'Beauty' },
-            { id: 'clarendon', name: 'Clarendon' },
-            { id: 'gingham', name: 'Gingham' }
+            { id: 'teal-orange', name: 'Teal-O' },
+            { id: 'moody', name: 'Moody' },
+            { id: 'noir', name: 'B&W Noir' },
+            { id: 'cinematic', name: 'Cinema' },
+            { id: 'hdr', name: 'Ultra HDR' }
         ];
 
+        async function initCamera() {
+            if (window.stream) window.stream.getTracks().forEach(track => track.stop());
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: isFrontCamera ? 'user' : 'environment', width: { ideal: 1920 } },
+                    audio: true
+                });
+                window.stream = stream;
+                video.srcObject = stream;
+            } catch (err) { console.error(err); }
+        }
+
+        // --- ZOOM LOGIC ---
+        function setZoom(value) {
+            currentZoom = value;
+            zoomSlider.value = value;
+            applyZoom();
+            updateZoomButtons();
+        }
+
+        function updateZoomFromSlider(value) {
+            currentZoom = parseFloat(value);
+            applyZoom();
+            updateZoomButtons();
+        }
+
+        function applyZoom() {
+            // Kita menggunakan CSS transform untuk simulasi digital zoom
+            video.style.transform = `scale(${currentZoom})`;
+        }
+
+        function updateZoomButtons() {
+            const buttons = document.querySelectorAll('.zoom-btn');
+            buttons.forEach(btn => {
+                const val = parseFloat(btn.innerText.replace('x', ''));
+                btn.classList.toggle('active', val === currentZoom);
+            });
+        }
+
+        // --- FILTER LOGIC ---
         function initFilterTray() {
             filterTray.innerHTML = '';
             FILTERS.forEach(f => {
                 const div = document.createElement('div');
-                div.className = `filter-item ${f.id === activeFilter ? 'active-filter' : ''}`;
+                div.className = `flex flex-col items-center flex-shrink-0 w-[65px] cursor-pointer ${f.id === activeFilter ? 'active-filter' : ''}`;
                 div.onclick = () => setFilter(f.id);
-                div.innerHTML = `
-                    <div class="filter-preview filter-${f.id}">PRE</div>
-                    <span class="filter-name">${f.name}</span>
-                `;
+                div.innerHTML = `<div class="filter-preview-box filter-${f.id}">FX</div><span class="text-[8px] uppercase opacity-60 font-black tracking-tight">${f.name}</span>`;
                 filterTray.appendChild(div);
             });
-        }
-
-        async function initCamera() {
-            if (currentStream) {
-                currentStream.getTracks().forEach(track => track.stop());
-            }
-            
-            const qualityTiers = [
-                { width: 3840, height: 2160, label: "4K PRO" },
-                { width: 1920, height: 1080, label: "1080p HD" }
-            ];
-
-            for (const tier of qualityTiers) {
-                try {
-                    const stream = await navigator.mediaDevices.getUserMedia({
-                        video: { 
-                            facingMode: isFrontCamera ? 'user' : 'environment', 
-                            width: { ideal: tier.width }, 
-                            height: { ideal: tier.height } 
-                        },
-                        audio: true
-                    });
-                    handleStreamSuccess(stream, tier.label);
-                    return;
-                } catch (err) {}
-            }
-
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: isFrontCamera ? 'user' : 'environment' }, audio: true });
-                handleStreamSuccess(stream, "AUTO MODE");
-            } catch (err) {
-                showToast("Error Akses Kamera");
-            }
-        }
-
-        function handleStreamSuccess(stream, label) {
-            currentStream = stream;
-            video.srcObject = stream;
-            resBadge.innerText = label;
-            video.onloadedmetadata = () => video.play();
-        }
-
-        function setZoom(level) {
-            currentZoom = level;
-            document.querySelectorAll('.zoom-pill').forEach(btn => btn.classList.remove('active-zoom'));
-            video.style.transform = `scale(${level === 0.5 ? 0.85 : level})`;
-            document.getElementById(`zoom-${level}`)?.classList.add('active-zoom');
         }
 
         function setFilter(id) {
             activeFilter = id;
             video.className = `filter-${id}`;
             initFilterTray();
-            
-            // Auto scroll ke filter yang dipilih
-            const selected = document.querySelector('.active-filter');
-            if (selected) selected.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
         }
 
-        function showToast(message) {
-            toast.innerText = message;
-            toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 3000);
+        function toggleFilterTray() {
+            isFilterTrayVisible = !isFilterTrayVisible;
+            filterTray.classList.toggle('hidden-tray', !isFilterTrayVisible);
+            document.getElementById('toggle-filter').classList.toggle('bg-[#ffcc00]', isFilterTrayVisible);
         }
 
+        // --- CAPTURE & RECORDING ---
         function capturePhoto() {
             if (isRecording) return;
-            
-            flashOverlay.style.transition = "none";
-            flashOverlay.style.opacity = "0.9";
-            setTimeout(() => {
-                flashOverlay.style.opacity = "0";
-                flashOverlay.style.transition = "opacity 0.4s ease";
-            }, 50);
-
             const canvas = document.createElement('canvas');
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
-            const ctx = canvas.getContext('2d');
+            const c = canvas.getContext('2d');
             
-            ctx.imageSmoothingEnabled = true;
-            ctx.imageSmoothingQuality = 'high';
-            ctx.filter = getComputedStyle(video).filter;
-            
-            const scale = currentZoom === 0.5 ? 0.85 : currentZoom;
-            const w = canvas.width / scale;
-            const h = canvas.height / scale;
-            const x = (canvas.width - w) / 2;
-            const y = (canvas.height - h) / 2;
+            // Terapkan Zoom ke Canvas saat capture
+            const zoomVal = currentZoom;
+            const sw = canvas.width / zoomVal;
+            const sh = canvas.height / zoomVal;
+            const sx = (canvas.width - sw) / 2;
+            const sy = (canvas.height - sh) / 2;
 
-            ctx.drawImage(video, x, y, w, h, 0, 0, canvas.width, canvas.height);
+            c.filter = getComputedStyle(video).filter;
+            c.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
             
             const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
+            lastCapturedImage = dataUrl;
             galleryPreview.style.backgroundImage = `url(${dataUrl})`;
             
-            const link = document.createElement('a');
-            link.download = `PRO_PIC_${Date.now()}.jpg`;
-            link.href = dataUrl;
-            link.click();
-            showToast(`Foto ${activeFilter.toUpperCase()} Tersimpan`);
+            const flash = document.getElementById('flash-overlay');
+            flash.style.opacity = '1';
+            setTimeout(() => flash.style.opacity = '0', 100);
+
+            const toast = document.getElementById('save-toast');
+            toast.classList.add('translate-y-0');
+            setTimeout(() => toast.classList.remove('translate-y-0'), 2500);
         }
 
         function toggleRecording(mode) {
             if (!isRecording) {
                 isRecording = true;
-                recordingMode = mode;
                 document.body.classList.add('recording');
-                document.getElementById(`${mode}-trigger`).classList.add('active-rec');
-                recType.innerText = mode === 'slomo' ? '60FPS SLO-MO' : '4K CINEMA';
                 recIndicator.classList.remove('hidden');
+                recType.innerText = mode === 'slomo' ? '60FPS SLO-MO' : '4K CINEMA';
                 recordingStartTime = Date.now();
                 updateTimer();
                 timerInterval = setInterval(updateTimer, 1000);
             } else {
                 isRecording = false;
                 document.body.classList.remove('recording');
-                document.querySelectorAll('.active-rec').forEach(el => el.classList.remove('active-rec'));
                 recIndicator.classList.add('hidden');
                 clearInterval(timerInterval);
-                showToast("Video Berhasil Disimpan");
+                const toast = document.getElementById('save-toast');
+                toast.innerText = "Video Berhasil Disimpan";
+                toast.classList.add('translate-y-0');
+                setTimeout(() => {
+                    toast.classList.remove('translate-y-0');
+                    toast.innerText = "Capture Disimpan";
+                }, 2500);
             }
         }
 
@@ -488,15 +498,60 @@
             timerDisplay.innerText = `${m}:${s}`;
         }
 
+        // --- EDITOR LOGIC ---
+        function openEditor() {
+            if (!lastCapturedImage) {
+                const toast = document.getElementById('save-toast');
+                toast.innerText = "Ambil foto dulu!";
+                toast.classList.add('translate-y-0');
+                setTimeout(() => toast.classList.remove('translate-y-0'), 2000);
+                return;
+            }
+            editorOverlay.style.display = 'flex';
+            const img = new Image();
+            img.onload = () => {
+                editorCanvas.width = img.width;
+                editorCanvas.height = img.height;
+                ctx.drawImage(img, 0, 0);
+                editorCanvas.originalImage = img;
+                applyEditorFilters();
+            };
+            img.src = lastCapturedImage;
+        }
+
+        function closeEditor() { editorOverlay.style.display = 'none'; }
+
+        function applyEditorFilters() {
+            const b = document.getElementById('adj-bright').value;
+            const c = document.getElementById('adj-contrast').value;
+            const s = document.getElementById('adj-saturate').value;
+            const w = document.getElementById('adj-warm').value;
+
+            document.getElementById('val-bright').innerText = b + '%';
+            document.getElementById('val-contrast').innerText = c + '%';
+            document.getElementById('val-saturate').innerText = s + '%';
+            document.getElementById('val-warm').innerText = w + '%';
+
+            ctx.filter = `brightness(${b}%) contrast(${c}%) saturate(${s}%) sepia(${w}%)`;
+            ctx.drawImage(editorCanvas.originalImage, 0, 0);
+        }
+
+        function saveEditedImage() {
+            const dataUrl = editorCanvas.toDataURL('image/jpeg', 0.95);
+            const link = document.createElement('a');
+            link.download = `ProCam_Edit_${Date.now()}.jpg`;
+            link.href = dataUrl;
+            link.click();
+            closeEditor();
+            galleryPreview.style.backgroundImage = `url(${dataUrl})`;
+        }
+
         function switchCamera() {
             isFrontCamera = !isFrontCamera;
             initCamera();
         }
 
-        window.onload = () => {
-            initCamera();
-            initFilterTray();
-        };
+        window.onload = () => { initCamera(); initFilterTray(); };
     </script>
 </body>
 </html>
