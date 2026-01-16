@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sistem Presensi Online</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-color: #174D38;
+            --bg-color: #f0f4f8;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-color);
+            background-image: radial-gradient(#dee2e6 1px, transparent 1px);
+            background-size: 20px 20px;
+            min-height: 100vh;
+            padding-bottom: 50px;
+            overflow-x: hidden;
+            user-select: none; 
+        }
+
+        /* --- Header / Lembaga --- */
+        #halLembaga {
+            background: white;
+            border-radius: 0 0 25px 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            padding: 15px;
+            margin-bottom: 25px;
+            border-bottom:5px solid var(--primary-color);
+            position: relative;
+            z-index: 10;
+            display: none;
+        }
+
+        #logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f8f9fa;
+            border-radius: 50%;
+            border: 2px solid #eee;
+        }
+        #logo img { max-width: 80%; max-height: 80%; object-fit: contain; }
+
+        #namaLembaga {
+            color: var(--primary-color);
+            font-weight: 800;
+            font-size: 20px;
+            text-transform: uppercase;
+            margin: 0;
+            line-height:1.2;
+        }
+        #alamatLembaga {
+            color: #6c757d;
+            font-size: 13px;
+            margin: 0;
+            font-weight: 500;
+        }
+
+        /* --- Jam Box --- */
+        #jam {
+            background: linear-gradient(135deg, #ffffff 0%, #f1f8ff 100%);
+            padding: 15px;
+            border-radius: 20px;
+            border: 1px solid #e0e0e0;
+            text-align: center;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.03);
+        }
+        #jamdigital {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--primary-color);
+            line-height: 1;
+            font-variant-numeric: tabular-nums;
+        }
+        #date {
+            font-size: 12px;
+            color: #555;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        #absenStatus {
+            padding: 5px 12px;
+            border-radius: 50px;
+            color: white;
+            font-weight: 700;
+            font-size: 11px;
+            display: inline-block;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            letter-spacing: 0.5px;
+        }
+
+        /* --- Tap Kartu (Form) --- */
+        .main-container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 0 15px;
+        }
+
+        #tapKartu {
+            background: white;
+            padding: 25px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            display: none;
+            animation: slideUp 0.4s ease-out;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Status Lokasi */
+        #statusLokasi {
+            font-size: 12px;
+            font-weight: 600;
+            padding: 8px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            text-align: center;
+            color: white;
+            background-color: #6c757d;
+            transition: all 0.3s;
+        }
+        .lokasi-aman { background-color: #198754 !important; }
+        .lokasi-jauh { background-color: #dc3545 !important; }
+        .lokasi-warning { background-color: #fd7e14 !important; }
+
+        /* Tombol Izin Tambahan */
+        .btn-izin {
+            font-size: 11px;
+            padding: 4px 10px;
+            border-radius: 20px;
+        }
+
+        /* Numpad Styling */
+        .numpad-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .numpad-btn {
+            padding: 15px;
+            font-size: 18px;
+            font-weight: 600;
+            border: none;
+            border-radius: 10px;
+            background-color: #f8f9fa;
+            color: #333;
+            transition: all 0.1s;
+            box-shadow: 0 3px 0 #dee2e6;
+        }
+        .numpad-btn:active {
+            transform: translateY(3px);
+            box-shadow: none;
+        }
+        .numpad-clear { background-color: #ffebee; color: #c62828; box-shadow: 0 3px 0 #ffcdd2; }
+        .numpad-submit { 
+            background-color: var(--primary-color); 
+            color: white; 
+            box-shadow: 0 3px 0 #0f382b; 
+            grid-column: span 3;
+            margin-top: 5px;
+        }
+        .numpad-submit:disabled {
+            background-color: #ccc !important;
+            box-shadow: none !important;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+        .numpad-submit:active:disabled { box-shadow: none; }
+
+        /* --- Halaman Petugas (Admin) --- */
+        #halPetugas {
+            background: white;
+            padding: 20px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            display: none;
+        }
+        #dataPresensi {
+            background: #f8f9fa;
+            height: 400px; 
+            overflow-y: auto; 
+            border: 2px dashed #dee2e6; 
+            padding: 15px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.8;
+        }
+        #dataPresensi div {
+            border-bottom: 1px solid #eee;
+            padding: 4px 0;
+        }
+        #dataPresensi div:last-child { border-bottom: none; }
+
+        @media print {
+            #tapKartu, #halPetugas, .btn, .numpad-grid, .no-print { display: none !important; }
+            #halLembaga { box-shadow: none; border: none; margin-bottom: 0; border-radius: 0; }
+            #dataPresensi { height: auto; overflow: visible; border: none; background: white; }
+            body { background: white; -webkit-print-color-adjust: exact; }
+            #halPetugas { display: block !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- HEADER LEMBAGA -->
+    <div id="halLembaga" class="container text-center">
+        <div class="row align-items-center justify-content-center">
+            <div id="lembaga" class="col-12 col-md-6 mb-3 mb-md-0 text-center text-md-start">
+                <div class="d-flex flex-column flex-md-row align-items-center justify-content-center justify-content-md-start">
+                    <div id="logo">
+                        <i class="bi bi-building fs-1 text-secondary"></i>
+                    </div>
+                    <div class="ms-md-3">
+                        <h2 id="namaLembaga">LOADING...</h2>
+                        <h6 id="alamatLembaga">Mohon Tunggu...</h6>
+                    </div>
+                </div>
+            </div>
+            <div id="jam" class="col-12 col-md-6">
+                <div id="jame">
+                    <div id="jamdigital">00:00:00</div>
+                    <div id="date">...</div>
+                    <div id="bulanok" class="d-none"></div>
+                    <div id="tanggalok" class="d-none"></div>
+                </div>
+                <div id="absenStatus">MENUNGGU JAM</div>
+                <div style="margin-top:10px">
+                    <button class="btn btn-sm btn-outline-secondary fw-bold rounded-pill border-0" onclick="halPetugas()">
+                        <i class="bi bi-gear-fill"></i> PETUGAS
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN CONTENT AREA -->
+    <div class="main-container">
+        
+        <!-- Div Tap Kartu (Form Input) -->
+        <div id="tapKartu" class="hal awal">
+            <div class="text-center mb-3">
+                <span class="badge bg-success fs-6 px-4 py-2 rounded-pill shadow-sm">
+                    <i class="bi bi-fingerprint"></i> TAP KARTU / KETIK ID
+                </span>
+            </div>
+            
+            <form id="formTapKartu">
+                <div class="mb-3">
+                    <div class="input-group input-group-lg shadow-sm">
+                        <span class="input-group-text bg-white"><i class="bi bi-person-badge"></i></span>
+                        <input type="text" id="idKartu" inputmode="none" class="form-control text-center fw-bold" placeholder="ID Presensi" autocomplete="off" required>
+                        <button type="button" class="btn btn-outline-danger" onclick="$('#idKartu').val('').focus()"><i class="bi bi-x-lg"></i></button>
+                    </div>
+                </div>
+
+                <!-- INDIKATOR STATUS LOKASI -->
+                <div id="statusLokasi">
+                    <i class="bi bi-geo-alt"></i> Memeriksa Lokasi Anda...
+                </div>
+
+                <!-- TOMBOL MANUAL IZIN LOKASI -->
+                <div class="text-center mb-3">
+                    <button id="btnCekIzin" class="btn btn-sm btn-outline-primary btn-izin" onclick="cekLokasiPengguna()">
+                        <i class="bi bi-arrow-repeat"></i> Perbarui Izin Lokasi / GPS
+                    </button>
+                </div>
+
+                <!-- Numpad Virtual -->
+                <div class="numpad-grid">
+                    <button type="button" class="numpad-btn" onclick="tapNum('1')">1</button>
+                    <button type="button" class="numpad-btn" onclick="tapNum('2')">2</button>
+                    <button type="button" class="numpad-btn" onclick="tapNum('3')">3</button>
+                    <button type="button" class="numpad-btn" onclick="tapNum('4')">4</button>
+                    <button type="button" class="numpad-btn" onclick="tapNum('5')">5</button>
+                    <button type="button" class="numpad-btn" onclick="tapNum('6')">6</button>
+                    <button type="button" class="numpad-btn" onclick="tapNum('7')">7</button>
+                    <button type="button" class="numpad-btn" onclick="tapNum('8')">8</button>
+                    <button type="button" class="numpad-btn" onclick="tapNum('9')">9</button>
+                    <button type="button" class="numpad-btn numpad-clear" onclick="$('#idKartu').val('').focus()">C</button>
+                    <button type="button" class="numpad-btn" onclick="tapNum('0')">0</button>
+                    <button type="button" class="numpad-btn" onclick="$('#idKartu').val($('#idKartu').val().slice(0, -1)).focus()">
+                        <i class="bi bi-backspace"></i>
+                    </button>
+                    <button type="submit" class="btn btn-success w-100 fw-bold numpad-submit" id="btnSubmit" disabled>
+                        MENUNGGU LOKASI...
+                    </button>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Halaman Petugas (Admin) -->
+        <div id="halPetugas" class="hal">
+            <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                <h4 class="m-0 fw-bold text-success"><i class="bi bi-table"></i> Data Presensi</h4>
+                <button class="btn btn-sm btn-secondary" onclick="aktifkanTapKartu()">Kembali</button>
+            </div>
+            
+            <div id="dataPresensi">
+                <div class="text-center text-muted mt-5">Belum ada data presensi tersimpan.</div>
+            </div>
+            
+            <div class="d-grid gap-2 d-md-flex justify-content-center mt-4 no-print">
+                <button class="btn btn-danger rounded-pill px-3" onclick="bersihkanPresensi()"><i class="bi bi-trash"></i> Hapus</button>
+                <button class="btn btn-primary rounded-pill px-3" onclick="window.print()"><i class="bi bi-printer"></i> Cetak</button>
+                <button class="btn btn-success rounded-pill px-3" onclick="sinkron()"><i class="bi bi-cloud-upload"></i> Sinkron Manual</button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- SCRIPT LOGIC -->
+    <script>
+        // --- 1. KONFIGURASI URL & VARIABEL GLOBAL ---
+        var urlGAS= 'https://script.google.com/macros/s/AKfycbyCgmHnY_pEMHgM-CndJZ3olNJXdkC8zitef5xUSHAb9RltEERHkak0FkHOuaUP_ZQA_A/exec';
+        var urlTime = "https://script.google.com/macros/s/AKfycbyd5AcbAnWi2Yn0xhFRbyzS4qMq1VucMVgVvhul5XqS9HkAyJY/exec?tz=Asia/Jakarta";
+        
+        // --- PENGATURAN BYPASS / DEBUGGING ---
+        let bypassGPS = false; 
+
+        let dataPersonal = []; 
+        let targetLat = 0;
+        let targetLong = 0;
+        let isLocationValid = false;
+
+        $(document).ready(function() {
+            firstLoad();
+        });
+
+        // --- 2. FUNGSI NUMPAD & FOKUS ---
+        const input = document.getElementById("idKartu");
+
+        function tapNum(num) {
+            if (input.value.length < 15) {
+                input.value += num;
+                input.focus();
+            }
+        }
+
+        function fokusInputTap(e) {
+            if($('#halPetugas').is(':visible') || $('.swal2-container').length) return;
+            input.focus();
+        }
+
+        // --- 3. LOGIKA WAKTU & SERVER ---
+        let serverTimestamp = 0;
+        let localStartTime = 0;
+        
+        async function fetchServerTime() {
+            try {
+                let response = await fetch(urlTime);
+                let data = await response.json();
+                serverTimestamp = Math.floor(new Date(data.fulldate).getTime() / 1000);
+                localStartTime = Math.floor(Date.now() / 1000);
+                updateClock();
+            } catch (error) {
+                serverTimestamp = Math.floor(Date.now() / 1000);
+                localStartTime = Math.floor(Date.now() / 1000);
+                updateClock();
+            }
+        }
+
+        function updateClock() {
+            let now = Math.floor(Date.now() / 1000);
+            let elapsed = now - localStartTime;
+            let currentTimestamp = serverTimestamp + elapsed;
+            let serverTime = new Date(currentTimestamp * 1000);
+
+            let jam = serverTime.getHours().toString().padStart(2, "0");
+            let menit = serverTime.getMinutes().toString().padStart(2, "0");
+            let detik = serverTime.getSeconds().toString().padStart(2, "0");
+            $("#jamdigital").text(`${jam}:${menit}:${detik}`);
+
+            $("#date").text(serverTime.toLocaleDateString("id-ID", { 
+                weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' 
+            }));
+
+            const monthNames = ["JAN", "FEB", "MAR", "APR", "MEI", "JUN", "JUL", "AGU", "SEP", "OKT", "NOV", "DES"];
+            sessionStorage.setItem('bulanok', monthNames[serverTime.getMonth()]);
+            sessionStorage.setItem('tanggalok', serverTime.getDate());
+
+            let strMasuk = localStorage.getItem('rentangmasuk') || "00:00-23:59";
+            let strPulang = localStorage.getItem('rentangpulang') || "00:00-23:59";
+            
+            let jmMasuk = strMasuk.split('-');
+            let jmPulang = strPulang.split('-');
+            let totalMenitSekarang = parseInt(jam) * 60 + parseInt(menit);
+            
+            sessionStorage.setItem("absenStatus", "");
+
+            if (totalMenitSekarang >= keMenit(jmMasuk[0]) && totalMenitSekarang < keMenit(jmMasuk[1])) {
+                $("#absenStatus").text("ABSEN MASUK").css('background', '#198754');
+                sessionStorage.setItem("absenStatus", "M");
+            } else if (totalMenitSekarang >= keMenit(jmPulang[0]) && totalMenitSekarang < keMenit(jmPulang[1])) {
+                $("#absenStatus").text("ABSEN PULANG").css('background', '#0d6efd');
+                sessionStorage.setItem("absenStatus", "P");
+            } else {
+                $("#absenStatus").text("DI LUAR JADWAL").css('background', '#dc3545');
+                sessionStorage.setItem("absenStatus", "");
+            }
+
+            if(sessionStorage.getItem('tampilTap')=='Y'){
+                let status = sessionStorage.getItem('absenStatus');
+                if(status=='M' || status=='P'){
+                    $('#tapKartu').slideDown(300);
+                    cekLokasiPengguna(); 
+                } else {
+                    $('#tapKartu').slideUp(300);
+                }
+            }
+        }
+
+        function keMenit(str) {
+            let parts = str.split(':');
+            return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+        }
+
+        // --- FUNGSI GEOLOCATION (DENGAN TOMBOL IZIN) ---
+        function getDistanceFromLatLonInM(lat1, lon1, lat2, lon2) {
+            var R = 6371; 
+            var dLat = deg2rad(lat2 - lat1);
+            var dLon = deg2rad(lon2 - lon1);
+            var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            var d = R * c; 
+            return d * 1000; 
+        }
+
+        function deg2rad(deg) { return deg * (Math.PI / 180); }
+
+        function cekLokasiPengguna() {
+            const statusEl = $('#statusLokasi');
+            const btnEl = $('#btnSubmit');
+            const btnIzinEl = $('#btnCekIzin');
+
+            // JIKA BYPASS DI AKTIFKAN
+            if(bypassGPS) {
+                statusEl.text("MODE BYPASS: GPS DIMATIKAN").addClass('lokasi-aman').removeClass('lokasi-jauh');
+                btnEl.prop('disabled', false).text('LAKUKAN PRESENSI (TESTING)');
+                isLocationValid = true;
+                return;
+            }
+
+            // Cek koordinat server
+            if(targetLat === 0 && targetLong === 0) {
+                statusEl.text("Lokasi Server Error (Lat/Long 0)").addClass('lokasi-jauh');
+                btnEl.prop('disabled', true).text('LOKASI SERVER ERROR');
+                return;
+            }
+
+            statusEl.html('<i class="bi bi-hourglass-split"></i> Mendeteksi Lokasi GPS...').removeClass('lokasi-aman lokasi-jauh lokasi-warning');
+            btnIzinEl.prop('disabled', true).text('Mendeteksi...');
+            
+            if (!navigator.geolocation) {
+                statusEl.text("Browser Tidak Support GPS").addClass('lokasi-jauh');
+                btnEl.prop('disabled', true);
+                btnIzinEl.prop('disabled', false).text('Browser Tidak Support GPS');
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const userLat = position.coords.latitude;
+                    const userLong = position.coords.longitude;
+                    const distance = getDistanceFromLatLonInM(userLat, userLong, targetLat, targetLong);
+                    const roundedDist = Math.round(distance);
+                    
+                    if (roundedDist <= 100) {
+                        statusEl.html(`<i class="bi bi-geo-alt-fill"></i> Lokasi Aman (${roundedDist}m)`).addClass('lokasi-aman').removeClass('lokasi-jauh lokasi-warning');
+                        btnEl.prop('disabled', false).text('LAKUKAN PRESENSI');
+                        btnIzinEl.prop('disabled', true).text('Lokasi Sudah Aktif');
+                        isLocationValid = true;
+                    } else {
+                        statusEl.html(`<i class="bi bi-exclamation-triangle-fill"></i> Jarak Jauh (${roundedDist}m)`).addClass('lokasi-jauh').removeClass('lokasi-aman');
+                        btnEl.prop('disabled', true).text('DI LUAR JANGKAUAN');
+                        btnIzinEl.prop('disabled', false).text('Coba Deteksi Ulang');
+                        isLocationValid = false;
+                    }
+                },
+                (error) => {
+                    // DETAIL ERROR DENGAN PANDUAN MEMBONGKAR IZIN
+                    let pesan = "";
+                    let panduan = "";
+                    
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED:
+                            pesan = "IZIN DITOLAK";
+                            panduan = "Klik ikon <b>Gembok (Lock)</b> di kiri atas browser -> Izinkan Lokasi, lalu klik tombol di bawah.";
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            pesan = "GPS MATI / SINYAL LEMAH";
+                            panduan = "Cek koneksi internet atau aktifkan GPS di pengaturan HP.";
+                            break;
+                        case error.TIMEOUT:
+                            pesan = "WAKTU HABIS";
+                            panduan = "Lokasi terlalu lama terdeteksi. Coba lagi.";
+                            break;
+                        default:
+                            pesan = "ERROR TIDAK DIKETAHUI";
+                            break;
+                    }
+
+                    statusEl.text(pesan).addClass('lokasi-warning').removeClass('lokasi-aman lokasi-jauh');
+                    btnEl.prop('disabled', true).text('GPS DIBLOKIR');
+                    btnIzinEl.prop('disabled', false).text('Perbarui Izin Lokasi');
+                    
+                    isLocationValid = false;
+                    
+                    // TAMPILKAN PANDUAN JIKA IZIN DITOLAK
+                    if (error.code === 1) {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Akses Lokasi Diblokir',
+                            html: panduan + "<br><br><small>Lalu klik tombol 'Perbarui Izin Lokasi' di layar.</small>",
+                            confirmButtonText: 'Mengerti'
+                        });
+                    }
+                },
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            );
+        }
+
+        // --- 4. INISIALISASI DATA ---
+        function firstLoad() {
+            Swal.fire({
+                title: 'Memuat Sistem...',
+                text: 'Menghubungkan ke Database',
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+            $.ajax({
+                url: urlGAS + "?mode=load",
+                method: 'GET',
+                dataType: 'json',
+                timeout: 15000,
+                success: function(response) {
+                    if(response.setting[2]) $('#logo').html('<img src="'+cekGambar(response.setting[2].Value)+'">');
+                    if(response.setting[3]) $('body').css('background-image', 'url(' + cekGambar(response.setting[3].Value) + ')');
+
+                    localStorage.setItem("namaLembaga", response.setting[0].Value);
+                    localStorage.setItem("alamatLembaga", response.setting[1].Value);
+                    if(response.setting[6]) localStorage.setItem('rentangmasuk', response.setting[6].Value);
+                    if(response.setting[7]) localStorage.setItem('rentangpulang', response.setting[7].Value);
+                    if(response.setting[4]) sessionStorage.setItem('pw', response.setting[4].Value);
+
+                    if(response.setting[8]) targetLat = parseFloat(response.setting[8].Value);
+                    if(response.setting[9]) targetLong = parseFloat(response.setting[9].Value);
+
+                    $('#namaLembaga').text(response.setting[0].Value);
+                    $('#alamatLembaga').text(response.setting[1].Value);
+
+                    dataPersonal = [];
+                    response.personal.split("#").forEach(item => {
+                        let [id, nama, ket, baris] = item.split(";");
+                        if(id) dataPersonal.push({ id, nama, ket, baris });
+                    });
+
+                    $('#halLembaga').fadeIn();
+                    sessionStorage.setItem('tampilTap','Y');
+                    fetchServerTime(); 
+                    setInterval(updateClock, 1000);
+                    Swal.close();
+                    input.focus();
+                    document.addEventListener("click", fokusInputTap);
+                },
+                error: function(xhr, status, error) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Koneksi Gagal',
+                        text: 'Masuk Mode Offline/Demo.',
+                        timer: 3000,
+                        showConfirmButton: false
+                    }).then(() => {
+                        loadSimulationData();
+                    });
+                }
+            });
+        }
+
+        function loadSimulationData() {
+            $('#namaLembaga').text("SEKOLAH DEMO (OFFLINE)");
+            $('#alamatLembaga').text("Jl. Contoh No. 1");
+            $('#logo').html('<i class="bi bi-building-check fs-2 text-success"></i>');
+            $('body').css('background', '#f0f4f8'); 
+            localStorage.setItem("rentangmasuk", "00:00-23:59");
+            localStorage.setItem("rentangpulang", "00:00-23:59");
+            sessionStorage.setItem('pw', "1234");
+            targetLat = -6.175392; targetLong = 106.827153;
+            dataPersonal = [
+                { id: "1001", nama: "Budi Santoso", ket: "Guru", baris: "1" },
+                { id: "1002", nama: "Siti Aminah", ket: "Staff", baris: "2" },
+                { id: "1003", nama: "Ahmad Dani", ket: "Guru", baris: "3" }
+            ];
+            $('#halLembaga').fadeIn();
+            sessionStorage.setItem('tampilTap','Y');
+            fetchServerTime(); setInterval(updateClock, 1000);
+            input.focus();
+            document.addEventListener("click", fokusInputTap);
+        }
+
+        // --- 5. LOGIKA UTAMA & AUTO-SYNC ---
+        function cekGambar(url) {
+            const match = url.match(/(?:drive\.google\.com\/(?:file\/d\/|open\?id=)|docs\.google\.com\/uc\?id=)([-\w]{25,})/);
+            if (match && match[1]) return 'https://lh3.googleusercontent.com/d/' + match[1];
+            return url;
+        }
+
+        function kirimSatuData(valStore, keyStore) {
+            const params = { mode: 'tulispresensi', data: JSON.stringify([valStore]) };
+            fetch(urlGAS + '?' + new URLSearchParams(params))
+                .then(res => res.json())
+                .then(res => {
+                    if(res.status === 'success' || res.message === 'Semua data berhasil dikirim'){
+                        if(localStorage.getItem(keyStore)){
+                            localStorage.removeItem(keyStore);
+                            console.log("Auto-Sync Sukses");
+                        }
+                    }
+                })
+                .catch(err => { console.log("Auto-Sync Gagal", err); });
+        }
+
+        $("#formTapKartu").submit(function(e) {
+            e.preventDefault();
+            if (!isLocationValid) {
+                Swal.fire({ icon: "warning", title: "Lokasi Tidak Valid", text: "Jarak > 100 meter / GPS Error", timer: 2000, showConfirmButton: false });
+                return;
+            }
+            idKartu = $('#idKartu').val();
+            let found = dataPersonal.find(item => item.id === idKartu);
+            
+            if (found) {
+                jamPresensi = $('#jamdigital').text();
+                tanggalPresensi = sessionStorage.getItem('tanggalok');
+                bulanPresensi = sessionStorage.getItem('bulanok');
+                
+                if(sessionStorage.getItem('absenStatus')=='M') absenStatus = "MASUK";
+                else if(sessionStorage.getItem('absenStatus')=='P') absenStatus = "PULANG";
+                else {
+                    Swal.fire({ icon: "warning", title: "Di Luar Jadwal", timer: 2000, showConfirmButton: false });
+                    $('#idKartu').val(""); return;
+                };
+                
+                let keyStore = found.baris+"-"+tanggalPresensi+"-"+bulanPresensi+"-"+absenStatus;
+                let valStore = found.baris+";"+tanggalPresensi+";"+bulanPresensi+";"+absenStatus+";"+jamPresensi;
+                
+                localStorage.setItem(keyStore, valStore);
+                
+                Swal.fire({
+                    icon: "success",
+                    title: "Berhasil!",
+                    html: `<b>${found.nama}</b><br>${found.ket}<br>Status: <b class='text-success'>${absenStatus}</b>`,
+                    timer: 1000, 
+                    showConfirmButton: false
+                }).then((result) => {
+                    window.location.href = "https://sites.google.com/view/epresensi8/";
+                });
+                
+                $('#idKartu').val("");
+                cekLokasiPengguna();
+                kirimSatuData(valStore, keyStore);
+
+            } else {
+                Swal.fire({ icon: "error", title: "ID Salah", timer: 1500, showConfirmButton: false });
+                $('#idKartu').val("");
+            }
+        });
+        
+        function halPetugas(){
+            document.removeEventListener("click", fokusInputTap);
+            Swal.fire({
+            title: "LOGIN PETUGAS",
+            input: "password",
+            inputPlaceholder: "Password Default: 1234",
+            showCancelButton: true,
+            confirmButtonText: "Masuk",
+            cancelButtonText: "Batal",
+            confirmButtonColor: "#174D38",
+            didClose: () => { document.addEventListener("click", fokusInputTap); }
+          }).then((result) => {
+            if (result.isConfirmed) {
+              if(result.value == sessionStorage.getItem('pw')){
+                  sessionStorage.setItem('tampilTap','N');
+                  aktifkanHalPetugas();
+              }else{ Swal.fire({ icon: "error", title: "Password Salah" }) }
+            }
+          });
+        }
+        
+        function aktifkanHalPetugas(){
+            document.removeEventListener("click", fokusInputTap);
+            loadPresensi();
+            $('#halLembaga').slideUp();
+            $('#tapKartu').slideUp();
+            $('#halPetugas').fadeIn();
+        }
+        
+        function aktifkanTapKartu(){
+            $('#halPetugas').hide();
+            $('#halLembaga').slideDown();
+            $('#tapKartu').slideDown();
+            sessionStorage.setItem('tampilTap','Y');
+            input.focus();
+            document.addEventListener("click", fokusInputTap);
+        }
+        
+        function loadPresensi(){
+            const container = document.getElementById('dataPresensi');
+            container.innerHTML = '<h4 id="banyak" style="color:var(--primary-color); margin-bottom:10px;"></h4>';
+            let no = 1; let adaData = false; let htmlContent = '';
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i); const value = localStorage.getItem(key);
+                if (/^\d{1,4}-\d{1,2}-[A-Z]{3}-(MASUK|PULANG)$/.test(key)) {
+                    kunci = key.split('-'); nilai = value.split(';');
+                    let datane = dataPersonal.find(item => item.baris === kunci[0]);
+                    if (datane) {
+                        htmlContent += `<div><span class="fw-bold text-primary">${no}. ${datane.nama}</span> <span class="badge bg-secondary">${datane.ket}</span><br><small class="text-muted">${nilai[1]} ${nilai[2]} | ${nilai[4]} | ${nilai[3]}</small></div>`;
+                        no++; adaData = true;
+                    }
+                }
+            }
+            if(!adaData) {
+                 container.innerHTML = '<div class="text-center text-muted mt-5">Belum ada data presensi lokal.</div>'; $('#banyak').remove();
+            } else {
+                $('#banyak').text(no-1 + ' Data Lokal Tersimpan'); container.innerHTML += htmlContent;
+            }
+        }
+        
+        function bersihkanPresensi(){
+            Swal.fire({ title: 'Hapus Data Lokal?', text: "Hapus backup lokal saja.", icon: 'warning', showCancelButton: true, confirmButtonText: 'Ya' }).then((result) => {
+                if (result.isConfirmed) {
+                    const keysKirim = [];
+                    for (let i = 0; i < localStorage.length; i++) {
+                        const key = localStorage.key(i);
+                        if (/^\d{1,4}-\d{1,2}-[A-Z]{3}-(MASUK|PULANG)$/.test(key)) keysKirim.push(key);
+                    }
+                    keysKirim.forEach(key => localStorage.removeItem(key));
+                    loadPresensi();
+                }
+            })
+        }
+        
+        function sinkron(){
+            const dataKirim = []; const keysKirim = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i); const value = localStorage.getItem(key);
+                if (/^\d{1,4}-\d{1,2}-[A-Z]{3}-(MASUK|PULANG)$/.test(key)) {
+                    dataKirim.push(value); keysKirim.push(key);
+                }
+            }
+            if(dataKirim.length === 0){ Swal.fire({ icon: 'info', title: 'Kosong', text: 'Tidak ada data pending' }); return; }
+            const params = { mode: 'tulispresensi', data: JSON.stringify(dataKirim) };
+            Swal.fire({ title: 'Sinkronisasi Manual...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            fetch(urlGAS + '?' + new URLSearchParams(params))
+                .then(res => res.json())
+                .then(res => {
+                    Swal.close();
+                    if(res.status === 'success' || res.message === 'Semua data berhasil dikirim'){
+                        keysKirim.forEach(key => localStorage.removeItem(key));
+                        loadPresensi();
+                        Swal.fire({ icon: 'success', title: 'Sukses', text: 'Data pending tersinkron' });
+                    } else { Swal.fire({ icon: 'error', title: 'Gagal', text: res.error || res.message }); }
+                })
+                .catch(err => { Swal.close(); Swal.fire({ icon: 'error', title: 'Error', text: err.message }); });
+        }
+    </script>
+</body>
+</html>
