@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal Siswa - SMAPANMU</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 1.5rem;
+        }
+
+        .loader {
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(59, 130, 246, 0.5);
+            border-radius: 10px;
+        }
+
+        @media print {
+            body { background: white; }
+            .glass-card { border: none; backdrop-filter: none; background: white; }
+            .no-print { display: none; }
+            .text-white { color: black !important; }
+            .text-blue-400 { color: #2563eb !important; }
+            .bg-white\/5 { background: #f8fafc !important; border: 1px solid #e2e8f0 !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="mainContainer" class="w-full max-w-md transition-all duration-500">
+        <!-- Logo & Header -->
+        <div id="headerSection" class="text-center mb-8">
+            <div class="inline-flex items-center justify-center mb-4 transition-transform hover:scale-105">
+                <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEi2iWi5Y8Dt91tWD8v24sfYGNL9jWxhRp2epChSaav1QQ3CZWhRb753XFGQOsT9u82kEEQAVkdZVKbbQ2I4Tkhkr9h00KJkaYnZK3jI-HPuUqcO6A3UXFZ9l43qF0sajMqs5asm2ttdvjYUxsxswINcBf7bN7gcNooq-R0KVSFwirkTeTICe6cTnGlyPmQ/s1600/logo%20mapan.png" 
+                     alt="Logo SMAPANMU" 
+                     class="h-20 w-auto drop-shadow-[0_0_15px_rgba(59,130,246,0.3)]">
+            </div>
+            <h1 class="text-2xl font-bold text-white tracking-tight">SMAPANMU</h1>
+            <p class="text-slate-400 text-sm mt-1">Sistem Informasi Data Siswa</p>
+        </div>
+
+        <div class="glass-card shadow-2xl overflow-hidden">
+            <!-- TAMPILAN LOGIN -->
+            <div id="loginView" class="p-8">
+                <div class="mb-6 text-center">
+                    <h2 class="text-xl font-semibold text-white">Login Siswa</h2>
+                    <p class="text-sm text-slate-400">Verifikasi NISN untuk akses data</p>
+                </div>
+
+                <form onsubmit="handleLogin(event)" class="space-y-6">
+                    <div>
+                        <label for="nisn" class="block text-sm font-medium text-slate-300 mb-2">NISN</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-500">
+                                <i class="fas fa-id-card"></i>
+                            </span>
+                            <input type="text" id="nisn" required
+                                class="w-full bg-slate-800/50 border border-slate-700 text-white text-lg tracking-widest rounded-xl block pl-11 p-4 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all placeholder-slate-600"
+                                placeholder="Masukkan NISN Anda"
+                                autocomplete="off">
+                        </div>
+                    </div>
+
+                    <button type="submit" id="submitBtn"
+                        class="w-full flex justify-center items-center py-4 px-4 border border-transparent rounded-xl shadow-lg text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 transition-all transform active:scale-95">
+                        <i class="fas fa-search mr-2"></i> VERIFIKASI IDENTITAS
+                    </button>
+                </form>
+            </div>
+
+            <!-- TAMPILAN LOADING -->
+            <div id="loadingView" class="hidden p-12 text-center">
+                <div class="loader ease-linear rounded-full border-4 border-t-4 border-blue-500 h-12 w-12 mb-6 mx-auto"></div>
+                <h3 class="text-lg font-medium text-white">Sinkronisasi Database...</h3>
+                <p class="text-slate-400 text-sm italic">Membaca Baris 3 (B:BL) Spreadsheet</p>
+            </div>
+
+            <!-- TAMPILAN PROFIL -->
+            <div id="profileView" class="hidden flex flex-col h-[600px]">
+                <div class="p-6 border-b border-slate-700/50 bg-blue-600/10 flex justify-between items-center no-print">
+                    <div>
+                        <h3 class="text-white font-bold text-lg">Detail Data Siswa</h3>
+                        <p id="studentSummary" class="text-blue-400 text-[10px] uppercase tracking-widest font-bold"></p>
+                    </div>
+                    <button onclick="logout()" class="text-slate-400 hover:text-white transition-colors text-sm bg-slate-800 px-3 py-2 rounded-lg border border-slate-700">
+                        <i class="fas fa-sign-out-alt mr-1"></i> Keluar
+                    </button>
+                </div>
+                
+                <div id="dataGrid" class="flex-1 overflow-y-auto p-6 custom-scrollbar grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <!-- Data otomatis dirender di sini -->
+                </div>
+                
+                <div class="p-4 bg-slate-900/50 border-t border-slate-700/50 no-print space-y-2">
+                    <div class="grid grid-cols-2 gap-2">
+                        <a href="https://myshatakuthujan-sketch.github.io/presensi/" 
+                           target="_blank"
+                           class="flex items-center justify-center py-3 rounded-lg bg-green-600/20 text-green-400 text-xs font-bold hover:bg-green-600/30 transition-all border border-green-500/30 uppercase tracking-widest">
+                            <i class="fas fa-calendar-check mr-2"></i> Presensi
+                        </a>
+                        <a href="https://docs.google.com/forms/d/e/1FAIpQLSf68VjAnQifkmafkLlkxVNCnCK71TcBABtzTeOLuEpLVJP5jQ/viewform?usp=dialog" 
+                           target="_blank"
+                           class="flex items-center justify-center py-3 rounded-lg bg-amber-600/20 text-amber-400 text-xs font-bold hover:bg-amber-600/30 transition-all border border-amber-500/30 uppercase tracking-widest">
+                            <i class="fas fa-edit mr-2"></i> Perbaikan Data
+                        </a>
+                    </div>
+                    <button onclick="window.print()" class="w-full py-3 rounded-lg bg-blue-600/20 text-blue-400 text-xs font-bold hover:bg-blue-600/30 transition-all border border-blue-500/30 uppercase tracking-widest">
+                        <i class="fas fa-print mr-2"></i> Unduh / Cetak Profil
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert -->
+    <div id="alertBox" class="fixed bottom-5 left-1/2 -translate-x-1/2 max-w-sm w-[90%] bg-red-600 text-white p-4 rounded-xl shadow-2xl opacity-0 transition-all duration-300 pointer-events-none flex items-center space-x-3 z-50">
+        <i class="fas fa-exclamation-circle text-xl"></i>
+        <div id="alertText">NISN tidak terdaftar!</div>
+    </div>
+
+    <script>
+        const SPREADSHEET_ID = '1YbCtOBnFaz8i56sfMmiFaouXUrDyNixHt951WyLNK0U';
+        const GID = '729829202';
+        const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${GID}`;
+
+        function showAlert(message) {
+            const alertBox = document.getElementById('alertBox');
+            const alertText = document.getElementById('alertText');
+            alertText.innerText = message;
+            alertBox.classList.replace('opacity-0', 'opacity-100');
+            setTimeout(() => {
+                alertBox.classList.replace('opacity-100', 'opacity-0');
+            }, 3000);
+        }
+
+        function logout() { window.location.reload(); }
+
+        function parseCSV(text) {
+            const rows = [];
+            let row = [];
+            let col = "";
+            let inQuotes = false;
+
+            for (let i = 0; i < text.length; i++) {
+                let char = text[i];
+                let next = text[i+1];
+
+                if (char === '"' && inQuotes && next === '"') {
+                    col += '"'; i++; 
+                } else if (char === '"') {
+                    inQuotes = !inQuotes;
+                } else if (char === ',' && !inQuotes) {
+                    row.push(col.trim());
+                    col = "";
+                } else if ((char === '\r' || char === '\n') && !inQuotes) {
+                    row.push(col.trim());
+                    if (row.length > 0) rows.push(row);
+                    row = [];
+                    col = "";
+                    if (char === '\r' && next === '\n') i++;
+                } else {
+                    col += char;
+                }
+            }
+            if (col || row.length > 0) {
+                row.push(col.trim());
+                rows.push(row);
+            }
+            return rows;
+        }
+
+        async function handleLogin(event) {
+            event.preventDefault();
+            const inputNisn = document.getElementById('nisn').value.trim();
+            const loginView = document.getElementById('loginView');
+            const loadingView = document.getElementById('loadingView');
+            const profileView = document.getElementById('profileView');
+            const dataGrid = document.getElementById('dataGrid');
+            const mainContainer = document.getElementById('mainContainer');
+
+            if (!inputNisn) return showAlert("Masukkan NISN!");
+
+            loginView.classList.add('hidden');
+            loadingView.classList.remove('hidden');
+
+            try {
+                const response = await fetch(SHEET_URL);
+                if (!response.ok) throw new Error("Koneksi database gagal.");
+                
+                const csvContent = await response.text();
+                const rows = parseCSV(csvContent);
+
+                const headers = rows[2]; 
+                if (!headers) throw new Error("Header Baris 3 tidak ditemukan.");
+
+                let studentRow = null;
+                
+                for (let i = 3; i < rows.length; i++) {
+                    if (rows[i] && rows[i][1] === inputNisn) {
+                        studentRow = rows[i];
+                        break;
+                    }
+                }
+
+                if (studentRow) {
+                    dataGrid.innerHTML = '';
+                    
+                    const startIdx = 1;
+                    const endIdx = 63; 
+
+                    for (let j = startIdx; j <= endIdx; j++) {
+                        const labelName = (headers[j] && headers[j] !== "") ? headers[j] : `Data ${j}`;
+                        const valueData = (studentRow[j] && studentRow[j] !== "") ? studentRow[j] : "-";
+
+                        const card = document.createElement('div');
+                        card.className = "bg-white/5 p-4 rounded-xl border border-white/5 hover:border-blue-500/30 transition-all group";
+                        card.innerHTML = `
+                            <div class="text-[9px] text-blue-400 font-black uppercase tracking-widest mb-1 group-hover:text-blue-300 transition-colors">${labelName}</div>
+                            <div class="text-white text-sm font-medium break-words">${valueData}</div>
+                        `;
+                        dataGrid.appendChild(card);
+                    }
+
+                    document.getElementById('studentSummary').innerText = `ID: ${inputNisn} • STATUS: TERVERIFIKASI`;
+
+                    mainContainer.classList.replace('max-w-md', 'max-w-4xl');
+                    loadingView.classList.add('hidden');
+                    profileView.classList.remove('hidden');
+                } else {
+                    throw new Error("NISN '" + inputNisn + "' tidak ditemukan.");
+                }
+
+            } catch (error) {
+                loadingView.classList.add('hidden');
+                loginView.classList.remove('hidden');
+                showAlert(error.message);
+            }
+        }
+    </script>
+</body>
+</html>
