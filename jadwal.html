@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jadwal Pro - Sistem Sinkronisasi Cerdas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .loader {
+            border-top-color: #3498db;
+            -webkit-animation: spinner 1.5s linear infinite;
+            animation: spinner 1.5s linear infinite;
+        }
+        @keyframes spinner {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .tab-active {
+            border-bottom: 3px solid #2563eb;
+            color: #2563eb;
+            font-weight: bold;
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        .status-offline { background-color: #ef4444 !important; }
+        .status-online { background-color: #10b981 !important; }
+
+        /* Modal Animation */
+        .modal-enter { opacity: 0; transform: scale(0.95); }
+        .modal-enter-active { opacity: 1; transform: scale(1); transition: all 0.3s ease-out; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen font-sans">
+
+    <!-- Navigation -->
+    <nav class="bg-blue-600 text-white shadow-lg px-6 py-4 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <h1 class="text-xl md:text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Jadwal Pro
+            </h1>
+            <div class="flex items-center gap-3">
+                <span id="last-update" class="text-[10px] md:text-xs text-blue-100 hidden">Memuat...</span>
+                <div class="text-[10px] md:text-sm px-3 py-1 rounded-full font-bold transition-all duration-500" id="status-badge">
+                    Checking...
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-4 py-6">
+        <!-- Action Toolbar -->
+        <div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+            <div>
+                <h2 class="text-xl font-bold text-gray-800" id="display-title">Memuat Jadwal...</h2>
+                <div class="flex items-center gap-2 mt-1">
+                    <span id="connection-text" class="text-xs font-medium text-gray-400 uppercase tracking-widest">Mengecek Koneksi...</span>
+                </div>
+            </div>
+            <div class="flex flex-wrap gap-2">
+                <button onclick="syncData()" id="sync-btn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-all shadow-md flex items-center gap-2">
+                    <svg id="sync-icon" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Sinkronisasi
+                </button>
+                <button onclick="openMasterSheet()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-all shadow-md flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
+                        <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
+                    </svg>
+                    Database
+                </button>
+            </div>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="mb-6 overflow-x-auto no-scrollbar border-b border-gray-200">
+            <div class="flex space-x-8 min-w-max" id="day-tabs"></div>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="mb-6">
+            <div class="relative max-w-md">
+                <input type="text" id="searchInput" placeholder="Cari dosen, mata kuliah, atau ruangan..." 
+                    class="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm text-sm">
+                <div class="absolute left-3 top-3.5 text-gray-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Content Area -->
+        <div id="initial-loading" class="flex flex-col items-center justify-center py-20">
+            <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-10 w-10 mb-4"></div>
+            <p class="text-gray-500 text-sm font-medium">Menyelaraskan data...</p>
+        </div>
+
+        <div id="table-container" class="hidden">
+            <div class="bg-white shadow-xl rounded-2xl overflow-hidden border border-gray-100 mb-8">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50/50" id="tableHead"></thead>
+                        <tbody class="bg-white divide-y divide-gray-100" id="tableBody"></tbody>
+                    </table>
+                </div>
+                <div id="no-results" class="hidden p-12 text-center text-gray-400">
+                    <p class="text-lg">Data tidak ditemukan.</p>
+                </div>
+            </div>
+
+            <!-- Informasi Referensi Section -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Kode Guru Card -->
+                <div class="bg-white p-6 rounded-2xl shadow-md border border-gray-100">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2 uppercase tracking-wide">
+                        <span class="p-2 bg-blue-100 text-blue-600 rounded-lg">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+                            </svg>
+                        </span>
+                        Kamus Kode Guru
+                    </h3>
+                    <div class="overflow-x-auto max-h-80 no-scrollbar border border-gray-50 rounded-xl">
+                        <table class="min-w-full text-xs">
+                            <thead class="bg-gray-50 sticky top-0">
+                                <tr id="guruHead"></tr>
+                            </thead>
+                            <tbody id="guruBody" class="divide-y divide-gray-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Kode Mapel Card -->
+                <div class="bg-white p-6 rounded-2xl shadow-md border border-gray-100">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2 uppercase tracking-wide">
+                        <span class="p-2 bg-green-100 text-green-600 rounded-lg">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z" />
+                            </svg>
+                        </span>
+                        Daftar Mata Pelajaran
+                    </h3>
+                    <div class="overflow-x-auto max-h-80 no-scrollbar border border-gray-50 rounded-xl">
+                        <table class="min-w-full text-xs">
+                            <thead class="bg-gray-50 sticky top-0">
+                                <tr id="mapelHead"></tr>
+                            </thead>
+                            <tbody id="mapelBody" class="divide-y divide-gray-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Advanced Edit Modal -->
+    <div id="editModal" class="fixed inset-0 z-[60] hidden flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm transition-opacity duration-300">
+        <div class="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden transform transition-all duration-300 scale-95 opacity-0" id="modalContent">
+            <div class="bg-blue-600 p-6 text-white flex justify-between items-center">
+                <div>
+                    <h3 class="text-xl font-bold">Edit Detail Jadwal</h3>
+                    <p class="text-xs text-blue-100 mt-1" id="modalSubTitle">Baris Data: #</p>
+                </div>
+                <button onclick="closeModal()" class="p-2 hover:bg-white/20 rounded-full transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div class="p-6">
+                <div id="modalForm" class="space-y-4 max-h-[60vh] overflow-y-auto px-1 no-scrollbar">
+                    <!-- Form fields generated dynamically -->
+                </div>
+                <div class="mt-8 flex gap-3">
+                    <button onclick="closeModal()" class="flex-1 px-4 py-3 border border-gray-200 text-gray-600 font-bold rounded-xl hover:bg-gray-50 transition-all">
+                        Batal
+                    </button>
+                    <button id="saveEditBtn" class="flex-1 px-4 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all flex items-center justify-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" />
+                            <path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" />
+                        </svg>
+                        Lanjutkan ke Sheet
+                    </button>
+                </div>
+                <p class="mt-4 text-[10px] text-gray-400 text-center italic">
+                    Catatan: Klik Simpan akan membuka baris spesifik di Google Sheet untuk pembaruan permanen.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SPREADSHEET_ID = '16KRfWyLgC-NUWfTaAbFJScvYVJPeVYTMKoGVUS1pcZw';
+        const GID_DATABASE = '2095410455';
+        const SHEETS_CONFIG = [
+            { name: 'SENIN', gid: '839984198' },
+            { name: 'SELASA', gid: '916529932' },
+            { name: 'RABU', gid: '169960223' },
+            { name: 'KAMIS', gid: '1132074708' },
+            { name: 'JUMAT', gid: '850141657' }
+        ];
+
+        let allData = {}; 
+        let refData = { guru: [], mapel: [] };
+        let currentActiveDay = '';
+        let isOnline = navigator.onLine;
+
+        function initFromCache() {
+            const cached = localStorage.getItem('jadwal_cache');
+            const cachedRef = localStorage.getItem('ref_cache');
+            if (cached) {
+                allData = JSON.parse(cached);
+                if(cachedRef) refData = JSON.parse(cachedRef);
+                const lastSync = localStorage.getItem('last_sync_time');
+                const updateEl = document.getElementById('last-update');
+                if(updateEl && lastSync) {
+                    updateEl.innerText = `Terakhir Sync: ${lastSync}`;
+                    updateEl.classList.remove('hidden');
+                }
+                return true;
+            }
+            return false;
+        }
+
+        function saveToCache() {
+            localStorage.setItem('jadwal_cache', JSON.stringify(allData));
+            localStorage.setItem('ref_cache', JSON.stringify(refData));
+            const now = new Date().toLocaleString('id-ID');
+            localStorage.setItem('last_sync_time', now);
+            const updateEl = document.getElementById('last-update');
+            if(updateEl) updateEl.innerText = `Terakhir Sync: ${now}`;
+        }
+
+        async function syncData() {
+            if (!navigator.onLine) {
+                showToast("Offline: Gagal Sync", "error");
+                return;
+            }
+
+            const syncBtn = document.getElementById('sync-btn');
+            const syncIcon = document.getElementById('sync-icon');
+            if(syncBtn) syncBtn.disabled = true;
+            if(syncIcon) syncIcon.classList.add('animate-spin');
+
+            try {
+                const promises = SHEETS_CONFIG.map(sheet => fetchSheetData(sheet.gid));
+                const results = await Promise.all(promises);
+
+                results.forEach((data, index) => {
+                    if (data && data.length > 0) {
+                        const headers = data[0];
+                        const rows = data.slice(1).map((row, rIdx) => {
+                            let obj = { _idx: rIdx + 2 };
+                            headers.forEach((h, i) => { obj[h.toUpperCase()] = row[i] || ''; });
+                            return obj;
+                        });
+                        allData[SHEETS_CONFIG[index].name] = { headers, rows };
+                    }
+                });
+
+                const dbFullData = await fetchSheetData(GID_DATABASE);
+                if (dbFullData) {
+                    refData.guru = dbFullData.slice(3).map(row => ({
+                        kode: row[11] || '',
+                        nama: row[12] || '',
+                        singkatan: row[13] || ''
+                    })).filter(g => g.kode || g.nama);
+
+                    refData.mapel = dbFullData.slice(22).map(row => ({
+                        kode: row[1] || '',
+                        nama: row[2] || ''
+                    })).filter(m => m.kode || m.nama);
+                }
+
+                saveToCache();
+                updateUI();
+                showToast("Sinkronisasi Berhasil", "success");
+            } catch (e) {
+                showToast("Koneksi bermasalah", "error");
+            } finally {
+                if(syncBtn) syncBtn.disabled = false;
+                if(syncIcon) syncIcon.classList.remove('animate-spin');
+            }
+        }
+
+        async function fetchSheetData(gid) {
+            const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${gid}&t=${new Date().getTime()}`;
+            const response = await fetch(url);
+            if (!response.ok) return null;
+            const csvText = await response.text();
+            return csvText.split(/\r?\n/).map(line => parseCSVLine(line));
+        }
+
+        function parseCSVLine(line) {
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                if (char === '"') inQuotes = !inQuotes;
+                else if (char === ',' && !inQuotes) { result.push(current.trim()); current = ''; }
+                else current += char;
+            }
+            result.push(current.trim());
+            return result;
+        }
+
+        function updateUI() {
+            const daysWithData = SHEETS_CONFIG.filter(s => allData[s.name]);
+            if (daysWithData.length === 0) return;
+            if (!currentActiveDay) currentActiveDay = daysWithData[0].name;
+
+            const tabsContainer = document.getElementById('day-tabs');
+            if (tabsContainer) {
+                tabsContainer.innerHTML = daysWithData.map(sheet => `
+                    <button onclick="setTab('${sheet.name}')" 
+                        class="pb-3 px-1 text-sm font-bold ${currentActiveDay === sheet.name ? 'tab-active' : 'text-gray-400 hover:text-gray-600'} uppercase tracking-widest transition-all">
+                        ${sheet.name}
+                    </button>
+                `).join('');
+            }
+
+            document.getElementById('initial-loading')?.classList.add('hidden');
+            document.getElementById('table-container')?.classList.remove('hidden');
+            document.getElementById('display-title').innerText = `Jadwal ${currentActiveDay}`;
+            
+            renderTables();
+        }
+
+        window.setTab = (day) => { currentActiveDay = day; updateUI(); };
+
+        function renderTables() {
+            const search = document.getElementById('searchInput')?.value.toLowerCase() || '';
+            const data = allData[currentActiveDay];
+            const head = document.getElementById('tableHead');
+            const body = document.getElementById('tableBody');
+
+            if (data && head && body) {
+                head.innerHTML = `<tr>
+                    ${data.headers.map(h => `<th class="px-6 py-4 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">${h}</th>`).join('')}
+                    <th class="px-6 py-4 text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest">AKSI</th>
+                </tr>`;
+
+                const filtered = data.rows.filter(r => Object.values(r).some(v => v.toString().toLowerCase().includes(search)));
+                body.innerHTML = filtered.map(row => {
+                    const rowDataJson = encodeURIComponent(JSON.stringify(row));
+                    return `<tr id="row-${row._idx}" class="hover:bg-blue-50/50 transition-colors">
+                        ${data.headers.map(h => `<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 font-medium">${row[h.toUpperCase()] || '-'}</td>`).join('')}
+                        <td class="px-6 py-4 whitespace-nowrap text-center">
+                            <button onclick="openEditModal('${rowDataJson}')" 
+                                class="bg-white border border-blue-200 text-blue-600 hover:bg-blue-600 hover:text-white hover:shadow-lg hover:shadow-blue-100 px-4 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1 mx-auto">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                                </svg>
+                                Edit
+                            </button>
+                        </td>
+                    </tr>`;
+                }).join('');
+                document.getElementById('no-results')?.classList.toggle('hidden', filtered.length > 0);
+            }
+
+            // Reference Tables
+            renderRefs();
+        }
+
+        function renderRefs() {
+            const gBody = document.getElementById('guruBody');
+            const mBody = document.getElementById('mapelBody');
+            const gHead = document.getElementById('guruHead');
+            const mHead = document.getElementById('mapelHead');
+
+            if(gHead) gHead.innerHTML = `<th class="p-3 text-left bg-blue-50/50 text-blue-600 font-bold uppercase tracking-tighter">Kode</th><th class="p-3 text-left bg-blue-50/50 text-blue-600 font-bold uppercase tracking-tighter">Guru</th>`;
+            if(mHead) mHead.innerHTML = `<th class="p-3 text-left bg-green-50/50 text-green-600 font-bold uppercase tracking-tighter">Kode</th><th class="p-3 text-left bg-green-50/50 text-green-600 font-bold uppercase tracking-tighter">Mata Pelajaran</th>`;
+
+            if(gBody) gBody.innerHTML = refData.guru.map(g => `<tr class="hover:bg-gray-50/50"><td class="p-3 font-bold text-blue-700">${g.kode}</td><td class="p-3 text-gray-600 font-medium">${g.nama}</td></tr>`).join('');
+            if(mBody) mBody.innerHTML = refData.mapel.map(m => `<tr class="hover:bg-gray-50/50"><td class="p-3 font-bold text-green-700">${m.kode}</td><td class="p-3 text-gray-600 font-medium">${m.nama}</td></tr>`).join('');
+        }
+
+        // Modal Logic
+        function openEditModal(jsonStr) {
+            if (!isOnline) { showToast("Gagal: Anda sedang offline", "error"); return; }
+            
+            const row = JSON.parse(decodeURIComponent(jsonStr));
+            const headers = allData[currentActiveDay].headers;
+            const modal = document.getElementById('editModal');
+            const content = document.getElementById('modalContent');
+            const form = document.getElementById('modalForm');
+            const subTitle = document.getElementById('modalSubTitle');
+            const saveBtn = document.getElementById('saveEditBtn');
+
+            subTitle.innerText = `Baris Data: #${row._idx} | Hari: ${currentActiveDay}`;
+            
+            form.innerHTML = headers.map(h => `
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">${h}</label>
+                    <input type="text" value="${row[h.toUpperCase()] || ''}" readonly
+                        class="w-full px-4 py-2 bg-gray-50 border border-gray-100 rounded-lg text-sm text-gray-500 focus:outline-none cursor-not-allowed">
+                </div>
+            `).join('');
+
+            const gid = SHEETS_CONFIG.find(s => s.name === currentActiveDay).gid;
+            const editUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/edit#gid=${gid}&range=A${row._idx}`;
+            
+            saveBtn.onclick = () => window.open(editUrl, '_blank');
+
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                content.classList.remove('scale-95', 'opacity-0');
+            }, 10);
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('editModal');
+            const content = document.getElementById('modalContent');
+            content.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
+        function updateConnectionStatus() {
+            isOnline = navigator.onLine;
+            const badge = document.getElementById('status-badge');
+            const alert = document.getElementById('offline-alert');
+            const connText = document.getElementById('connection-text');
+
+            if(badge) {
+                badge.innerText = isOnline ? "ONLINE" : "OFFLINE";
+                badge.className = `text-[10px] md:text-sm px-4 py-1 rounded-full font-bold text-white shadow-sm transition-all status-${isOnline ? 'online' : 'offline'}`;
+            }
+            if(alert) alert.classList.toggle('hidden', isOnline);
+            if(connText) {
+                connText.innerText = isOnline ? "Terhubung ke Cloud" : "Mode Cadangan Lokal";
+                connText.className = `text-xs font-bold uppercase tracking-widest text-${isOnline ? 'green' : 'red'}-500`;
+            }
+            renderTables();
+        }
+
+        function showToast(msg, type) {
+            const toast = document.createElement('div');
+            toast.className = `fixed bottom-8 left-1/2 -translate-x-1/2 px-8 py-4 rounded-2xl text-white font-bold shadow-2xl z-[100] transition-all transform translate-y-32 ${type === 'success' ? 'bg-blue-600' : 'bg-red-600'}`;
+            toast.innerText = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.classList.remove('translate-y-32'), 100);
+            setTimeout(() => { toast.classList.add('translate-y-32'); setTimeout(() => toast.remove(), 500); }, 3000);
+        }
+
+        function openMasterSheet() {
+            if (!isOnline) { showToast("Gagal: Anda sedang offline", "error"); return; }
+            const gid = SHEETS_CONFIG.find(s => s.name === currentActiveDay)?.gid || '0';
+            window.open(`https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/edit#gid=${gid}`, '_blank');
+        }
+
+        document.getElementById('searchInput')?.addEventListener('input', renderTables);
+        window.addEventListener('online', updateConnectionStatus);
+        window.addEventListener('offline', updateConnectionStatus);
+
+        window.onload = () => {
+            updateConnectionStatus();
+            if (initFromCache()) updateUI();
+            syncData(); 
+            setInterval(() => { if(isOnline) syncData(); }, 300000);
+        };
+    </script>
+</body>
+</html>
