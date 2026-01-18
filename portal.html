@@ -118,15 +118,24 @@
             <div class="p-6 md:p-8 space-y-5">
                 <div>
                     <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">Hak Akses</label>
-                    <select id="loginRole" class="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl font-medium outline-none">
+                    <select id="loginRole" onchange="toggleLoginInput()" class="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl font-medium outline-none">
                         <option value="guru">👤 GURU (PERSONAL)</option>
                         <option value="admin">🔑 ADMIN (PENGELOLA)</option>
                     </select>
                 </div>
+                
+                <!-- Input Guru -->
                 <div id="guruInputGroup">
                     <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">Nama Sesuai Database</label>
                     <input type="text" id="loginUsername" placeholder="Ketik nama lengkap..." class="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-medium">
                 </div>
+
+                <!-- Input Admin (Password) -->
+                <div id="adminInputGroup" class="hidden">
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">Password Admin</label>
+                    <input type="password" id="adminPassword" placeholder="Masukkan password..." class="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-medium">
+                </div>
+
                 <button id="btnEnter" class="w-full btn-gradient text-white py-4 rounded-2xl font-bold shadow-lg shadow-blue-200 active:scale-95 transition-transform uppercase tracking-wider">
                     Masuk Sekarang
                 </button>
@@ -221,6 +230,7 @@
         const DB_BEBAN_ID = '1pnfUTLZgdP4-Cj46V0U_TlmNzg6hHqyf';
         const DB_HARIAN_ID = '16KRfWyLgC-NUWfTaAbFJScvYVJPeVYTMKoGVUS1pcZw';
         const GIDS = { BEBAN: '1034481041', REF: '2095410455', SENIN: '839984198', SELASA: '916529932', RABU: '169960223', KAMIS: '1132074708', JUMAT: '850141657' };
+        const ADMIN_PASS = 'dani';
 
         let viewMode = 'beban';
         let currentUser = { role: null, name: null, guruCode: null };
@@ -228,6 +238,13 @@
         let timeSchedules = []; 
         let activeAlarm = null;
         let alarmAudio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+
+        // Fungsi Toggle Input Login
+        function toggleLoginInput() {
+            const role = document.getElementById('loginRole').value;
+            document.getElementById('guruInputGroup').classList.toggle('hidden', role === 'admin');
+            document.getElementById('adminInputGroup').classList.toggle('hidden', role === 'guru');
+        }
 
         // Fungsi Auto-Login
         window.addEventListener('DOMContentLoaded', () => {
@@ -289,7 +306,7 @@
             
             currentUser = { role, name };
             
-            // Simpan ke storage jika bukan admin (atau simpan admin juga boleh)
+            // Simpan ke storage jika sukses
             if(!isAuto) {
                 localStorage.setItem('smapanmu_user', JSON.stringify({ role, name }));
             }
@@ -307,12 +324,22 @@
 
         document.getElementById('btnEnter').addEventListener('click', () => {
             const role = document.getElementById('loginRole').value;
-            const name = document.getElementById('loginUsername').value.trim();
-            performLogin(role, name);
+            
+            if (role === 'admin') {
+                const pass = document.getElementById('adminPassword').value;
+                if (pass === ADMIN_PASS) {
+                    performLogin('admin', 'Administrator');
+                } else {
+                    alert('Password Admin Salah!');
+                }
+            } else {
+                const name = document.getElementById('loginUsername').value.trim();
+                if (!name) return alert('Silakan masukkan nama Anda!');
+                performLogin('guru', name);
+            }
         });
 
         document.getElementById('logoutBtn').addEventListener('click', () => {
-            // Hapus data tersimpan untuk ganti akun
             localStorage.removeItem('smapanmu_user');
             location.reload();
         });
