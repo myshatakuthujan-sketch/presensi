@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Portal Guru SMAPANMU</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+        
+        :root {
+            --primary: #1e40af;
+            --accent: #3b82f6;
+        }
+
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background: radial-gradient(circle at top right, #f8fafc, #eff6ff);
+            -webkit-tap-highlight-color: transparent;
+            overflow-x: hidden;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid var(--accent);
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            animation: spin 1s cubic-bezier(0.76, 0, 0.24, 1) infinite;
+        }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .sticky-col { 
+            position: sticky; 
+            left: 0; 
+            background: #ffffff; 
+            z-index: 20; 
+            box-shadow: 4px 0 10px -5px rgba(0,0,0,0.1);
+        }
+
+        .header-sticky { 
+            position: sticky; 
+            top: 0; 
+            z-index: 40; 
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+
+        .tab-active {
+            background: white;
+            color: #1e40af;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            font-weight: 700;
+        }
+
+        .btn-gradient {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        }
+
+        .my-schedule-cell {
+            background-color: #2563eb !important;
+            color: white !important;
+            font-weight: 800;
+            border-radius: 0.5rem;
+            padding: 8px 4px;
+            min-width: 80px;
+        }
+
+        .no-select {
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        @keyframes pulse-red {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+        .alarm-active {
+            animation: pulse-red 2s infinite;
+        }
+    </style>
+</head>
+<body class="min-h-screen text-slate-900 pb-12">
+
+    <!-- Alarm Notification Modal -->
+    <div id="alarmModal" class="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-900/80 backdrop-blur-md hidden">
+        <div class="bg-white rounded-[2rem] p-8 max-w-sm w-full text-center shadow-2xl alarm-active">
+            <div class="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+            </div>
+            <h3 class="text-xl font-bold text-slate-900 mb-2 uppercase">Waktu Mengajar</h3>
+            <p id="alarmMsg" class="text-slate-600 mb-6 text-sm font-medium">Saatnya masuk kelas.</p>
+            <button onclick="dismissAlarm()" class="w-full bg-slate-900 text-white py-4 rounded-xl font-bold active:scale-95 transition-transform">SAYA MENGERTI</button>
+        </div>
+    </div>
+
+    <!-- Login Overlay -->
+    <div id="loginOverlay" class="fixed inset-0 z-[100] bg-slate-900/50 backdrop-blur-xl flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden">
+            <div class="p-8 text-center bg-gradient-to-br from-blue-700 to-blue-900 text-white">
+                <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEi2iWi5Y8Dt91tWD8v24sfYGNL9jWxhRp2epChSaav1QQ3CZWhRb753XFGQOsT9u82kEEQAVkdZVKbbQ2I4Tkhkr9h00KJkaYnZK3jI-HPuUqcO6A3UXFZ9l43qF0sajMqs5asm2ttdvjYUxsxswINcBf7bN7gcNooq-R0KVSFwirkTeTICe6cTnGlyPmQ/s1600/logo%20mapan.png" 
+                     class="h-16 mx-auto mb-4 drop-shadow-xl">
+                <h2 class="text-xl font-extrabold uppercase tracking-tight">PORTAL GURU</h2>
+                <p class="text-blue-100/70 text-[10px] font-medium mt-1 uppercase tracking-widest leading-relaxed">SMAPANMU Integrated System</p>
+            </div>
+            <div class="p-6 md:p-8 space-y-5">
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">Hak Akses</label>
+                    <select id="loginRole" class="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl font-medium outline-none">
+                        <option value="guru">👤 GURU (PERSONAL)</option>
+                        <option value="admin">🔑 ADMIN (PENGELOLA)</option>
+                    </select>
+                </div>
+                <div id="guruInputGroup">
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">Nama Sesuai Database</label>
+                    <input type="text" id="loginUsername" placeholder="Ketik nama lengkap..." class="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-medium">
+                </div>
+                <button id="btnEnter" class="w-full btn-gradient text-white py-4 rounded-2xl font-bold shadow-lg shadow-blue-200 active:scale-95 transition-transform uppercase tracking-wider">
+                    Masuk Sekarang
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="mainApp" class="hidden max-w-7xl mx-auto px-3 sm:px-6 py-4 md:py-8">
+        <!-- Header Profile -->
+        <div class="mb-6 flex flex-col gap-4 glass-card p-5 rounded-[2rem] shadow-sm relative overflow-hidden">
+            <div class="flex items-center gap-4 relative z-10">
+                <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEi2iWi5Y8Dt91tWD8v24sfYGNL9jWxhRp2epChSaav1QQ3CZWhRb753XFGQOsT9u82kEEQAVkdZVKbbQ2I4Tkhkr9h00KJkaYnZK3jI-HPuUqcO6A3UXFZ9l43qF0sajMqs5asm2ttdvjYUxsxswINcBf7bN7gcNooq-R0KVSFwirkTeTICe6cTnGlyPmQ/s1600/logo%20mapan.png" class="h-12 w-auto">
+                <div class="flex-1">
+                    <h1 id="appTitle" class="text-lg md:text-xl font-bold text-slate-900 leading-tight">Portal Guru</h1>
+                    <div class="flex flex-wrap items-center gap-2 mt-0.5">
+                        <p id="userStatus" class="text-[9px] text-slate-500 font-bold uppercase tracking-wider"></p>
+                        <span id="userCodes" class="text-[9px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-md font-extrabold uppercase tracking-wider"></span>
+                        <span id="alarmIndicator" class="hidden flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-600 rounded-full text-[8px] font-black animate-pulse">
+                            <span class="w-1 h-1 bg-red-600 rounded-full"></span> LIVE
+                        </span>
+                    </div>
+                </div>
+                <button id="logoutBtn" title="Ganti Akun" class="bg-red-50 p-2 rounded-xl text-red-500 active:bg-red-100">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                </button>
+            </div>
+
+            <!-- Jam Digital -->
+            <div class="flex items-center justify-between gap-3 pt-3 border-t border-slate-100 relative z-10">
+                <div class="flex flex-col">
+                    <span id="displayDate" class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Memuat...</span>
+                    <span id="displayTime" class="text-2xl font-black text-slate-900 tracking-tighter">00:00:00</span>
+                </div>
+                <button id="btnEditAdmin" onclick="openMasterDatabase()" class="hidden bg-orange-500 text-white px-4 py-2.5 rounded-xl text-[10px] font-black shadow-lg shadow-orange-100 uppercase">
+                    DATABASE
+                </button>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="overflow-x-auto no-scrollbar mb-6">
+            <div class="flex bg-slate-200/50 p-1 rounded-2xl w-full">
+                <button onclick="switchMode('beban')" id="tabBeban" class="flex-1 whitespace-nowrap px-4 py-3 rounded-xl text-xs font-bold transition-all tab-active">📋 BEBAN AJAR</button>
+                <button onclick="switchMode('harian')" id="tabHarian" class="flex-1 whitespace-nowrap px-4 py-3 rounded-xl text-xs font-bold transition-all text-slate-500">🗓️ JADWAL HARIAN</button>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="flex flex-col gap-3 mb-6">
+            <div class="relative w-full">
+                <input type="text" id="searchInput" placeholder="Cari Guru / Kelas / Mapel..." class="w-full pl-10 pr-4 py-4 bg-white border border-slate-200 rounded-2xl text-sm font-medium shadow-sm outline-none focus:ring-2 focus:ring-blue-500">
+                <div class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                </div>
+            </div>
+            
+            <div id="daySelector" class="hidden w-full relative">
+                <select id="currentDay" class="w-full p-4 bg-blue-600 text-white font-bold text-sm uppercase rounded-2xl appearance-none shadow-lg shadow-blue-100 outline-none">
+                    <option value="SENIN">📅 SENIN</option>
+                    <option value="SELASA">📅 SELASA</option>
+                    <option value="RABU">📅 RABU</option>
+                    <option value="KAMIS">📅 KAMIS</option>
+                    <option value="JUMAT">📅 JUMAT</option>
+                </select>
+                <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-white/70">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Content Table Area -->
+        <div class="bg-white rounded-[2rem] shadow-xl border border-slate-100 overflow-hidden relative">
+            <div class="overflow-x-auto no-select" style="max-height: calc(100vh - 350px);">
+                <table class="w-full text-left border-collapse min-w-[800px]">
+                    <thead id="tableHead" class="bg-slate-900 text-white text-[10px] font-bold uppercase header-sticky"></thead>
+                    <tbody id="tableBody" class="divide-y divide-slate-100 text-[12px] text-slate-600"></tbody>
+                </table>
+            </div>
+            
+            <div id="loadingStatus" class="absolute inset-0 bg-white/90 flex flex-col items-center justify-center z-50 hidden">
+                <div class="loader mb-3"></div>
+                <p class="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Sinkronisasi Data...</p>
+            </div>
+            
+            <div id="emptyState" class="hidden py-16 text-center text-slate-400 font-bold uppercase text-xs tracking-widest px-6">
+                Tidak ada data yang cocok.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const DB_BEBAN_ID = '1pnfUTLZgdP4-Cj46V0U_TlmNzg6hHqyf';
+        const DB_HARIAN_ID = '16KRfWyLgC-NUWfTaAbFJScvYVJPeVYTMKoGVUS1pcZw';
+        const GIDS = { BEBAN: '1034481041', REF: '2095410455', SENIN: '839984198', SELASA: '916529932', RABU: '169960223', KAMIS: '1132074708', JUMAT: '850141657' };
+
+        let viewMode = 'beban';
+        let currentUser = { role: null, name: null, guruCode: null };
+        let allRefData = [];
+        let timeSchedules = []; 
+        let activeAlarm = null;
+        let alarmAudio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+
+        // Fungsi Auto-Login
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedUser = localStorage.getItem('smapanmu_user');
+            if (savedUser) {
+                const data = JSON.parse(savedUser);
+                performLogin(data.role, data.name, true);
+            }
+            updateClock();
+        });
+
+        function updateClock() {
+            const now = new Date();
+            const days = ['MINGGU', 'SENIN', 'SELASA', 'RABU', 'KAMIS', 'JUMAT', 'SABTU'];
+            const months = ['JAN', 'FEB', 'MAR', 'APR', 'MEI', 'JUN', 'JUL', 'AGU', 'SEP', 'OKT', 'NOV', 'DES'];
+            
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            
+            const displayTime = document.getElementById('displayTime');
+            const displayDate = document.getElementById('displayDate');
+            
+            if(displayTime) displayTime.textContent = `${hours}:${minutes}:${seconds}`;
+            if(displayDate) displayDate.textContent = `${days[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
+
+            if (currentUser.role === 'guru' && currentUser.guruCode) {
+                checkAlarm(hours, minutes);
+            }
+        }
+
+        function checkAlarm(h, m) {
+            const currentTime = `${h}:${m}`;
+            timeSchedules.forEach(slot => {
+                const startTime = slot.time.split(' - ')[0].trim();
+                if (startTime === currentTime && activeAlarm !== slot.index) {
+                    activeAlarm = slot.index;
+                    triggerAlarm(slot);
+                }
+            });
+        }
+
+        function triggerAlarm(slot) {
+            document.getElementById('alarmMsg').innerHTML = `Masuk Kelas <b>${slot.index}</b><br><span class="text-xs opacity-60">${slot.time}</span>`;
+            document.getElementById('alarmModal').classList.remove('hidden');
+            document.getElementById('alarmIndicator').classList.remove('hidden');
+            alarmAudio.play().catch(() => {});
+        }
+
+        function dismissAlarm() {
+            document.getElementById('alarmModal').classList.add('hidden');
+            alarmAudio.pause();
+        }
+
+        setInterval(updateClock, 1000);
+
+        async function performLogin(role, name, isAuto = false) {
+            if (role === 'guru' && !name) return;
+            
+            currentUser = { role, name };
+            
+            // Simpan ke storage jika bukan admin (atau simpan admin juga boleh)
+            if(!isAuto) {
+                localStorage.setItem('smapanmu_user', JSON.stringify({ role, name }));
+            }
+
+            document.getElementById('loginOverlay').classList.add('hidden');
+            document.getElementById('mainApp').classList.remove('hidden');
+            
+            if (role === 'admin') document.getElementById('btnEditAdmin').classList.remove('hidden');
+            
+            await fetchReferences();
+            identifyUserCodes();
+            updateHeaderUI();
+            fetchContent();
+        }
+
+        document.getElementById('btnEnter').addEventListener('click', () => {
+            const role = document.getElementById('loginRole').value;
+            const name = document.getElementById('loginUsername').value.trim();
+            performLogin(role, name);
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            // Hapus data tersimpan untuk ganti akun
+            localStorage.removeItem('smapanmu_user');
+            location.reload();
+        });
+
+        async function fetchReferences() {
+            const url = `https://docs.google.com/spreadsheets/d/${DB_HARIAN_ID}/export?format=csv&gid=${GIDS.REF}`;
+            try {
+                const res = await fetch(url);
+                const csv = await res.text();
+                allRefData = csv.split(/\r?\n/).map(row => parseCSV(row));
+            } catch (e) { console.error("Ref Error"); }
+        }
+
+        function identifyUserCodes() {
+            if(currentUser.role !== 'guru') return;
+            const lowerName = currentUser.name.toLowerCase();
+            for(let i=0; i < allRefData.length; i++) {
+                if(allRefData[i][12] && allRefData[i][12].toLowerCase() === lowerName) {
+                    currentUser.guruCode = allRefData[i][11];
+                    break;
+                }
+            }
+        }
+
+        function updateHeaderUI() {
+            const title = document.getElementById('appTitle');
+            const status = document.getElementById('userStatus');
+            const codes = document.getElementById('userCodes');
+            
+            if (currentUser.role === 'admin') {
+                title.textContent = "Admin Control";
+                status.textContent = "Pengelola Sistem";
+                codes.textContent = "ADMIN";
+            } else {
+                title.textContent = currentUser.name;
+                status.textContent = "GURU SMAPANMU";
+                codes.textContent = currentUser.guruCode || "TIDAK ADA KODE";
+            }
+        }
+
+        function switchMode(mode) {
+            viewMode = mode;
+            document.getElementById('tabBeban').classList.toggle('tab-active', mode === 'beban');
+            document.getElementById('tabHarian').classList.toggle('tab-active', mode === 'harian');
+            document.getElementById('tabBeban').classList.toggle('text-slate-500', mode !== 'beban');
+            document.getElementById('tabHarian').classList.toggle('text-slate-500', mode !== 'harian');
+            document.getElementById('daySelector').classList.toggle('hidden', mode !== 'harian');
+            fetchContent();
+        }
+
+        async function fetchContent() {
+            const loading = document.getElementById('loadingStatus');
+            loading.classList.remove('hidden');
+            const spreadsheetId = viewMode === 'beban' ? DB_BEBAN_ID : DB_HARIAN_ID;
+            const targetGid = viewMode === 'beban' ? GIDS.BEBAN : GIDS[document.getElementById('currentDay').value];
+            const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv&gid=${targetGid}`;
+            try {
+                const res = await fetch(url);
+                const csv = await res.text();
+                processData(csv);
+            } catch (e) { console.error("Fetch Error"); } 
+            finally { loading.classList.add('hidden'); }
+        }
+
+        function processData(csv) {
+            const lines = csv.split(/\r?\n/).map(l => parseCSV(l));
+            const head = document.getElementById('tableHead');
+            const body = document.getElementById('tableBody');
+            const empty = document.getElementById('emptyState');
+
+            if (viewMode === 'beban') {
+                if(lines.length < 9) return;
+                const headers = lines[8].slice(1, 23);
+                head.innerHTML = `<tr><th class="px-3 py-4 sticky-col bg-slate-900 border-r border-slate-800 text-center">NO</th>${headers.map(h => `<th class="px-4 py-4 border-r border-slate-800">${h}</th>`).join('')}</tr>`;
+                
+                let rows = lines.slice(9).filter(l => l[1] || l[2]);
+                if (currentUser.role === 'guru') {
+                    rows = rows.filter(r => r[2] && r[2].toLowerCase().includes(currentUser.name.toLowerCase()));
+                }
+                
+                body.innerHTML = rows.map((r, i) => `<tr><td class="px-3 py-4 sticky-col bg-white font-bold border-r text-center text-slate-400">${i+1}</td>${r.slice(1, 23).map(c => `<td class="px-4 py-4 border-r whitespace-nowrap">${c || '-'}</td>`).join('')}</tr>`).join('');
+                empty.classList.toggle('hidden', rows.length > 0);
+            } else {
+                const timeHeaders = lines[1].slice(1, 14); 
+                timeSchedules = timeHeaders.map((t, idx) => ({ index: idx + 1, time: t }));
+
+                head.innerHTML = `<tr><th class="px-4 py-4 sticky-col bg-slate-900 border-r border-slate-800 text-center">KELAS</th>${timeHeaders.map(h => `<th class="px-4 py-4 border-r border-slate-800 text-center whitespace-nowrap min-w-[100px]">${h || '?'}</th>`).join('')}</tr>`;
+                
+                const scheduleRows = lines.slice(2); 
+                let results = [];
+                
+                scheduleRows.forEach(row => {
+                    const className = row[0];
+                    if(!className || className.trim() === "") return;
+                    
+                    const teachingHours = row.slice(1, 14);
+                    if(currentUser.role === 'guru' && currentUser.guruCode) {
+                        const searchPattern = `.${currentUser.guruCode}`;
+                        const hasMyCode = teachingHours.some(cell => cell.toString().endsWith(searchPattern));
+                        if(hasMyCode) results.push({ className, hours: teachingHours });
+                    } else {
+                        results.push({ className, hours: teachingHours });
+                    }
+                });
+
+                body.innerHTML = results.map(res => `
+                    <tr>
+                        <td class="px-4 py-5 sticky-col bg-white font-extrabold border-r text-blue-900 text-sm tracking-tight">${res.className}</td>
+                        ${res.hours.map(cell => {
+                            const isMine = currentUser.guruCode && cell.toString().endsWith(`.${currentUser.guruCode}`);
+                            return `
+                                <td class="px-1 py-1 border-r text-center transition-all">
+                                    <div class="${isMine ? 'my-schedule-cell' : 'py-3'}">
+                                        ${cell || '-'}
+                                    </div>
+                                </td>`;
+                        }).join('')}
+                    </tr>
+                `).join('');
+                empty.classList.toggle('hidden', results.length > 0);
+            }
+        }
+
+        function parseCSV(row) {
+            if (!row) return [];
+            const res = []; let curr = '', q = false;
+            for (let c of row) {
+                if (c === '"') q = !q;
+                else if (c === ',' && !q) { res.push(curr.trim().replace(/^"|"$/g, '')); curr = ''; }
+                else curr += c;
+            }
+            res.push(curr.trim().replace(/^"|"$/g, ''));
+            return res;
+        }
+
+        document.getElementById('currentDay').addEventListener('change', fetchContent);
+        
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            const rows = document.querySelectorAll('#tableBody tr');
+            let visibleCount = 0;
+            rows.forEach(r => {
+                const match = r.innerText.toLowerCase().includes(term);
+                r.classList.toggle('hidden', !match);
+                if(match) visibleCount++;
+            });
+            document.getElementById('emptyState').classList.toggle('hidden', visibleCount > 0);
+        });
+
+        function openMasterDatabase() {
+            const spreadsheetId = viewMode === 'beban' ? DB_BEBAN_ID : DB_HARIAN_ID;
+            const gid = viewMode === 'beban' ? GIDS.BEBAN : GIDS[document.getElementById('currentDay').value];
+            window.open(`https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit#gid=${gid}`, '_blank');
+        }
+    </script>
+</body>
+</html>
