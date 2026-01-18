@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#1e40af">
     <title>Portal Guru SMAPANMU</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="manifest" href="data:application/json;base64,ewogICJnameiOiAiUG9ydGFsIEd1cnUgU01BUEFOTVUiLAogICJzaG9ydF9uYW1lIjogIlNNQVBBTk1VIiwKICAic3RhcnRfdXJsIjogIi4iLAogICJkaXNwbGF5IjogInN0YW5kYWxvbmUiLAogICJiYWNrZ3JvdW5kX2NvbG9yIjogIiNmOGZhZmMiLAogICJ0aGVtZV9jb3xvciI6ICIjMWU0MGFmIiwKICAiaWNvbnMiOiBbCiAgICB7CiAgICAgICJzcmMiOiAiaHR0cHM6Ly9ibG9nZ2VyLmdvb2dsZXVzZXJjb250ZW50LmNvbS9pbmcvYi9SMjl2WlhFaTJpV2lWOGREOTF0V0Q4djI0c2ZZR05MOWpYeGhScDJlcENoU2FhdjFRUTNDWldoUmI3NTNYRkdRT3NUOXU4MmtFRVFBVmtkWlZLYmJRMkk0VGtoa3I5aDAwS0prYVluWkt6STktSFB1VXFjTzZBM1VYRlo5bDQzcUYwc2FqTXFzNWFzbTJ0dGR2allVeHN4c3dJTkNCZjdiTjdnY05vb3EtUjBLVlNGd2lya1RlVElDZTZjVG5HbHlQbVEvczE2MDAvbG9nbyUyMG1hcGFuLnBuZyIsCiAgICAgICJzaXplcyI6ICI1MTJ4NTEyIiwKICAgICAgInR5cGUiOiAiaW1hZ2UvcG5nIiwKICAgICAgInB1cnBvc2UiOiAiYW55IG1hc2thYmxlIgogICAgfQogIF0KfQ==">
@@ -12,113 +13,124 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
         
-        :root { --primary: #1e40af; --accent: #3b82f6; }
-        
+        :root { 
+            --primary: #1e40af; 
+            --accent: #3b82f6; 
+        }
+
         body { 
             font-family: 'Plus Jakarta Sans', sans-serif; 
-            background: #f8fafc;
-            -webkit-tap-highlight-color: transparent;
+            background: #f8fafc; 
+            -webkit-tap-highlight-color: transparent; 
             touch-action: manipulation;
             padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
         }
 
-        .glass-card {
-            background: rgba(255, 255, 255, 0.9);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.6);
+        /* Glassmorphism Effects */
+        .glass-card { 
+            background: rgba(255, 255, 255, 0.95); 
+            backdrop-filter: blur(12px); 
+            -webkit-backdrop-filter: blur(12px); 
+            border: 1px solid rgba(255, 255, 255, 0.8); 
         }
 
-        .table-container {
-            -webkit-overflow-scrolling: touch;
-            scrollbar-width: thin;
-            scrollbar-color: #cbd5e1 transparent;
+        /* Mobile Optimized Table */
+        .table-container { 
+            -webkit-overflow-scrolling: touch; 
+            scrollbar-width: none; 
+            -ms-overflow-style: none;
+            position: relative;
         }
+        .table-container::-webkit-scrollbar { display: none; }
 
         .sticky-col { 
             position: sticky; 
             left: 0; 
             background: #ffffff; 
             z-index: 10; 
-            box-shadow: 2px 0 10px rgba(0,0,0,0.05); 
+            box-shadow: 4px 0 10px rgba(0,0,0,0.03); 
         }
 
         .header-sticky { 
             position: sticky; 
             top: 0; 
             z-index: 20; 
-            background: #0f172a;
+            background: #0f172a; 
         }
 
         .tab-active { 
             background: white; 
             color: #1e40af; 
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1); 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08); 
             font-weight: 800; 
+            transform: translateY(-1px);
         }
 
         .my-schedule-cell { 
-            background: linear-gradient(135deg, #2563eb, #1e40af);
+            background: linear-gradient(135deg, #2563eb, #1e40af); 
             color: white !important; 
             font-weight: 800; 
             border-radius: 12px; 
-            padding: 8px 4px; 
-            min-width: 80px; 
-            font-size: 11px;
-            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+            padding: 10px 6px; 
+            min-width: 90px; 
+            font-size: 11px; 
+            box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
         }
 
-        .btn-admin-float {
-            position: fixed;
-            bottom: 24px;
-            right: 24px;
-            z-index: 50;
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+
+        /* Responsive UI Tweaks for iOS/Android */
+        @media (max-width: 640px) {
+            .app-container { padding-left: 12px; padding-right: 12px; }
+            input, select, button { font-size: 16px !important; } /* Prevents iOS auto-zoom */
+            .table-container { max-height: 60vh !important; }
         }
     </style>
 </head>
-<body class="min-h-screen text-slate-900 pb-20">
+<body class="min-h-screen text-slate-900 pb-24">
 
     <!-- Login Overlay -->
-    <div id="loginOverlay" class="fixed inset-0 z-[1000] bg-slate-900/80 backdrop-blur-xl flex items-center justify-center p-6">
-        <div class="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
-            <div class="p-8 text-center bg-gradient-to-br from-blue-700 to-blue-900 text-white">
-                <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEi2iWi5Y8Dt91tWD8v24sfYGNL9jWxhRp2epChSaav1QQ3CZWhRb753XFGQOsT9u82kEEQAVkdZVKbbQ2I4Tkhkr9h00KJkaYnZK3jI-HPuUqcO6A3UXFZ9l43qF0sajMqs5asm2ttdvjYUxsxswINcBf7bN7gcNooq-R0KVSFwirkTeTICe6cTnGlyPmQ/s1600/logo%20mapan.png" class="h-16 mx-auto mb-4 drop-shadow-lg" alt="Logo SMAPANMU">
-                <h2 class="text-xl font-extrabold uppercase tracking-tight">PORTAL GURU</h2>
-                <p class="text-blue-200 text-[10px] uppercase font-bold tracking-widest opacity-80">SMAPANMU System v2.3</p>
+    <div id="loginOverlay" class="fixed inset-0 z-[1000] bg-slate-900/80 backdrop-blur-2xl flex items-center justify-center p-6 transition-opacity duration-500">
+        <div class="bg-white w-full max-w-sm rounded-[3rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-500">
+            <div class="p-8 text-center bg-gradient-to-br from-blue-700 to-indigo-900 text-white">
+                <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEi2iWi5Y8Dt91tWD8v24sfYGNL9jWxhRp2epChSaav1QQ3CZWhRb753XFGQOsT9u82kEEQAVkdZVKbbQ2I4Tkhkr9h00KJkaYnZK3jI-HPuUqcO6A3UXFZ9l43qF0sajMqs5asm2ttdvjYUxsxswINcBf7bN7gcNooq-R0KVSFwirkTeTICe6cTnGlyPmQ/s1600/logo%20mapan.png" class="h-20 mx-auto mb-4 drop-shadow-xl" alt="Logo SMAPANMU">
+                <h2 class="text-2xl font-black uppercase tracking-tight">PORTAL GURU</h2>
+                <p class="text-blue-200 text-[10px] uppercase font-bold tracking-[0.2em] opacity-80">Sync & Offline Ready</p>
             </div>
             <div class="p-8 space-y-5">
                 <div class="space-y-1">
                     <label class="block text-[10px] font-bold text-slate-400 uppercase ml-2">Pilih Akses</label>
-                    <select id="loginRole" onchange="toggleLoginInput()" class="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold focus:ring-2 focus:ring-blue-500 outline-none appearance-none">
+                    <select id="loginRole" onchange="toggleLoginInput()" class="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold focus:ring-2 focus:ring-blue-500 outline-none appearance-none cursor-pointer">
                         <option value="guru">👤 GURU (DATA PRIBADI)</option>
                         <option value="admin">🔑 ADMIN (AKSES SEMUA)</option>
                     </select>
                 </div>
                 <div id="guruInputGroup" class="space-y-1">
                     <label class="block text-[10px] font-bold text-slate-400 uppercase ml-2">Nama Lengkap</label>
-                    <input type="text" id="loginUsername" placeholder="Contoh: Dani, S.Pd" class="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none focus:ring-2 focus:ring-blue-500">
+                    <input type="text" id="loginUsername" placeholder="Contoh: Agil Syafdani, M. Pd." class="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
                 <div id="adminInputGroup" class="hidden space-y-1">
-                    <label class="block text-[10px] font-bold text-slate-400 uppercase ml-2">Password</label>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase ml-2">Password Admin</label>
                     <input type="password" id="adminPassword" placeholder="••••••••" class="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
-                <button id="btnEnter" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-2xl font-bold shadow-xl active:scale-95 transition-all uppercase tracking-wider text-sm">Masuk Portal</button>
+                <button id="btnEnter" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-2xl font-black shadow-xl active:scale-95 transition-all uppercase tracking-widest text-sm">Masuk Portal</button>
             </div>
         </div>
     </div>
 
     <!-- Admin Floating Button -->
-    <div id="adminControls" class="hidden btn-admin-float">
+    <div id="adminControls" class="hidden fixed bottom-6 right-6 z-50">
         <button onclick="openMasterDatabase()" class="bg-red-600 hover:bg-red-700 text-white px-6 py-4 rounded-2xl shadow-2xl font-black text-xs uppercase tracking-widest flex items-center gap-3 active:scale-90 transition-all">
-            <span>⚙️</span> KELOLA DATABASE
+            <span>⚙️</span> DATABASE
         </button>
     </div>
 
-    <div id="mainApp" class="hidden max-w-4xl mx-auto px-4 pt-4">
-        <!-- Profile Header -->
-        <div class="mb-4 glass-card p-5 rounded-[2rem] shadow-sm border border-white">
+    <div id="mainApp" class="hidden max-w-4xl mx-auto px-4 pt-4 app-container">
+        <!-- Header Section -->
+        <div class="mb-4 glass-card p-5 rounded-[2.5rem] shadow-sm border border-white">
             <div class="flex items-center gap-4 mb-5">
-                <div class="bg-blue-600 p-2 rounded-2xl shadow-inner">
+                <div class="bg-blue-600 p-2.5 rounded-2xl shadow-inner">
                     <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEi2iWi5Y8Dt91tWD8v24sfYGNL9jWxhRp2epChSaav1QQ3CZWhRb753XFGQOsT9u82kEEQAVkdZVKbbQ2I4Tkhkr9h00KJkaYnZK3jI-HPuUqcO6A3UXFZ9l43qF0sajMqs5asm2ttdvjYUxsxswINcBf7bN7gcNooq-R0KVSFwirkTeTICe6cTnGlyPmQ/s1600/logo%20mapan.png" class="h-10 w-auto" alt="Logo">
                 </div>
                 <div class="flex-1 overflow-hidden">
@@ -138,74 +150,97 @@
                     <span id="displayDate" class="text-[9px] font-black text-slate-300 uppercase tracking-widest">MEMUAT...</span>
                     <span id="displayTime" class="text-2xl font-black text-slate-900 tabular-nums">00:00:00</span>
                 </div>
-                <div id="statusBadge" class="flex items-center gap-2 bg-slate-50 px-3 py-2 rounded-xl">
-                    <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                    <span class="text-[9px] font-black text-slate-500 uppercase tracking-tighter">Database Online</span>
+                <div id="statusBadge" class="flex items-center gap-2 bg-slate-50 px-3 py-2 rounded-xl transition-all duration-300">
+                    <!-- Status Badge Content via JS -->
                 </div>
             </div>
         </div>
 
-        <!-- Navigation -->
-        <div class="flex bg-slate-200/50 p-1.5 rounded-2xl mb-4 overflow-x-auto no-scrollbar gap-1">
-            <button onclick="switchMode('beban')" id="tabBeban" class="flex-1 min-w-[100px] py-3.5 rounded-xl text-[10px] font-bold transition-all tab-active uppercase">Beban</button>
-            <button onclick="switchMode('harian')" id="tabHarian" class="flex-1 min-w-[100px] py-3.5 rounded-xl text-[10px] font-bold transition-all text-slate-500 uppercase">Jadwal</button>
-            <button onclick="switchMode('profil')" id="tabProfil" class="flex-1 min-w-[100px] py-3.5 rounded-xl text-[10px] font-bold transition-all text-slate-500 uppercase">Profil</button>
+        <!-- Main Navigation -->
+        <div class="flex bg-slate-200/50 p-1.5 rounded-[1.5rem] mb-4 overflow-x-auto no-scrollbar gap-1">
+            <button onclick="switchMode('beban')" id="tabBeban" class="flex-1 min-w-[90px] py-4 rounded-xl text-[10px] font-black transition-all tab-active uppercase">Beban</button>
+            <button onclick="switchMode('harian')" id="tabHarian" class="flex-1 min-w-[90px] py-4 rounded-xl text-[10px] font-black transition-all text-slate-500 uppercase">Jadwal</button>
+            <button onclick="switchMode('profil')" id="tabProfil" class="flex-1 min-w-[90px] py-4 rounded-xl text-[10px] font-black transition-all text-slate-500 uppercase">Profil</button>
+            <button onclick="switchMode('dapodik')" id="tabDapodik" class="hidden flex-1 min-w-[90px] py-4 rounded-xl text-[10px] font-black transition-all text-red-600 uppercase">Dapodik</button>
         </div>
 
-        <!-- Profil View -->
+        <!-- Dapodik Sub-Nav (Admin Only) -->
+        <div id="dapodikCategories" class="hidden flex gap-2 overflow-x-auto no-scrollbar mb-4 pb-1">
+            <button onclick="setDapodikSub('PROFIL')" id="subPROFIL" class="sub-tab-active shrink-0 px-5 py-2.5 rounded-xl text-[9px] font-black uppercase shadow-sm transition-all border border-slate-100">Profil</button>
+            <button onclick="setDapodikSub('PTK')" id="subPTK" class="bg-white shrink-0 px-5 py-2.5 rounded-xl text-[9px] font-black uppercase shadow-sm text-slate-500 border border-slate-100">PTK</button>
+            <button onclick="setDapodikSub('SISWA')" id="subSISWA" class="bg-white shrink-0 px-5 py-2.5 rounded-xl text-[9px] font-black uppercase shadow-sm text-blue-600 border border-blue-100">Siswa</button>
+            <button onclick="setDapodikSub('PESERTA_DIDIK')" id="subPESERTA_DIDIK" class="bg-white shrink-0 px-5 py-2.5 rounded-xl text-[9px] font-black uppercase shadow-sm text-slate-500 border border-slate-100">Statistik</button>
+            <button onclick="setDapodikSub('ROMBEL')" id="subROMBEL" class="bg-white shrink-0 px-5 py-2.5 rounded-xl text-[9px] font-black uppercase shadow-sm text-slate-500 border border-slate-100">Rombel</button>
+        </div>
+
+        <!-- Content Views -->
         <div id="profilContent" class="hidden">
-            <div id="profilGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+            <div id="profilGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-3 pb-6"></div>
         </div>
 
-        <!-- Table View -->
         <div id="tableView" class="space-y-3">
+            <!-- Filter Bar -->
             <div id="filterControls" class="flex flex-col gap-2">
                 <div class="relative">
-                    <input type="text" id="searchInput" placeholder="Cari..." class="w-full p-4 bg-white border-2 border-transparent focus:border-blue-500 rounded-[1.5rem] font-bold shadow-sm outline-none text-sm transition-all pr-12">
-                    <div class="absolute right-4 top-4 text-slate-300">🔍</div>
+                    <input type="text" id="searchInput" placeholder="Cari apapun..." class="w-full p-4 bg-white border-2 border-transparent focus:border-blue-500 rounded-[1.5rem] font-bold shadow-md outline-none text-sm transition-all pr-12">
+                    <div class="absolute right-5 top-4 text-slate-300">🔍</div>
                 </div>
                 <div id="daySelector" class="hidden">
-                    <select id="currentDay" class="w-full p-4 bg-blue-600 text-white font-black rounded-[1.5rem] shadow-lg outline-none text-sm appearance-none text-center">
-                        <option value="SENIN">📅 SENIN</option>
-                        <option value="SELASA">📅 SELASA</option>
-                        <option value="RABU">📅 RABU</option>
-                        <option value="KAMIS">📅 KAMIS</option>
-                        <option value="JUMAT">📅 JUMAT</option>
-                    </select>
+                    <div class="flex bg-blue-600 p-1.5 rounded-[1.5rem] shadow-lg gap-1">
+                        <select id="currentDay" class="w-full bg-transparent text-white font-black text-center py-2 outline-none appearance-none uppercase text-xs">
+                            <option value="SENIN" class="text-slate-900">📅 SENIN</option>
+                            <option value="SELASA" class="text-slate-900">📅 SELASA</option>
+                            <option value="RABU" class="text-slate-900">📅 RABU</option>
+                            <option value="KAMIS" class="text-slate-900">📅 KAMIS</option>
+                            <option value="JUMAT" class="text-slate-900">📅 JUMAT</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
-            <div class="bg-white rounded-[2rem] shadow-xl border border-slate-100 overflow-hidden relative">
-                <div class="table-container overflow-x-auto" style="max-height: 55vh;">
+            <!-- Table Card -->
+            <div class="bg-white rounded-[2.5rem] shadow-xl border border-slate-100 overflow-hidden relative">
+                <div class="table-container overflow-x-auto" style="max-height: 58vh;">
                     <table class="w-full text-left border-collapse min-w-full">
                         <thead id="tableHead" class="bg-slate-900 text-white text-[9px] font-black uppercase header-sticky"></thead>
                         <tbody id="tableBody" class="divide-y divide-slate-50 text-[11px] font-bold text-slate-600"></tbody>
                     </table>
                 </div>
-                <div id="loadingStatus" class="hidden py-12 text-center">
-                    <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-600 border-t-transparent mb-2"></div>
-                    <p class="text-xs font-bold text-slate-400">Sinkronisasi Database...</p>
+                
+                <!-- Indicators -->
+                <div id="loadingStatus" class="hidden py-16 text-center">
+                    <div class="inline-block animate-spin rounded-full h-10 w-10 border-[5px] border-blue-600 border-t-transparent mb-3"></div>
+                    <p class="text-xs font-black text-slate-400 uppercase tracking-widest">Sinkronisasi...</p>
                 </div>
-                <div id="emptyState" class="hidden py-12 text-center">
-                    <span class="text-4xl block mb-2">🤷‍♂️</span>
-                    <p class="text-xs font-bold text-slate-400">Data tidak ditemukan.</p>
+                <div id="emptyState" class="hidden py-16 text-center">
+                    <span class="text-5xl block mb-3">🔍</span>
+                    <p class="text-xs font-black text-slate-400 uppercase tracking-widest">Tidak ada data</p>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
+        // Database Configurations
         const DB_BEBAN_ID = '1t3WNhu2tCaHWPTNcyOC7kupXNNdE6pH30QRAqyr1L8s';
         const DB_HARIAN_ID = '16KRfWyLgC-NUWfTaAbFJScvYVJPeVYTMKoGVUS1pcZw';
+        const DB_DAPODIK_ID = '1KVkzy7IjxDrxxWhMQjSsLK8uQ_oEYjJSbm5snTPxeqo';
+        const DB_SISWA_ID = '1RU_mA4xV4pmZibeBbbgotcj09WWBoYeT13Hx7T0XX_4';
         
         const GIDS = {
-            BEBAN: '1034481041', PTK: '482225314', REF: '2095410455',
-            SENIN: '839984198', SELASA: '916529932', RABU: '169960223', KAMIS: '1132074708', JUMAT: '850141657'
+            BEBAN: '1034481041', PTK_BEBAN: '482225314', REF: '2095410455',
+            SENIN: '839984198', SELASA: '916529932', RABU: '169960223', KAMIS: '1132074708', JUMAT: '850141657',
+            PROFIL: '1205239446', PTK: '2037943441', PESERTA_DIDIK: '1887693900',
+            ROMBEL: '315509224', PRASARANA: '2135637764', SARANA: '114459892', SISWA: '275467067'
         };
 
+        // State Management
         let currentUser = { name: '', role: 'guru', guruCode: '', isAdmin: false };
         let viewMode = 'beban';
+        let subDapodik = 'PROFIL';
+        let cache = {};
 
+        // Clock & Online Status
         function updateClock() {
             const now = new Date();
             document.getElementById('displayTime').textContent = now.toLocaleTimeString('id-ID', {hour12:false});
@@ -214,19 +249,24 @@
             document.getElementById('displayDate').textContent = `${days[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]} 2026`;
             
             const statusBadge = document.getElementById('statusBadge');
-            if(navigator.onLine) {
-                statusBadge.innerHTML = `<span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span><span class="text-[9px] font-black text-slate-500 uppercase">Database Online</span>`;
+            if (navigator.onLine) {
+                statusBadge.innerHTML = `<span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span><span class="text-[9px] font-black text-slate-500 uppercase tracking-tighter">Database Terhubung</span>`;
             } else {
-                statusBadge.innerHTML = `<span class="w-2 h-2 bg-red-500 rounded-full"></span><span class="text-[9px] font-black text-red-500 uppercase">Mode Offline</span>`;
+                statusBadge.innerHTML = `<span class="w-2 h-2 bg-orange-500 rounded-full"></span><span class="text-[9px] font-black text-orange-500 uppercase tracking-tighter">Mode Offline</span>`;
             }
         }
 
         window.onload = () => {
-            const saved = localStorage.getItem('smapan_user');
-            if(saved) {
-                const data = JSON.parse(saved);
+            // Load from LocalStorage for Offline
+            const savedUser = localStorage.getItem('smapan_user');
+            const savedCache = localStorage.getItem('smapan_cache');
+            
+            if(savedCache) cache = JSON.parse(savedCache);
+            if(savedUser) {
+                const data = JSON.parse(savedUser);
                 initApp(data.role, data.name);
             }
+            
             setInterval(updateClock, 1000);
             updateClock();
         };
@@ -237,16 +277,21 @@
             currentUser.isAdmin = (role === 'admin');
             
             localStorage.setItem('smapan_user', JSON.stringify({role, name}));
-            document.getElementById('loginOverlay').classList.add('hidden');
+            document.getElementById('loginOverlay').classList.add('opacity-0');
+            setTimeout(() => document.getElementById('loginOverlay').classList.add('hidden'), 500);
             document.getElementById('mainApp').classList.remove('hidden');
             
-            document.getElementById('appTitle').textContent = currentUser.isAdmin ? 'Master Administrator' : name;
-            document.getElementById('userStatus').textContent = currentUser.isAdmin ? 'MASTER ADMIN' : 'GURU SMAPANMU';
+            document.getElementById('appTitle').textContent = currentUser.isAdmin ? 'Admin SMAPAN' : name;
+            document.getElementById('userStatus').textContent = currentUser.isAdmin ? 'MASTER ACCESS' : 'GURU SMAPANMU';
             
+            const tabDapodik = document.getElementById('tabDapodik');
             if(currentUser.isAdmin) {
                 document.getElementById('adminControls').classList.remove('hidden');
                 document.getElementById('userCodes').textContent = 'ADMIN';
+                tabDapodik.classList.remove('hidden');
             } else {
+                document.getElementById('adminControls').classList.add('hidden');
+                tabDapodik.classList.add('hidden');
                 await fetchRefAndIdentify();
             }
             
@@ -264,11 +309,13 @@
                     document.getElementById('userCodes').textContent = currentUser.guruCode;
                 }
             } catch (e) { 
-                document.getElementById('userCodes').textContent = 'ERR';
+                console.log("Offline or Error identification"); 
             }
         }
 
         function switchMode(mode) {
+            if(mode === 'dapodik' && !currentUser.isAdmin) return;
+
             viewMode = mode;
             document.querySelectorAll('[id^="tab"]').forEach(el => {
                 el.classList.remove('tab-active');
@@ -279,36 +326,72 @@
             document.getElementById('tableView').classList.toggle('hidden', mode === 'profil');
             document.getElementById('profilContent').classList.toggle('hidden', mode !== 'profil');
             document.getElementById('daySelector').classList.toggle('hidden', mode !== 'harian');
+            document.getElementById('dapodikCategories').classList.toggle('hidden', mode !== 'dapodik');
             
-            fetchContent();
+            if(mode === 'dapodik') setDapodikSub(subDapodik);
+            else fetchContent();
         }
 
-        function openMasterDatabase() {
-            const sid = viewMode === 'harian' ? DB_HARIAN_ID : DB_BEBAN_ID;
-            window.open(`https://docs.google.com/spreadsheets/d/${sid}/edit`, '_blank');
+        function setDapodikSub(sub) {
+            subDapodik = sub;
+            document.querySelectorAll('[id^="sub"]').forEach(el => {
+                el.classList.remove('sub-tab-active', 'bg-blue-600', 'text-white');
+                el.classList.add('bg-white', 'text-slate-500');
+            });
+            const btn = document.getElementById('sub' + sub);
+            if(btn) {
+                btn.classList.add('sub-tab-active');
+                btn.classList.remove('bg-white', 'text-slate-500');
+            }
+            fetchContent();
         }
 
         async function fetchContent() {
             const loading = document.getElementById('loadingStatus');
             const empty = document.getElementById('emptyState');
-            loading.classList.remove('hidden');
+            const day = document.getElementById('currentDay').value;
+            
+            // Show loading only if online
+            if (navigator.onLine) loading.classList.remove('hidden');
             empty.classList.add('hidden');
 
             let url = '';
-            const day = document.getElementById('currentDay').value;
+            let cacheKey = `${viewMode}_${day}_${subDapodik}`;
             
             if(viewMode === 'beban') url = `https://docs.google.com/spreadsheets/d/${DB_BEBAN_ID}/export?format=csv&gid=${GIDS.BEBAN}`;
             else if(viewMode === 'harian') url = `https://docs.google.com/spreadsheets/d/${DB_HARIAN_ID}/export?format=csv&gid=${GIDS[day]}`;
-            else if(viewMode === 'profil') url = `https://docs.google.com/spreadsheets/d/${DB_BEBAN_ID}/export?format=csv&gid=${GIDS.PTK}`;
+            else if(viewMode === 'profil') url = `https://docs.google.com/spreadsheets/d/${DB_BEBAN_ID}/export?format=csv&gid=${GIDS.PTK_BEBAN}`;
+            else if(viewMode === 'dapodik') {
+                const baseId = (subDapodik === 'SISWA') ? DB_SISWA_ID : DB_DAPODIK_ID;
+                url = `https://docs.google.com/spreadsheets/d/${baseId}/export?format=csv&gid=${GIDS[subDapodik]}`;
+            }
 
             try {
-                const res = await fetch(url);
-                const csv = await res.text();
+                // Fetch new data if online
+                if(navigator.onLine) {
+                    const res = await fetch(url);
+                    const csv = await res.text();
+                    cache[cacheKey] = csv;
+                    localStorage.setItem('smapan_cache', JSON.stringify(cache));
+                }
+
                 loading.classList.add('hidden');
-                if(viewMode === 'profil') renderProfil(csv); else renderTable(csv);
+                const finalCsv = cache[cacheKey];
+                
+                if(!finalCsv) {
+                    empty.classList.remove('hidden');
+                    return;
+                }
+
+                if(viewMode === 'profil') renderProfil(finalCsv); else renderTable(finalCsv);
+
             } catch (e) {
                 loading.classList.add('hidden');
-                empty.classList.remove('hidden');
+                if(cache[cacheKey]) {
+                    if(viewMode === 'profil') renderProfil(cache[cacheKey]); else renderTable(cache[cacheKey]);
+                } else {
+                    empty.classList.remove('hidden');
+                }
             }
         }
 
@@ -319,24 +402,21 @@
             const ptkData = lines.slice(1).find(r => r[1]?.toLowerCase().trim() === currentUser.name.toLowerCase().trim());
             
             if(!ptkData || currentUser.isAdmin) {
-                grid.innerHTML = `<div class="col-span-full py-12 text-center font-bold text-slate-400 bg-white rounded-[2rem] border-2 border-dashed border-slate-100">${currentUser.isAdmin ? 'Data profil hanya tersedia untuk akun Guru.' : 'Profil tidak ditemukan.'}</div>`;
+                grid.innerHTML = `<div class="col-span-full py-16 text-center font-black text-slate-300 bg-white rounded-[2rem] border-2 border-dashed border-slate-100 uppercase text-[10px] tracking-[0.2em]">${currentUser.isAdmin ? 'Login sebagai Guru untuk lihat profil' : 'Data Profil Tidak Ada'}</div>`;
                 return;
             }
 
-            let profileHTML = '';
-            headers.forEach((label, i) => {
-                if(!label || i === 0) return;
-                const value = ptkData[i] || '-';
-                profileHTML += `
-                    <div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex items-center gap-4 transition-all">
-                        <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center text-xl shrink-0">📄</div>
+            grid.innerHTML = headers.map((label, i) => {
+                if(!label || i === 0) return '';
+                return `
+                    <div class="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-4 active:scale-95 transition-all">
+                        <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center text-xl shrink-0 shadow-inner">📄</div>
                         <div class="overflow-hidden">
-                            <p class="text-[8px] font-black text-slate-300 uppercase tracking-widest mb-0.5">${label}</p>
-                            <p class="text-xs font-bold text-slate-800 truncate">${value}</p>
+                            <p class="text-[8px] font-black text-slate-300 uppercase tracking-widest mb-1">${label}</p>
+                            <p class="text-xs font-extrabold text-slate-800 truncate">${ptkData[i] || '-'}</p>
                         </div>
                     </div>`;
-            });
-            grid.innerHTML = profileHTML;
+            }).join('');
         }
 
         function renderTable(csv) {
@@ -344,36 +424,32 @@
             const head = document.getElementById('tableHead');
             const body = document.getElementById('tableBody');
             
-            if(viewMode === 'beban') {
-                const headers = lines[8] || [];
-                // Admin: Kolom utuh dari CSV. Guru: Mulai kolom Nama (index 2).
-                const displayHeaders = currentUser.isAdmin ? headers : headers.slice(1);
+            if(viewMode === 'beban' || viewMode === 'dapodik') {
+                const headerIndex = (viewMode === 'beban') ? 8 : 0;
+                const headers = lines[headerIndex] || [];
+                const dataRows = lines.slice(headerIndex + 1);
                 
-                head.innerHTML = `<tr><th class="p-4 sticky-col bg-slate-900 border-r border-slate-800">#</th>${displayHeaders.map(h => `<th class="p-4 min-w-[140px] text-center">${h}</th>`).join('')}</tr>`;
+                head.innerHTML = `<tr><th class="p-4 sticky-col bg-slate-900 border-r border-slate-800 text-white shadow-lg">#</th>${headers.map(h => `<th class="p-4 min-w-[150px] text-center text-white border-l border-slate-800">${h}</th>`).join('')}</tr>`;
                 
-                let rows = lines.slice(9);
-                if(!currentUser.isAdmin) {
-                    rows = rows.filter(r => r[2]?.toLowerCase().includes(currentUser.name.toLowerCase()));
+                let filtered = dataRows.filter(r => r.length > 1);
+                if(!currentUser.isAdmin && viewMode === 'beban') {
+                    filtered = filtered.filter(r => r[2]?.toLowerCase().includes(currentUser.name.toLowerCase()));
                 }
                 
-                body.innerHTML = rows.map((r,i) => {
-                    const rowData = currentUser.isAdmin ? r : r.slice(1);
-                    return `<tr><td class="p-4 sticky-col bg-white border-r text-center font-black text-slate-300">${i+1}</td>${rowData.map(c => `<td class="p-4 whitespace-nowrap text-center">${c || '-'}</td>`).join('')}</tr>`;
-                }).join('');
+                body.innerHTML = filtered.map((r,i) => `<tr><td class="p-4 sticky-col bg-white border-r text-center font-black text-slate-300">${i+1}</td>${r.map(c => `<td class="p-4 whitespace-nowrap text-center">${c || '-'}</td>`).join('')}</tr>`).join('');
 
-            } else {
+            } else { // Jadwal Harian
                 const times = lines[1] || [];
-                head.innerHTML = `<tr><th class="p-4 sticky-col bg-slate-900 border-r border-slate-800">KELAS</th>${times.slice(1).map(t => `<th class="p-4 text-center min-w-[90px]">${t}</th>`).join('')}</tr>`;
+                head.innerHTML = `<tr><th class="p-4 sticky-col bg-slate-900 border-r border-slate-800 text-white font-black">KELAS</th>${times.slice(1).map(t => `<th class="p-4 text-center min-w-[100px] text-white font-bold border-l border-slate-800">${t}</th>`).join('')}</tr>`;
                 
-                let rows = lines.slice(2);
+                let rows = lines.slice(2).filter(r => r[0]);
                 if(!currentUser.isAdmin && currentUser.guruCode) {
                     rows = rows.filter(r => r.some(c => c.endsWith(`.${currentUser.guruCode}`)));
                 }
 
-                body.innerHTML = rows.map(r => `<tr><td class="p-4 sticky-col bg-white font-black text-blue-900 border-r shadow-sm">${r[0]}</td>${r.slice(1).map(c => {
+                body.innerHTML = rows.map(r => `<tr><td class="p-4 sticky-col bg-white font-black text-blue-900 border-r shadow-md text-xs">${r[0]}</td>${r.slice(1).map(c => {
                     const isMe = !currentUser.isAdmin && currentUser.guruCode && c.endsWith(`.${currentUser.guruCode}`);
-                    const hasContent = c && c !== '-';
-                    return `<td class="p-2"><div class="${isMe?'my-schedule-cell text-center flex flex-col justify-center min-h-[44px]':(hasContent?'text-center font-extrabold text-slate-600 text-[10px] uppercase':'text-center text-slate-200')}">${c||'-'}</div></td>`;
+                    return `<td class="p-2"><div class="${isMe?'my-schedule-cell text-center flex flex-col justify-center min-h-[48px]':(c && c !== '-'?'text-center font-extrabold text-slate-600 text-[10px] uppercase':'text-center text-slate-100')}">${c||'-'}</div></td>`;
                 }).join('')}</tr>`).join('');
             }
             document.getElementById('emptyState').classList.toggle('hidden', body.children.length > 0);
@@ -405,7 +481,7 @@
             } else {
                 const name = document.getElementById('loginUsername').value;
                 if(name.trim() !== "") initApp('guru', name);
-                else alert("Masukkan nama!");
+                else alert("Silakan masukkan nama!");
             }
         };
 
@@ -421,6 +497,15 @@
                 tr.classList.toggle('hidden', !tr.innerText.toLowerCase().includes(term));
             });
         };
+
+        function openMasterDatabase() {
+            let sid = DB_BEBAN_ID;
+            if(viewMode === 'harian') sid = DB_HARIAN_ID;
+            if(viewMode === 'dapodik') {
+                sid = (subDapodik === 'SISWA') ? DB_SISWA_ID : DB_DAPODIK_ID;
+            }
+            window.open(`https://docs.google.com/spreadsheets/d/${sid}/edit`, '_blank');
+        }
     </script>
 </body>
 </html>
