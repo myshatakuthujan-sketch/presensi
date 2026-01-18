@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal Jadwal Guru SMAPANMU</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+        
+        :root {
+            --primary: #1e40af;
+            --accent: #3b82f6;
+        }
+
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background: radial-gradient(circle at top right, #f8fafc, #eff6ff);
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid var(--accent);
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            animation: spin 1s cubic-bezier(0.76, 0, 0.24, 1) infinite;
+        }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .sticky-col { 
+            position: sticky; 
+            left: 0; 
+            background: #ffffff; 
+            z-index: 10; 
+            border-right: 2px solid #f1f5f9 !important; 
+        }
+
+        .header-sticky { 
+            position: sticky; 
+            top: 0; 
+            z-index: 30; 
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+
+        .table-row-hover:hover {
+            background-color: #f8faff !important;
+            transform: scale(1.001);
+            transition: all 0.2s ease;
+        }
+
+        .btn-gradient {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            transition: all 0.3s ease;
+        }
+
+        .btn-gradient:hover {
+            box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.4);
+            transform: translateY(-1px);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="min-h-screen text-slate-900 pb-12">
+
+    <!-- Login Overlay -->
+    <div id="loginOverlay" class="fixed inset-0 z-[100] bg-slate-900/40 backdrop-blur-xl flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-500">
+            <div class="p-10 text-center bg-gradient-to-br from-blue-700 to-blue-900 text-white flex flex-col items-center relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
+                    <svg width="100%" height="100%"><pattern id="pattern" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1" fill="white"/></pattern><rect width="100%" height="100%" fill="url(#pattern)"/></svg>
+                </div>
+                <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEi2iWi5Y8Dt91tWD8v24sfYGNL9jWxhRp2epChSaav1QQ3CZWhRb753XFGQOsT9u82kEEQAVkdZVKbbQ2I4Tkhkr9h00KJkaYnZK3jI-HPuUqcO6A3UXFZ9l43qF0sajMqs5asm2ttdvjYUxsxswINcBf7bN7gcNooq-R0KVSFwirkTeTICe6cTnGlyPmQ/s1600/logo%20mapan.png" 
+                     alt="Logo Sekolah" 
+                     class="h-32 w-auto mb-6 drop-shadow-2xl relative z-10"
+                     onerror="this.style.display='none'">
+                <h2 class="text-3xl font-extrabold tracking-tighter relative z-10">PORTAL JADWAL</h2>
+                <p class="text-blue-100/80 text-sm font-medium mt-2 uppercase tracking-widest relative z-10">SMAPANMU Portal</p>
+            </div>
+            <div class="p-10 bg-white">
+                <div class="space-y-6">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">Hak Akses</label>
+                        <select id="loginRole" class="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none transition-all appearance-none cursor-pointer font-medium">
+                            <option value="guru">👨‍🏫 Guru (Personal)</option>
+                            <option value="admin">🔒 Admin (Pengelola)</option>
+                            <option value="guest">🌍 Tamu (Publik)</option>
+                        </select>
+                    </div>
+                    <div id="guruInputGroup">
+                        <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">Nama Lengkap</label>
+                        <div class="relative">
+                            <input type="text" id="loginUsername" placeholder="Masukkan nama Anda..." class="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium">
+                        </div>
+                        <p class="text-[10px] text-slate-400 mt-3 italic">*Gunakan nama yang terdaftar di sistem.</p>
+                    </div>
+                    <button id="btnEnter" class="w-full btn-gradient text-white py-4 rounded-2xl font-bold shadow-lg shadow-blue-200 text-lg">
+                        Masuk Sekarang
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="mainApp" class="hidden max-w-7xl mx-auto px-4 sm:px-6 py-8">
+        <!-- App Header -->
+        <div class="mb-8 flex flex-col lg:flex-row lg:items-center justify-between gap-6 glass-card p-6 rounded-[2rem] shadow-sm border border-slate-200">
+            <div class="flex items-center gap-5">
+                <div class="bg-white p-2 rounded-2xl shadow-sm border border-slate-100">
+                    <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEi2iWi5Y8Dt91tWD8v24sfYGNL9jWxhRp2epChSaav1QQ3CZWhRb753XFGQOsT9u82kEEQAVkdZVKbbQ2I4Tkhkr9h00KJkaYnZK3jI-HPuUqcO6A3UXFZ9l43qF0sajMqs5asm2ttdvjYUxsxswINcBf7bN7gcNooq-R0KVSFwirkTeTICe6cTnGlyPmQ/s1600/logo%20mapan.png" 
+                         alt="Logo" 
+                         class="h-14 w-auto object-contain">
+                </div>
+                <div>
+                    <h1 id="appTitle" class="text-2xl font-extrabold text-slate-900 tracking-tight">Dashboard Jadwal</h1>
+                    <div class="flex items-center gap-2 mt-1">
+                        <span class="inline-block w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                        <p id="userStatus" class="text-xs text-slate-500 font-semibold uppercase tracking-wider"></p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                <div id="adminTools" class="hidden">
+                    <a href="https://docs.google.com/spreadsheets/d/1t3WNhu2tCaHWPTNcyOC7kupXNNdE6pH30QRAqyr1L8s/edit" target="_blank" class="bg-slate-900 text-white px-5 py-3 rounded-2xl text-sm font-bold flex items-center gap-2 hover:bg-slate-800 transition-all shadow-lg shadow-slate-200">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                        Edit Data Utama
+                    </a>
+                </div>
+                <button id="logoutBtn" class="flex items-center gap-2 bg-red-50 text-red-600 px-5 py-3 rounded-2xl text-sm font-bold hover:bg-red-100 transition-all" title="Logout">
+                    <span>Keluar</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <div class="md:col-span-3 relative glass-card p-1 rounded-2xl shadow-sm border border-slate-200">
+                <input type="text" id="searchInput" placeholder="Cari berdasarkan hari, jam, atau mata pelajaran..." class="w-full pl-12 pr-4 py-4 bg-transparent outline-none font-medium text-slate-600">
+                <div class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                </div>
+            </div>
+            <div class="bg-blue-600 p-4 rounded-2xl shadow-lg shadow-blue-100 flex items-center justify-between px-6 text-white">
+                <div class="flex flex-col">
+                    <span class="text-[10px] font-bold uppercase opacity-70 tracking-tighter">Total Sesi</span>
+                    <span id="dataCount" class="text-2xl font-black leading-none mt-1">--</span>
+                </div>
+                <div class="opacity-20">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Table Container -->
+        <div class="bg-white rounded-[2rem] shadow-xl border border-slate-200 overflow-hidden relative">
+            <div class="overflow-x-auto max-h-[70vh]">
+                <table class="w-full text-left border-collapse min-w-[2000px]">
+                    <thead id="tableHead" class="bg-slate-900 text-white text-[11px] font-bold uppercase tracking-widest header-sticky">
+                    </thead>
+                    <tbody id="tableBody" class="divide-y divide-slate-100 text-[13px] text-slate-600">
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Loading States -->
+            <div id="loadingStatus" class="absolute inset-0 bg-white/80 backdrop-blur-md flex flex-col items-center justify-center z-50 transition-opacity duration-300">
+                <div class="loader mb-4"></div>
+                <p class="font-bold text-slate-700 tracking-tight">Menyinkronkan data terbaru...</p>
+            </div>
+
+            <!-- Empty State (Hidden by default) -->
+            <div id="emptyState" class="hidden py-20 flex flex-col items-center justify-center text-slate-400">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mb-4 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p class="font-semibold">Data tidak ditemukan</p>
+                <p class="text-sm">Coba kata kunci lain atau periksa koneksi Anda.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SHEET_ID = '1t3WNhu2tCaHWPTNcyOC7kupXNNdE6pH30QRAqyr1L8s';
+        const GID = '1034481041';
+        const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID}`;
+
+        let masterData = [];
+        let headers = [];
+        let currentUser = { role: null, name: null };
+
+        // Handle Role Selection UI
+        document.getElementById('loginRole').addEventListener('change', (e) => {
+            const inputGroup = document.getElementById('guruInputGroup');
+            inputGroup.style.opacity = '0';
+            setTimeout(() => {
+                inputGroup.style.display = e.target.value === 'guru' ? 'block' : 'none';
+                inputGroup.style.opacity = '1';
+            }, 150);
+        });
+
+        document.getElementById('btnEnter').addEventListener('click', () => {
+            const role = document.getElementById('loginRole').value;
+            const name = document.getElementById('loginUsername').value.trim();
+
+            if (role === 'guru' && !name) {
+                alert('Silakan masukkan nama Anda untuk melihat jadwal personal.');
+                return;
+            }
+
+            currentUser = { role, name };
+            document.getElementById('loginOverlay').classList.add('hidden');
+            document.getElementById('mainApp').classList.remove('hidden');
+            
+            updateHeaderUI();
+            fetchData();
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            location.reload();
+        });
+
+        function updateHeaderUI() {
+            const title = document.getElementById('appTitle');
+            const status = document.getElementById('userStatus');
+            const adminTools = document.getElementById('adminTools');
+
+            if (currentUser.role === 'admin') {
+                title.innerHTML = "Sistem <span class='text-blue-600'>Administrator</span>";
+                status.textContent = "Akses Penuh Kelola Data";
+                adminTools.classList.remove('hidden');
+            } else if (currentUser.role === 'guru') {
+                title.innerHTML = `Halo, <span class='text-blue-600'>${currentUser.name}</span>`;
+                status.textContent = "Mode Jadwal Personal";
+            } else {
+                title.innerHTML = "Dashboard <span class='text-blue-600'>Publik</span>";
+                status.textContent = "Hanya Tampilan Lihat";
+            }
+        }
+
+        async function fetchData() {
+            try {
+                const response = await fetch(CSV_URL);
+                const csvText = await response.text();
+                processData(csvText);
+                document.getElementById('loadingStatus').style.opacity = '0';
+                setTimeout(() => document.getElementById('loadingStatus').classList.add('hidden'), 300);
+            } catch (error) {
+                console.error(error);
+                alert('Koneksi bermasalah. Pastikan Spreadsheet dapat diakses secara publik.');
+            }
+        }
+
+        function processData(csv) {
+            const lines = csv.split(/\r?\n/);
+            const row8 = parseCSV(lines[7]);
+            const row9 = parseCSV(lines[8]);
+            
+            headers = [];
+            for (let i = 1; i <= 22; i++) {
+                headers.push({ 
+                    index: i, 
+                    label: (row8[i] || '').trim() + ' ' + (row9[i] || '').trim() 
+                });
+            }
+
+            masterData = lines.slice(9)
+                .map(line => {
+                    const cols = parseCSV(line);
+                    if (!cols[1] && !cols[2]) return null;
+                    let obj = {};
+                    headers.forEach(h => obj[`c${h.index}`] = cols[h.index] || '');
+                    return obj;
+                })
+                .filter(x => x !== null);
+
+            applyFilterAndRender();
+        }
+
+        function parseCSV(row) {
+            if (!row) return [];
+            const res = [];
+            let curr = '', q = false;
+            for (let c of row) {
+                if (c === '"') q = !q;
+                else if (c === ',' && !q) { res.push(curr.trim().replace(/^"|"$/g, '')); curr = ''; }
+                else curr += c;
+            }
+            res.push(curr.trim().replace(/^"|"$/g, ''));
+            return res;
+        }
+
+        function applyFilterAndRender() {
+            let filtered = masterData;
+
+            if (currentUser.role === 'guru') {
+                filtered = masterData.filter(item => 
+                    item.c2.toLowerCase().includes(currentUser.name.toLowerCase())
+                );
+            }
+
+            const term = document.getElementById('searchInput').value.toLowerCase();
+            if (term) {
+                filtered = filtered.filter(item => 
+                    Object.values(item).some(v => v.toLowerCase().includes(term))
+                );
+            }
+
+            const emptyState = document.getElementById('emptyState');
+            if (filtered.length === 0) {
+                emptyState.classList.remove('hidden');
+            } else {
+                emptyState.classList.add('hidden');
+            }
+
+            renderTable(filtered);
+        }
+
+        function renderTable(data) {
+            const head = document.getElementById('tableHead');
+            const body = document.getElementById('tableBody');
+            
+            head.innerHTML = `<tr>
+                <th class="px-6 py-5 text-center sticky-col bg-slate-900 border-r border-slate-800">NO</th>
+                ${headers.map(h => {
+                    const isNameCol = h.index === 2;
+                    return `<th class="px-6 py-5 border-r border-slate-800 ${isNameCol ? 'sticky left-[68px] bg-slate-900 z-10 shadow-xl' : ''}">${h.label || 'KOLOM ' + h.index}</th>`;
+                }).join('')}
+            </tr>`;
+
+            body.innerHTML = data.map((row, i) => `
+                <tr class="table-row-hover transition-all duration-150">
+                    <td class="px-6 py-4 text-center sticky-col font-bold text-[11px] text-slate-400 bg-white border-r border-slate-100">${i+1}</td>
+                    ${headers.map(h => {
+                        const isNameCol = h.index === 2;
+                        const cellValue = row[`c${h.index}`] || '-';
+                        const isEmpty = cellValue === '-' || cellValue === '';
+                        
+                        return `
+                        <td class="px-6 py-4 border-r border-slate-50 ${isNameCol ? 'sticky left-[68px] bg-white font-bold text-blue-900 border-r-2 border-blue-50' : ''} ${isEmpty ? 'text-slate-300 font-light' : 'font-medium'}">
+                            ${cellValue}
+                        </td>`;
+                    }).join('')}
+                </tr>
+            `).join('');
+
+            document.getElementById('dataCount').textContent = data.length;
+        }
+
+        document.getElementById('searchInput').addEventListener('input', applyFilterAndRender);
+        
+        // Refresh data every 2 minutes
+        setInterval(fetchData, 120000);
+    </script>
+</body>
+</html>
