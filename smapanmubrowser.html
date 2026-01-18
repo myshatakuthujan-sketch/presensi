@@ -1,13 +1,9 @@
 <!DOCTYPE html>
-<html lang="id" class="antialiased">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>OPT Dapodik Lite Browser Pro</title>
-    
-    <!-- Pre-connect ke core engine -->
-    <link rel="preconnect" href="https://cdn.tailwindcss.com">
-    <link rel="dns-prefetch" href="//yewtu.be">
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -23,233 +19,149 @@
         }
     </script>
     <style>
-        /* Akselerasi GPU Level Tinggi */
-        * {
-            -webkit-tap-highlight-color: transparent;
-            box-sizing: border-box;
-            outline: none;
-        }
-        
+        * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
         body { 
-            font-family: system-ui, -apple-system, sans-serif;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; 
+            background: #f8fafc; 
             overflow: hidden;
-            overscroll-behavior: none;
         }
+        .dark body { background: #0f172a; }
 
-        /* Turbo Performance Classes */
-        .layer-speed {
-            transform: translateZ(0);
-            will-change: transform, opacity;
-        }
-
-        #browser-view {
-            transition: opacity 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        /* Loader Super Ringan */
-        .turbo-spinner {
-            width: 20px;
-            height: 20px;
-            border: 2px solid #3b82f6;
-            border-right-color: transparent;
-            border-radius: 50%;
-            display: none;
-            animation: spin 0.4s linear infinite;
-        }
-
-        @keyframes spin { to { transform: rotate(360deg); } }
-
-        /* Minimal Blur untuk Performa FPS Tinggi */
-        .glass-ui {
+        .glass {
             background: rgba(255, 255, 255, 0.7);
-            backdrop-filter: saturate(180%) blur(10px);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
-        .dark .glass-ui {
-            background: rgba(32, 33, 36, 0.7);
-            backdrop-filter: saturate(180%) blur(10px);
+        .dark .glass {
+            background: rgba(30, 41, 59, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
 
-        /* Logo Animation */
-        .logo-glow {
-            filter: drop-shadow(0 0 5px rgba(59, 130, 246, 0.3));
+        .card-btn {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .card-btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
         }
     </style>
 </head>
-<body class="bg-white dark:bg-chrome-900 text-gray-900 dark:text-gray-100 h-screen flex flex-col transition-colors duration-150">
+<body class="text-slate-900 dark:text-slate-100 h-screen flex flex-col transition-colors duration-300">
 
-    <!-- Header Engine -->
-    <header class="w-full glass-ui border-b border-gray-200 dark:border-gray-800 p-2 flex items-center gap-3 z-50 shadow-sm layer-speed">
-        <div class="flex items-center gap-2">
-            <button onmousedown="goHome()" class="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-all shrink-0">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>
-            </button>
-            <!-- Header Logo Small -->
-            <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgevSGICqYxSR_PacIQojPtG5glcT5_5aq_5y2ppaINDyzcgSsRrHDTdwXexFk7T6cBJz7-E67s-TZulz7pugAN8ELtpSE3i9zxg5g10YOkMU1RdsobbZc-PnYEWVAyo6iKqNj7Y_6-Z5dbzMCHEcYHoDxDKFGacu_v5mJ-RdxJ4kQR4nMNun9ZjgNUH-o/s1600/SMAPANMU%20Logo%20-%20Dark%20Blue%20and%20Light%20Gray-cutout.png" 
-                 alt="SMAPANMU" class="h-6 w-auto object-contain layer-speed opacity-80 hover:opacity-100 transition-opacity">
-        </div>
-        
-        <div class="flex-1 flex items-center bg-gray-100 dark:bg-black/30 rounded-full px-4 py-1.5 border border-transparent focus-within:border-blue-500 focus-within:bg-white dark:focus-within:bg-black transition-all">
-            <div class="flex items-center gap-2 w-full">
-                <div id="secure-icon" class="text-green-500">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C9.243 2 7 4.243 7 7v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7c0-2.757-2.243-5-5-5zM9 7c0-1.654 1.346-3 3-3s3 1.346 3 3v3H9V7zm4 10.723V20h-2v-2.277c-.596-.347-1-.984-1-1.723 0-1.103.897-2 2-2s2 .897 2 2c0 .739-.404 1.376-1 1.723z"/></svg>
-                </div>
-                <input type="text" id="url-bar" value="OPT DAPODIK ENGINE" class="bg-transparent border-none outline-none w-full text-[10px] font-black tracking-tight opacity-70" readonly>
-                <div id="turbo-loader" class="turbo-spinner"></div>
+    <!-- Header -->
+    <header class="w-full glass sticky top-0 z-50 p-4 flex items-center justify-between border-b border-slate-200 dark:border-slate-800">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-500/30">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+            </div>
+            <div>
+                <h1 class="text-xl font-black tracking-tight leading-none italic">OPT<span class="text-blue-600">DAPODIK</span></h1>
+                <p class="text-[9px] uppercase font-bold tracking-[0.2em] text-slate-400">Lite Hybrid Browser</p>
             </div>
         </div>
 
-        <button id="theme-btn" class="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-all">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sun-icon hidden"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="moon-icon"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <button onclick="document.documentElement.classList.toggle('dark')" class="p-2.5 bg-slate-100 dark:bg-slate-800 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+            <svg class="dark:hidden" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            <svg class="hidden dark:block" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
         </button>
     </header>
 
-    <main class="flex flex-1 overflow-hidden">
-        <!-- Vertical Dock (Speed Dial) -->
-        <nav class="w-16 border-r border-gray-200 dark:border-gray-800 flex flex-col items-center py-6 gap-6 layer-speed">
-            <button onmousedown="loadSite('youtube')" class="transition-transform active:scale-75 hover:drop-shadow-[0_0_8px_rgba(255,0,0,0.5)]">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="#FF0000"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
-            </button>
-            <button onmousedown="loadSite('tiktok')" class="transition-transform active:scale-75">
-                <svg width="24" height="24" fill="currentColor" class="dark:text-white"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93v6.14c0 3.48-2.63 5.79-5.35 5.79a6 6 0 0 1-6-6c0-3.48 2.63-5.79 5.35-5.79.05 0 .09 0 .14.01V13a1.9 1.9 0 0 0-.14 0c-1.13 0-2.05.92-2.05 2.05s.92 2.05 2.05 2.05 2.05-.92 2.05-2.05V.02z"/></svg>
-            </button>
-            <div class="h-px w-8 bg-gray-200 dark:bg-gray-800"></div>
-            <button onmousedown="toggleDL()" class="mt-auto mb-4 p-3 bg-blue-600 text-white rounded-2xl shadow-lg active:scale-90 transition-transform">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
-            </button>
-        </nav>
-
-        <!-- Dynamic Content Engine -->
-        <section class="flex-1 relative bg-white dark:bg-chrome-900">
-            <!-- Home Dashboard -->
-            <div id="home" class="w-full h-full flex flex-col items-center justify-center p-6 layer-speed">
-                <div class="mb-10 text-center flex flex-col items-center">
-                    <!-- Main Dashboard Logo -->
-                    <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgevSGICqYxSR_PacIQojPtG5glcT5_5aq_5y2ppaINDyzcgSsRrHDTdwXexFk7T6cBJz7-E67s-TZulz7pugAN8ELtpSE3i9zxg5g10YOkMU1RdsobbZc-PnYEWVAyo6iKqNj7Y_6-Z5dbzMCHEcYHoDxDKFGacu_v5mJ-RdxJ4kQR4nMNun9ZjgNUH-o/s1600/SMAPANMU%20Logo%20-%20Dark%20Blue%20and%20Light%20Gray-cutout.png" 
-                         alt="SMAPANMU Logo Large" 
-                         class="h-24 md:h-32 w-auto object-contain mb-8 logo-glow layer-speed animate-bounce"
-                         style="animation-duration: 4s;">
-
-                    <div class="inline-block px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[10px] font-black uppercase tracking-[0.2em] rounded-full mb-4">Turbo Engine v3.0</div>
-                    <h1 class="text-6xl md:text-8xl font-black tracking-tighter mb-2">OPT<span class="text-blue-600">DAPODIK</span></h1>
-                    <p class="text-gray-400 font-medium text-sm">Browser nomor 1 paling cepat & tanpa iklan.</p>
-                </div>
-
-                <form id="search-form" class="w-full max-w-2xl relative group">
-                    <input type="text" id="main-input" placeholder="Ketik pencarian atau tempel link..." 
-                           class="w-full p-6 pl-14 rounded-3xl bg-gray-100 dark:bg-white/5 border-2 border-transparent focus:border-blue-600 focus:bg-white dark:focus:bg-black focus:outline-none transition-all shadow-2xl text-lg font-medium">
-                    <div class="absolute left-5 top-1/2 -translate-y-1/2 text-blue-600">
+    <main class="flex-1 overflow-y-auto p-6 md:p-12">
+        <div class="max-w-4xl mx-auto">
+            <!-- Search Section -->
+            <div class="mb-12 text-center">
+                <h2 class="text-3xl md:text-5xl font-extrabold mb-6 tracking-tight">Cari Apapun <span class="text-blue-600">Tanpa Eror.</span></h2>
+                <form id="search-form" class="relative max-w-2xl mx-auto group">
+                    <input type="text" id="query" placeholder="Tulis kata kunci atau tempel link YouTube..." 
+                           class="w-full p-6 pl-14 rounded-3xl bg-white dark:bg-slate-800 shadow-2xl shadow-blue-500/5 border-2 border-transparent focus:border-blue-500 outline-none transition-all text-lg font-medium">
+                    <div class="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
                     </div>
+                    <button type="submit" class="absolute right-3 top-1/2 -translate-y-1/2 bg-blue-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/30">CARI</button>
                 </form>
-
-                <div class="mt-12 flex gap-4 opacity-50 text-[10px] font-bold uppercase tracking-widest">
-                    <span>⚡ Low Latency</span>
-                    <span>🛡️ Ad-Block+</span>
-                    <span>💎 Ultra Lite</span>
-                </div>
             </div>
 
-            <!-- Web View Iframe -->
-            <iframe id="browser-view" class="w-full h-full hidden opacity-0 transition-opacity duration-300" loading="eager"></iframe>
+            <!-- Dashboard Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Youtube Card -->
+                <button onclick="navTo('https://youtube.com')" class="card-btn glass p-6 rounded-3xl text-left">
+                    <div class="w-12 h-12 bg-red-100 dark:bg-red-900/30 text-red-600 rounded-2xl flex items-center justify-center mb-4">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                    </div>
+                    <h3 class="font-bold text-lg mb-1">YouTube</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Tonton tutorial Dapodik tanpa blokir.</p>
+                </button>
 
-            <!-- Overlay Download -->
-            <div id="dl-panel" class="hidden absolute bottom-6 right-6 w-72 p-5 glass-ui border border-gray-200 dark:border-gray-800 rounded-3xl shadow-2xl layer-speed">
-                <div class="flex justify-between items-center mb-4">
-                    <span class="text-[10px] font-black uppercase text-blue-600">Downloader</span>
-                    <button onmousedown="toggleDL()" class="text-gray-400">&times;</button>
+                <!-- Google Card -->
+                <button onclick="navTo('https://google.com')" class="card-btn glass p-6 rounded-3xl text-left">
+                    <div class="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 text-blue-600 rounded-2xl flex items-center justify-center mb-4">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                    </div>
+                    <h3 class="font-bold text-lg mb-1">Google Search</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Cari solusi masalah aplikasi sekolah.</p>
+                </button>
+
+                <!-- SaveFrom Card -->
+                <button onclick="navTo('https://id.savefrom.net')" class="card-btn glass p-6 rounded-3xl text-left">
+                    <div class="w-12 h-12 bg-green-100 dark:bg-green-900/30 text-green-600 rounded-2xl flex items-center justify-center mb-4">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                    </div>
+                    <h3 class="font-bold text-lg mb-1">Download Video</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Unduh video panduan dengan mudah.</p>
+                </button>
+
+                <!-- WhatsApp Card -->
+                <button onclick="navTo('https://web.whatsapp.com')" class="card-btn glass p-6 rounded-3xl text-left">
+                    <div class="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 rounded-2xl flex items-center justify-center mb-4">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 1 1-7.6-11.7 8.38 8.38 0 0 1 3.8.9L21 3z"/></svg>
+                    </div>
+                    <h3 class="font-bold text-lg mb-1">WhatsApp Web</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Kirim data ke grup operator sekolah.</p>
+                </button>
+
+                <!-- ChatGPT Card -->
+                <button onclick="navTo('https://chatgpt.com')" class="card-btn glass p-6 rounded-3xl text-left">
+                    <div class="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 text-purple-600 rounded-2xl flex items-center justify-center mb-4">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/><path d="M12 6v6l4 2"/></svg>
+                    </div>
+                    <h3 class="font-bold text-lg mb-1">AI Assistant</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Tanya AI untuk solusi teknis cepat.</p>
+                </button>
+
+                <!-- Custom Link Card -->
+                <div class="card-btn glass p-6 rounded-3xl flex flex-col justify-center border-dashed border-2 border-slate-300 dark:border-slate-700">
+                    <p class="text-center text-slate-400 font-bold text-xs uppercase tracking-widest">Siap Membantu Boss!</p>
                 </div>
-                <button onmousedown="startDL('save')" class="w-full mb-2 p-3 bg-emerald-500 text-white rounded-xl text-xs font-bold active:scale-95 transition-transform">SAVE FROM</button>
-                <button onmousedown="startDL('y2')" class="w-full p-3 bg-rose-500 text-white rounded-xl text-xs font-bold active:scale-95 transition-transform">Y2MATE ENGINE</button>
             </div>
-        </section>
+        </div>
     </main>
 
-    <footer class="p-2 border-t border-gray-200 dark:border-gray-800 flex justify-between text-[9px] font-bold text-gray-400 uppercase tracking-tighter layer-speed">
-        <div class="flex items-center gap-2">
-            <span class="flex h-1.5 w-1.5 rounded-full bg-green-500"></span>
-            System Optimized: 100%
+    <!-- Bottom Status -->
+    <footer class="p-4 glass border-t border-slate-200 dark:border-slate-800 flex justify-center">
+        <div class="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest opacity-40">
+            <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+            System Ready - No More Connection Errors
         </div>
-        <div id="clock">00:00:00</div>
     </footer>
 
     <script>
-        const $ = (id) => document.getElementById(id);
-        const home = $('home');
-        const view = $('browser-view');
-        const loader = $('turbo-loader');
-        const bar = $('url-bar');
-        const input = $('main-input');
-        const html = document.documentElement;
-
-        // -- Instant Navigation Logic --
-        function loadSite(site) {
-            home.classList.add('hidden');
-            view.classList.remove('hidden');
-            loader.style.display = 'block';
-            view.style.opacity = '0';
-
-            const nodes = ['yewtu.be', 'invidious.namazso.eu', 'vid.puffyan.us'];
-            const target = site === 'youtube' ? `https://${nodes[Math.floor(Math.random()*nodes.length)]}` : 'https://proxitok.pabloferreiro.es';
-            
-            view.src = target;
-            bar.value = `CONNECTED: ${site.toUpperCase()} TURBO ENGINE`;
-
-            view.onload = () => {
-                loader.style.display = 'none';
-                view.style.opacity = '1';
-            };
+        function navTo(url) {
+            window.open(url, '_blank');
         }
 
-        function goHome() {
-            view.classList.add('hidden');
-            view.src = "about:blank";
-            home.classList.remove('hidden');
-            bar.value = "OPT DAPODIK ENGINE";
-        }
-
-        // -- Instant Click Implementation --
-        $('search-form').onsubmit = (e) => {
+        document.getElementById('search-form').onsubmit = (e) => {
             e.preventDefault();
-            const val = input.value.trim();
+            const val = document.getElementById('query').value.trim();
             if(!val) return;
-            
+
             if(val.includes('youtube.com') || val.includes('youtu.be')) {
-                loadSite('youtube');
-                const id = val.split('v=')[1]?.split('&')[0] || val.split('youtu.be/')[1];
-                view.src = `https://yewtu.be/watch?v=${id}`;
+                navTo(val);
+            } else if(val.startsWith('http')) {
+                navTo(val);
             } else {
-                window.open(`https://www.google.com/search?q=${encodeURIComponent(val)}`, '_blank');
+                navTo(`https://www.google.com/search?q=${encodeURIComponent(val)}`);
             }
         };
-
-        // -- Theme Optimizer --
-        const themeBtn = $('theme-btn');
-        const updateThemeUI = (isDark) => {
-            document.querySelector('.sun-icon').classList.toggle('hidden', !isDark);
-            document.querySelector('.moon-icon').classList.toggle('hidden', isDark);
-        };
-
-        themeBtn.onmousedown = () => {
-            const isDark = html.classList.toggle('dark');
-            localStorage.setItem('turbo-theme', isDark ? 'dark' : 'light');
-            updateThemeUI(isDark);
-        };
-
-        if(localStorage.getItem('turbo-theme') === 'dark') {
-            html.classList.add('dark');
-            updateThemeUI(true);
-        }
-
-        // -- Downloader Logic --
-        function toggleDL() { $('dl-panel').classList.toggle('hidden'); }
-        function startDL(mode) {
-            const val = input.value || "https://youtube.com";
-            window.open(mode === 'save' ? `https://savefrom.net/${val}` : `https://y2mate.com/youtube/${val}`, '_blank');
-        }
-
-        // -- Fast Clock --
-        setInterval(() => { $('clock').textContent = new Date().toLocaleTimeString('id-ID'); }, 1000);
     </script>
 </body>
 </html>
