@@ -3,36 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aplikasi Monitoring Presensi</title>
+    <title>Aplikasi Monitoring Presensi SMAN 8 Mukomuko</title>
     
     <!-- React & ReactDOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     
-    <!-- Babel untuk memproses JSX di browser -->
+    <!-- Babel -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
     <!-- Font -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
     <style>
-        body { font-family: 'Inter', sans-serif; }
-        /* Style khusus cetak */
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        
         @media print {
             body * { visibility: hidden; }
             #printable-area, #printable-area * { visibility: visible; }
             #printable-area { position: absolute; left: 0; top: 0; width: 100%; }
             .no-print { display: none !important; }
-            .print-bg-white { background: white !important; }
-            .print-shadow-none { box-shadow: none !important; }
-            .print-break-inside-avoid { break-inside: avoid; }
+            .print-table { font-size: 8px !important; }
         }
-        /* Sembunyikan scrollbar untuk elemen horizontal */
+
+        .custom-shadow { box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05); }
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        .table-container {
+            overflow-x: auto;
+            position: relative;
+        }
+        
+        /* Sticky Column untuk Nama Siswa */
+        .sticky-col {
+            position: sticky;
+            left: 0;
+            background: white;
+            z-index: 10;
+            border-right: 1px solid #f1f5f9;
+        }
+
+        .fade-in { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900">
@@ -40,11 +59,10 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect } = React;
+        const { useState, useEffect, useMemo } = React;
 
         const LOGO_URL = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEi2iWi5Y8Dt91tWD8v24sfYGNL9jWxhRp2epChSaav1QQ3CZWhRb753XFGQOsT9u82kEEQAVkdZVKbbQ2I4Tkhkr9h00KJkaYnZK3jI-HPuUqcO6A3UXFZ9l43qF0sajMqs5asm2ttdvjYUxsxswINcBf7bN7gcNooq-R0KVSFwirkTeTICe6cTnGlyPmQ/s1600/logo%20mapan.png";
 
-        // --- DEFINISI IKON (SVG) ---
         const Icon = ({ path, className }) => (
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
                 {path}
@@ -53,23 +71,15 @@
 
         const Icons = {
             Search: (p) => <Icon {...p} path={<><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></>} />,
-            Calendar: (p) => <Icon {...p} path={<><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></>} />,
             User: (p) => <Icon {...p} path={<><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></>} />,
-            Clock: (p) => <Icon {...p} path={<><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>} />,
             ChevronRight: (p) => <Icon {...p} path={<path d="m9 18 6-6-6-6"/>} />,
             ChevronLeft: (p) => <Icon {...p} path={<path d="m15 18-6-6 6-6"/>} />,
             ChevronDown: (p) => <Icon {...p} path={<path d="m6 9 6 6 6-6"/>} />,
-            Filter: (p) => <Icon {...p} path={<><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></>} />,
-            Info: (p) => <Icon {...p} path={<><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></>} />,
-            Users: (p) => <Icon {...p} path={<><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></>} />,
-            BarChart3: (p) => <Icon {...p} path={<><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></>} />,
-            PieChart: (p) => <Icon {...p} path={<><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></>} />,
-            LayoutDashboard: (p) => <Icon {...p} path={<><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></>} />,
-            Share2: (p) => <Icon {...p} path={<><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/></>} />,
             Printer: (p) => <Icon {...p} path={<><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></>} />,
             Settings: (p) => <Icon {...p} path={<><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.39a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></>} />,
             X: (p) => <Icon {...p} path={<path d="M18 6 6 18M6 6l12 12"/>} />,
-            Save: (p) => <Icon {...p} path={<><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></>} />,
+            FileText: (p) => <Icon {...p} path={<><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14.5 2 14.5 8 20 8"/></>} />,
+            Calendar: (p) => <Icon {...p} path={<><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></>} />
         };
 
         const App = () => {
@@ -80,20 +90,16 @@
             const [selectedUser, setSelectedUser] = useState(null);
             const [selectedClass, setSelectedClass] = useState('Semua');
             const [activeTab, setActiveTab] = useState('monitoring');
-            const [reportDate, setReportDate] = useState(new Date().getDate());
-            
             const [showSettings, setShowSettings] = useState(false);
             const [lateThreshold, setLateThreshold] = useState('07:15'); 
 
-            const [error, setError] = useState(null);
-            
             const MONTHS_CONFIG = [
-                { name: 'Jan', gid: '821115705' }, { name: 'Feb', gid: '6275607' },
-                { name: 'Mar', gid: '2019909701' }, { name: 'Apr', gid: '884223058' },
-                { name: 'Mei', gid: '976701946' }, { name: 'Jun', gid: '188832318' },
-                { name: 'Jul', gid: '930918475' }, { name: 'Agu', gid: '1170976706' },
-                { name: 'Sep', gid: '409082671' }, { name: 'Okt', gid: '1549461076' },
-                { name: 'Nov', gid: '1689324045' }, { name: 'Des', gid: '2056122051' }
+                { name: 'Januari', gid: '821115705' }, { name: 'Februari', gid: '6275607' },
+                { name: 'Maret', gid: '2019909701' }, { name: 'April', gid: '884223058' },
+                { name: 'Mei', gid: '976701946' }, { name: 'Juni', gid: '188832318' },
+                { name: 'Juli', gid: '930918475' }, { name: 'Agustus', gid: '1170976706' },
+                { name: 'September', gid: '409082671' }, { name: 'Oktober', gid: '1549461076' },
+                { name: 'November', gid: '1689324045' }, { name: 'Desember', gid: '2056122051' }
             ];
 
             const [selectedMonth, setSelectedMonth] = useState(MONTHS_CONFIG[0]);
@@ -103,24 +109,14 @@
                 fetchData();
             }, [selectedMonth, lateThreshold]);
 
-            const checkIsLate = (timeStr, thresholdStr) => {
-                if (!timeStr || !thresholdStr) return false;
-                const [h, m] = timeStr.split(':').map(Number);
-                const [th, tm] = thresholdStr.split(':').map(Number);
-                return (h * 60 + m) > (th * 60 + tm);
-            };
-
             const fetchData = async () => {
                 try {
                     setLoading(true);
-                    setError(null);
                     const CSV_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${selectedMonth.gid}`;
                     const response = await fetch(CSV_URL);
                     const csvText = await response.text();
                     
                     const lines = csvText.split('\n');
-                    if (lines.length < 4) throw new Error("Format spreadsheet tidak sesuai standar.");
-
                     const parsedData = lines.slice(3).map((line, index) => {
                         const columns = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
                         if (columns.length < 4 || !columns[1]) return null;
@@ -129,27 +125,39 @@
                         const kelas = columns[2] ? columns[2].replace(/"/g, '').trim() : 'Tanpa Kelas';
 
                         const attendance = [];
+                        let hadirCount = 0;
+                        let terlambatCount = 0;
+
                         for (let day = 1; day <= 31; day++) {
                             const mIdx = 3 + (day - 1) * 2;
                             const pIdx = 4 + (day - 1) * 2;
                             const masuk = columns[mIdx]?.trim() || '';
                             const pulang = columns[pIdx]?.trim() || '';
                             
-                            let status = 'A'; 
-                            let statusColor = 'bg-red-100 text-red-600';
-                            let isLate = masuk ? checkIsLate(masuk, lateThreshold) : false;
+                            let status = '-'; 
+                            let color = 'text-slate-300';
+                            let isLate = false;
 
-                            if (masuk && pulang) {
-                                status = 'H';
-                                statusColor = isLate ? 'bg-orange-100 text-orange-600' : 'bg-green-100 text-green-600';
-                            } else if (masuk || pulang) {
-                                status = 'TK';
-                                statusColor = 'bg-yellow-100 text-yellow-600';
+                            if (masuk) {
+                                const [h, m] = masuk.split(':').map(Number);
+                                const [th, tm] = lateThreshold.split(':').map(Number);
+                                isLate = (h * 60 + m) > (th * 60 + tm);
+                                if (isLate) terlambatCount++;
+                                
+                                status = isLate ? 'TL' : 'H';
+                                color = isLate ? 'text-amber-500' : 'text-emerald-500';
+                                hadirCount++;
+                            } else {
+                                // Jika tidak ada jam masuk, cek apakah hari ini sudah lewat
+                                // Untuk simulasi, kita anggap '-' adalah Alpa jika tidak ada data
+                                status = 'A';
+                                color = 'text-rose-400';
                             }
                             
-                            attendance.push({ day, masuk, pulang, status, statusColor, isLate });
+                            attendance.push({ day, status, isLate, color });
                         }
-                        return { id: index, nama, kelas, attendance };
+                        
+                        return { id: index, nama, kelas, attendance, stats: { hadir: hadirCount, telat: terlambatCount } };
                     }).filter(item => item !== null);
 
                     const groups = parsedData.reduce((acc, obj) => {
@@ -163,252 +171,189 @@
                     setGroupedData(groups);
                     setLoading(false);
                 } catch (err) {
-                    setError("Gagal memuat data. Pastikan Sheet Publik.");
                     setLoading(false);
                 }
             };
 
-            const classList = ['Semua', ...Object.keys(groupedData).sort()];
-            const filteredData = data.filter(user => {
-                const matchName = user.nama.toLowerCase().includes(searchTerm.toLowerCase());
-                const matchClass = selectedClass === 'Semua' || user.kelas === selectedClass;
-                return matchName && matchClass;
-            });
-
-            const getDailyReport = () => {
-                const report = { hadir: 0, tk: 0, alpa: 0, late: 0, total: 0 };
-                const classes = {};
-
-                data.forEach(user => {
-                    if (selectedClass !== 'Semua' && user.kelas !== selectedClass) return;
-                    
-                    const dayData = user.attendance[reportDate - 1];
-                    report.total++;
-                    if (dayData.status === 'H') report.hadir++;
-                    if (dayData.status === 'TK') report.tk++;
-                    if (dayData.status === 'A') report.alpa++;
-                    if (dayData.isLate) report.late++;
-
-                    if (!classes[user.kelas]) classes[user.kelas] = { hadir: 0, tk: 0, alpa: 0, late: 0, total: 0 };
-                    classes[user.kelas].total++;
-                    if (dayData.status === 'H') classes[user.kelas].hadir++;
-                    if (dayData.status === 'TK') classes[user.kelas].tk++;
-                    if (dayData.status === 'A') classes[user.kelas].alpa++;
-                    if (dayData.isLate) classes[user.kelas].late++;
-                });
-
-                return { global: report, perClass: classes };
-            };
-
-            const getMonthlyReport = () => {
-                const classes = {};
-                data.forEach(user => {
-                    if (!classes[user.kelas]) classes[user.kelas] = { hadir: 0, tk: 0, alpa: 0, late: 0, totalDays: 0 };
-                    user.attendance.forEach(day => {
-                        classes[user.kelas].totalDays++;
-                        if (day.status === 'H') classes[user.kelas].hadir++;
-                        if (day.status === 'TK') classes[user.kelas].tk++;
-                        if (day.status === 'A') classes[user.kelas].alpa++;
-                        if (day.isLate) classes[user.kelas].late++;
-                    });
-                });
-                return classes;
-            };
-
-            const handleShareWhatsApp = () => {
-                const daily = getDailyReport();
-                const dateStr = `${reportDate} ${selectedMonth.name}`;
-                let text = `*LAPORAN E-PRESENSI SMAN 8 MUKOMUKO*\n`;
-                text += `📅 Tanggal: ${dateStr}\n\n`;
-                text += `*Ringkasan:* H:${daily.global.hadir}, L:${daily.global.late}, TK:${daily.global.tk}, A:${daily.global.alpa}\n`;
-                text += `\n_Generated by Monitoring App_`;
-                window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
-            };
+            const reportData = useMemo(() => {
+                if (selectedClass === 'Semua') return data;
+                return groupedData[selectedClass] || [];
+            }, [data, groupedData, selectedClass]);
 
             if (loading) return (
-                <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 p-6">
+                <div className="flex flex-col items-center justify-center min-h-screen bg-white">
                     <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-                    <p className="text-slate-500 font-bold">Sinkronisasi Data...</p>
+                    <p className="text-slate-400 font-bold animate-pulse uppercase tracking-widest text-[10px]">Memuat Data...</p>
                 </div>
             );
-
-            const daily = getDailyReport();
-            const monthly = getMonthlyReport();
 
             return (
                 <div className="min-h-screen bg-slate-50 text-slate-900 pb-24">
                     {/* SETTINGS MODAL */}
                     {showSettings && (
-                        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
-                            <div className="bg-white rounded-3xl w-full max-w-xs p-6 shadow-2xl">
+                        <div className="fixed inset-0 bg-slate-900/40 z-50 flex items-center justify-center p-6 backdrop-blur-sm fade-in">
+                            <div className="bg-white rounded-[2rem] w-full max-w-xs p-8 shadow-2xl">
                                 <div className="flex justify-between items-center mb-6">
-                                    <h3 className="font-black text-lg text-slate-800 flex items-center gap-2">
-                                        <Icons.Settings className="w-5 h-5 text-slate-400" /> Pengaturan
-                                    </h3>
-                                    <button onClick={() => setShowSettings(false)} className="p-1 bg-slate-100 rounded-full">
-                                        <Icons.X className="w-5 h-5 text-slate-500" />
-                                    </button>
+                                    <h3 className="font-black text-lg">Pengaturan</h3>
+                                    <button onClick={() => setShowSettings(false)} className="p-2 bg-slate-100 rounded-full"><Icons.X className="w-4 h-4" /></button>
                                 </div>
                                 <div className="space-y-4">
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Batas Jam Terlambat</label>
-                                        <input type="time" value={lateThreshold} onChange={(e) => setLateThreshold(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 font-bold text-slate-800 outline-none" />
-                                    </div>
-                                    <button onClick={() => setShowSettings(false)} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold text-sm shadow-lg">Simpan</button>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Batas Terlambat</label>
+                                    <input 
+                                        type="time" 
+                                        value={lateThreshold} 
+                                        onChange={(e) => setLateThreshold(e.target.value)} 
+                                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl py-3 px-4 font-bold outline-none focus:border-blue-500" 
+                                    />
+                                    <button onClick={() => setShowSettings(false)} className="w-full bg-slate-900 text-white py-4 rounded-xl font-bold text-sm">Simpan</button>
                                 </div>
                             </div>
                         </div>
                     )}
 
                     {/* HEADER */}
-                    <header className="bg-white border-b sticky top-0 z-30 px-4 pt-4 pb-2 shadow-sm no-print">
-                        <div className="max-w-md mx-auto">
-                            <div className="flex justify-between items-center mb-4">
-                                <div className="relative inline-block">
-                                    <select value={selectedMonth.name} onChange={(e) => setSelectedMonth(MONTHS_CONFIG.find(m => m.name === e.target.value))} className="appearance-none bg-slate-100 text-slate-800 font-black text-lg py-1 pl-3 pr-8 rounded-xl focus:outline-none border-none">
+                    <header className="bg-white border-b border-slate-100 sticky top-0 z-30 px-6 py-6 no-print">
+                        <div className="max-w-5xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div>
+                                <h1 className="text-2xl font-black text-slate-900 tracking-tight">E-Presensi SMAN 8</h1>
+                                <div className="flex items-center gap-2 mt-1">
+                                    <select 
+                                        value={selectedMonth.name} 
+                                        onChange={(e) => setSelectedMonth(MONTHS_CONFIG.find(m => m.name === e.target.value))}
+                                        className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-lg outline-none cursor-pointer"
+                                    >
                                         {MONTHS_CONFIG.map(m => <option key={m.name} value={m.name}>{m.name}</option>)}
                                     </select>
-                                    <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none"><Icons.ChevronDown className="w-4 h-4 text-slate-400" /></div>
-                                </div>
-                                <div className="flex gap-2">
-                                    <div className="flex bg-slate-100 p-1 rounded-xl">
-                                        <button onClick={() => setActiveTab('monitoring')} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'monitoring' ? 'bg-white shadow text-blue-600' : 'text-slate-400'}`}>Monitor</button>
-                                        <button onClick={() => setActiveTab('laporan')} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'laporan' ? 'bg-white shadow text-blue-600' : 'text-slate-400'}`}>Laporan</button>
-                                    </div>
-                                    <button onClick={() => setShowSettings(true)} className="p-2 bg-slate-100 rounded-xl text-slate-600"><Icons.Settings className="w-5 h-5" /></button>
+                                    <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Mukomuko</span>
                                 </div>
                             </div>
-                            {activeTab === 'monitoring' && !selectedUser && (
-                                <div className="flex flex-col gap-3 mb-2 animate-in fade-in">
-                                    <input type="text" placeholder="Cari nama..." className="w-full bg-slate-100 border-none rounded-2xl py-2.5 px-4 text-sm outline-none" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
-                                    <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-                                        {classList.map(cls => (
-                                            <button key={cls} onClick={() => setSelectedClass(cls)} className={`px-4 py-1.5 rounded-xl text-[10px] font-black whitespace-nowrap uppercase transition-all ${selectedClass === cls ? 'bg-blue-600 text-white shadow-md' : 'bg-white text-slate-400 border border-slate-200'}`}>{cls}</button>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
+                            
+                            <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                                {['Semua', ...Object.keys(groupedData).sort()].map(cls => (
+                                    <button 
+                                        key={cls} 
+                                        onClick={() => setSelectedClass(cls)}
+                                        className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${selectedClass === cls ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`}
+                                    >
+                                        {cls}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
                     </header>
 
-                    <main className="max-w-md mx-auto p-4 print-full-width" id="printable-area">
+                    <main className="max-w-5xl mx-auto p-6" id="printable-area">
+                        {/* TAB NAVIGATION */}
+                        <div className="flex gap-4 mb-8 no-print">
+                            <button 
+                                onClick={() => setActiveTab('monitoring')}
+                                className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${activeTab === 'monitoring' ? 'bg-slate-900 text-white shadow-xl' : 'bg-white text-slate-400 shadow-sm'}`}
+                            >
+                                <Icons.Calendar className="w-4 h-4" /> Monitoring
+                            </button>
+                            <button 
+                                onClick={() => setActiveTab('laporan')}
+                                className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${activeTab === 'laporan' ? 'bg-slate-900 text-white shadow-xl' : 'bg-white text-slate-400 shadow-sm'}`}
+                            >
+                                <Icons.FileText className="w-4 h-4" /> Laporan Bulanan
+                            </button>
+                        </div>
+
                         {activeTab === 'monitoring' ? (
-                            selectedUser ? (
-                                <div className="animate-in fade-in duration-300 no-print">
-                                    <button onClick={() => setSelectedUser(null)} className="mb-4 flex items-center text-slate-400 font-black text-[10px] uppercase tracking-widest"><Icons.ChevronLeft className="w-4 h-4 mr-1" /> Kembali</button>
-                                    <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100 mb-6 text-center">
-                                        <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center text-white mx-auto mb-3"><Icons.User className="w-8 h-8" /></div>
-                                        <h2 className="text-xl font-black text-slate-800">{selectedUser.nama}</h2>
-                                        <span className="inline-block mt-1 px-3 py-0.5 bg-blue-50 text-blue-600 rounded-full text-[10px] font-black uppercase">{selectedUser.kelas}</span>
-                                    </div>
-                                    <div className="space-y-2">
-                                        {selectedUser.attendance.map((day, i) => (
-                                            <div key={i} className="bg-white px-4 py-3 rounded-2xl border border-slate-100 flex items-center justify-between">
-                                                <div className="flex items-center gap-4">
-                                                    <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-50 text-[10px] font-black text-slate-400">{day.day}</div>
-                                                    <div className="flex gap-4 text-xs font-bold text-slate-700">
-                                                        <span>M: {day.masuk || '--:--'}</span>
-                                                        <span>P: {day.pulang || '--:--'}</span>
-                                                    </div>
-                                                </div>
-                                                <div className={`w-8 h-8 flex items-center justify-center rounded-lg text-[9px] font-black ${day.statusColor}`}>{day.status === 'H' && day.isLate ? 'TL' : day.status}</div>
+                            /* VIEW MONITORING: KARTU SISWA */
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 fade-in">
+                                {reportData.filter(u => u.nama.toLowerCase().includes(searchTerm.toLowerCase())).map((user, idx) => (
+                                    <div key={idx} className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-all">
+                                        <div className="flex items-center gap-4 mb-4">
+                                            <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center font-black">{user.nama.charAt(0)}</div>
+                                            <div className="overflow-hidden">
+                                                <h3 className="font-black text-slate-800 text-sm truncate">{user.nama}</h3>
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{user.kelas}</p>
                                             </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="space-y-3 animate-in fade-in no-print">
-                                    {filteredData.map((user, idx) => (
-                                        <div key={idx} onClick={() => setSelectedUser(user)} className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between cursor-pointer">
-                                            <div className="flex items-center gap-3 overflow-hidden">
-                                                <div className="w-10 h-10 bg-slate-50 text-blue-600 rounded-xl flex items-center justify-center font-black">{user.nama.charAt(0)}</div>
-                                                <div className="overflow-hidden">
-                                                    <h3 className="font-bold text-slate-800 truncate text-sm">{user.nama}</h3>
-                                                    <p className="text-[10px] font-black text-blue-500 uppercase">{user.kelas}</p>
-                                                </div>
-                                            </div>
-                                            <Icons.ChevronRight className="w-5 h-5 text-slate-300" />
                                         </div>
-                                    ))}
-                                </div>
-                            )
+                                        <div className="flex justify-between items-center pt-4 border-t border-slate-50">
+                                            <div className="text-center">
+                                                <p className="text-[8px] font-black text-slate-300 uppercase mb-1">Hadir</p>
+                                                <p className="text-sm font-black text-slate-700">{user.stats.hadir} hr</p>
+                                            </div>
+                                            <div className="text-center">
+                                                <p className="text-[8px] font-black text-slate-300 uppercase mb-1">Telat</p>
+                                                <p className="text-sm font-black text-amber-500">{user.stats.telat}</p>
+                                            </div>
+                                            <div className="text-center">
+                                                <p className="text-[8px] font-black text-slate-300 uppercase mb-1">Skor</p>
+                                                <p className="text-sm font-black text-emerald-500">{Math.round((user.stats.hadir/25)*100)}%</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
                         ) : (
-                            <div className="space-y-6 animate-in slide-in-from-bottom duration-500">
-                                {/* KOP SURAT / HEADER LAPORAN */}
-                                <section className="print-bg-white print-break-inside-avoid">
-                                    <div className="flex items-center gap-4 mb-6 border-b-2 border-slate-900 pb-4">
-                                        <img src={LOGO_URL} alt="Logo" className="w-16 h-16 object-contain" />
-                                        <div className="flex-1">
-                                            <h1 className="text-lg font-black leading-tight uppercase tracking-tight">Laporan E-Presensi Siswa</h1>
-                                            <h2 className="text-xl font-black text-blue-700 leading-tight uppercase">SMAN 8 Mukomuko</h2>
-                                            <p className="text-[10px] font-bold text-slate-500">Masa Laporan: {selectedMonth.name} • Tanggal Cetak: {new Date().toLocaleDateString('id-ID')}</p>
+                            /* VIEW LAPORAN: TABEL MATRIKS TANGGAL 1-31 */
+                            <div className="fade-in">
+                                <div className="bg-white rounded-[2.5rem] p-4 md:p-8 shadow-sm border border-slate-100 overflow-hidden">
+                                    <div className="flex justify-between items-center mb-8">
+                                        <div>
+                                            <h2 className="text-xl font-black text-slate-900">Rekapitulasi Presensi</h2>
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">{selectedMonth.name} • {selectedClass}</p>
                                         </div>
-                                        <div className="no-print flex gap-2">
-                                            <button onClick={handleShareWhatsApp} className="p-2 bg-green-500 text-white rounded-xl shadow-lg"><Icons.Share2 className="w-4 h-4" /></button>
-                                            <button onClick={() => window.print()} className="p-2 bg-slate-800 text-white rounded-xl shadow-lg"><Icons.Printer className="w-4 h-4" /></button>
-                                        </div>
+                                        <button onClick={() => window.print()} className="no-print p-3 bg-slate-900 text-white rounded-2xl hover:bg-blue-600 transition-colors">
+                                            <Icons.Printer className="w-5 h-5" />
+                                        </button>
                                     </div>
 
-                                    {/* RINGKASAN HARIAN */}
-                                    <div className="mb-6">
-                                        <div className="flex justify-between items-center mb-4 no-print">
-                                            <h3 className="text-xs font-black uppercase text-slate-400">Ringkasan Harian ({reportDate})</h3>
-                                            <select value={reportDate} onChange={(e) => setReportDate(parseInt(e.target.value))} className="text-xs font-bold bg-white border rounded-lg px-2 py-1">
-                                                {[...Array(31)].map((_, i) => <option key={i+1} value={i+1}>{i+1}</option>)}
-                                            </select>
-                                        </div>
-                                        <div className="grid grid-cols-4 gap-2 bg-white p-4 rounded-2xl border border-slate-100 print:shadow-none print:border-slate-300">
-                                            <div className="text-center"><p className="text-[8px] font-black text-green-500 uppercase mb-1">Hadir</p><p className="text-xl font-black">{daily.global.hadir}</p></div>
-                                            <div className="text-center border-l border-slate-100"><p className="text-[8px] font-black text-orange-500 uppercase mb-1">Late</p><p className="text-xl font-black">{daily.global.late}</p></div>
-                                            <div className="text-center border-l border-slate-100"><p className="text-[8px] font-black text-yellow-500 uppercase mb-1">TK</p><p className="text-xl font-black">{daily.global.tk}</p></div>
-                                            <div className="text-center border-l border-slate-100"><p className="text-[8px] font-black text-red-500 uppercase mb-1">Alpa</p><p className="text-xl font-black">{daily.global.alpa}</p></div>
-                                        </div>
+                                    <div className="table-container scrollbar-hide">
+                                        <table className="w-full text-[10px] border-collapse">
+                                            <thead>
+                                                <tr className="bg-slate-50">
+                                                    <th className="sticky-col px-4 py-3 text-left font-black text-slate-400 uppercase tracking-widest min-w-[150px]">Nama Siswa</th>
+                                                    {[...Array(31)].map((_, i) => (
+                                                        <th key={i} className="px-2 py-3 text-center font-black text-slate-400 border-l border-slate-100 min-w-[30px]">{i + 1}</th>
+                                                    ))}
+                                                    <th className="px-4 py-3 text-center font-black text-blue-600 border-l border-slate-100 uppercase tracking-widest">H</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-100">
+                                                {reportData.map((user, idx) => (
+                                                    <tr key={idx} className="hover:bg-slate-50 transition-colors">
+                                                        <td className="sticky-col px-4 py-3 font-bold text-slate-700 whitespace-nowrap">{user.nama}</td>
+                                                        {user.attendance.map((day, i) => (
+                                                            <td key={i} className={`px-1 py-3 text-center font-black border-l border-slate-50/50 ${day.color}`}>
+                                                                {day.status}
+                                                            </td>
+                                                        ))}
+                                                        <td className="px-4 py-3 text-center font-black text-slate-900 border-l border-slate-100 bg-slate-50/30">
+                                                            {user.stats.hadir}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
                                     </div>
-
-                                    {/* RINGKASAN BULANAN PER KELAS */}
-                                    <div className="space-y-3">
-                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest no-print">Statistik Bulanan per Kelas</p>
-                                        {Object.entries(monthly).map(([className, stats]) => {
-                                            if (selectedClass !== 'Semua' && className !== selectedClass) return null;
-                                            const hadirPct = Math.round((stats.hadir / stats.totalDays) * 100);
-                                            return (
-                                                <div key={className} className="bg-white p-4 rounded-2xl border border-slate-100 print:border-slate-300 print:break-inside-avoid">
-                                                    <div className="flex justify-between items-center mb-2">
-                                                        <span className="font-black text-slate-800 uppercase text-xs">{className}</span>
-                                                        <span className="text-blue-600 font-black text-sm">{hadirPct}%</span>
-                                                    </div>
-                                                    <div className="bg-slate-100 h-1.5 rounded-full overflow-hidden mb-3">
-                                                        <div className="bg-blue-600 h-full" style={{ width: `${hadirPct}%` }}></div>
-                                                    </div>
-                                                    <div className="flex justify-between text-[10px] font-bold text-slate-500">
-                                                        <span>H: {stats.hadir}</span>
-                                                        <span>L: {stats.late}</span>
-                                                        <span>TK: {stats.tk}</span>
-                                                        <span>A: {stats.alpa}</span>
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
+                                    
+                                    <div className="mt-8 flex flex-wrap gap-4 text-[9px] font-black uppercase tracking-widest no-print">
+                                        <div className="flex items-center gap-2"><span className="w-3 h-3 bg-emerald-100 rounded text-emerald-600 flex items-center justify-center text-[7px]">H</span> Hadir Tepat</div>
+                                        <div className="flex items-center gap-2"><span className="w-3 h-3 bg-amber-100 rounded text-amber-600 flex items-center justify-center text-[7px]">TL</span> Terlambat</div>
+                                        <div className="flex items-center gap-2"><span className="w-3 h-3 bg-rose-100 rounded text-rose-600 flex items-center justify-center text-[7px]">A</span> Tanpa Keterangan</div>
                                     </div>
-                                </section>
+                                </div>
                             </div>
                         )}
                     </main>
 
-                    {!selectedUser && (
-                        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[85%] max-w-xs bg-slate-900/95 text-white px-6 py-4 rounded-[2rem] shadow-2xl flex items-center justify-between backdrop-blur-md z-40 no-print">
-                            <div className="flex items-center gap-3">
-                                <div className="bg-blue-600 p-2 rounded-xl">
-                                    {activeTab === 'monitoring' ? <Icons.LayoutDashboard className="w-4 h-4" /> : <Icons.BarChart3 className="w-4 h-4" />}
-                                </div>
-                                <div className="flex flex-col">
-                                    <span className="text-[9px] font-black uppercase text-blue-400">{selectedMonth.name} • {activeTab}</span>
-                                    <span className="text-xs font-bold">{activeTab === 'monitoring' ? `${filteredData.length} Siswa` : `Selesai`}</span>
-                                </div>
-                            </div>
-                            <button onClick={fetchData} className="p-2 hover:bg-white/10 rounded-full transition-colors"><Icons.Clock className="w-4 h-4 text-slate-400" /></button>
-                        </div>
-                    )}
+                    {/* NAVIGASI BAWAH (MOBILE OPTIMIZED) */}
+                    <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-xs bg-slate-900 rounded-[2rem] p-2 flex items-center justify-around shadow-2xl z-40 no-print">
+                        <button onClick={() => { setActiveTab('monitoring'); window.scrollTo(0,0); }} className={`p-3 rounded-2xl transition-all ${activeTab === 'monitoring' ? 'bg-white text-slate-900' : 'text-slate-500'}`}>
+                            <Icons.Calendar className="w-5 h-5" />
+                        </button>
+                        <button onClick={() => { setActiveTab('laporan'); window.scrollTo(0,0); }} className={`p-3 rounded-2xl transition-all ${activeTab === 'laporan' ? 'bg-white text-slate-900' : 'text-slate-500'}`}>
+                            <Icons.FileText className="w-5 h-5" />
+                        </button>
+                        <div className="w-px h-6 bg-slate-800"></div>
+                        <button onClick={() => setShowSettings(true)} className="p-3 text-slate-500 hover:text-white transition-colors">
+                            <Icons.Settings className="w-5 h-5" />
+                        </button>
+                    </nav>
                 </div>
             );
         };
