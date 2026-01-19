@@ -492,7 +492,7 @@
                     const roundedDist = Math.round(distance);
                     
                     // --- LOGIKA KUNCI: JARAK HARUS KURANG DARI 100 METER ---
-                    if (roundedDist <= 100) {
+                    if (roundedDist <= 60) {
                         statusEl.html(`<i class="bi bi-geo-alt-fill"></i> Lokasi Aman (${roundedDist}m)`).addClass('lokasi-aman').removeClass('lokasi-jauh lokasi-warning');
                         btnEl.prop('disabled', false).text('LAKUKAN PRESENSI');
                         btnIzinEl.prop('disabled', true).text('Lokasi Sudah Aktif');
