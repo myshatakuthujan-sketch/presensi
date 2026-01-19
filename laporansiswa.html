@@ -1,570 +1,536 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Search, 
-  Calendar, 
-  User, 
-  Clock, 
-  ChevronRight, 
-  ChevronLeft,
-  Filter,
-  Info,
-  Users,
-  ChevronDown,
-  BarChart3,
-  LayoutDashboard,
-  PieChart,
-  Share2,
-  Printer,
-  Settings,
-  X,
-  Save
-} from 'lucide-react';
-
-const App = () => {
-  const [data, setData] = useState([]);
-  const [groupedData, setGroupedData] = useState({});
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedUser, setSelectedUser] = useState(null);
-  const [selectedClass, setSelectedClass] = useState('Semua');
-  const [activeTab, setActiveTab] = useState('monitoring');
-  const [reportDate, setReportDate] = useState(new Date().getDate());
-  
-  // State Baru untuk Pengaturan
-  const [showSettings, setShowSettings] = useState(false);
-  const [lateThreshold, setLateThreshold] = useState('07:00'); // Default jam 7
-  
-  const [error, setError] = useState(null);
-  
-  const MONTHS_CONFIG = [
-    { name: 'Jan', gid: '821115705' },
-    { name: 'Feb', gid: '6275607' },
-    { name: 'Mar', gid: '2019909701' },
-    { name: 'Apr', gid: '884223058' },
-    { name: 'Mei', gid: '976701946' },
-    { name: 'Jun', gid: '188832318' },
-    { name: 'Jul', gid: '930918475' },
-    { name: 'Agu', gid: '1170976706' },
-    { name: 'Sep', gid: '409082671' },
-    { name: 'Okt', gid: '1549461076' },
-    { name: 'Nov', gid: '1689324045' },
-    { name: 'Des', gid: '2056122051' }
-  ];
-
-  const [selectedMonth, setSelectedMonth] = useState(MONTHS_CONFIG[0]);
-  const SPREADSHEET_ID = '1YbCtOBnFaz8i56sfMmiFaouXUrDyNixHt951WyLNK0U';
-
-  useEffect(() => {
-    fetchData();
-  }, [selectedMonth, lateThreshold]); // Refresh calculation if threshold changes
-
-  // Helper untuk cek keterlambatan
-  const checkIsLate = (timeStr, thresholdStr) => {
-    if (!timeStr || !thresholdStr) return false;
-    // Format asumsi HH:mm atau H:mm
-    const [h, m] = timeStr.split(':').map(Number);
-    const [th, tm] = thresholdStr.split(':').map(Number);
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplikasi Monitoring Presensi</title>
     
-    if (isNaN(h) || isNaN(m)) return false;
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     
-    const timeMins = h * 60 + m;
-    const thresholdMins = th * 60 + tm;
+    <!-- Babel untuk memproses JSX di browser -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
-    return timeMins > thresholdMins;
-  };
-
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      const CSV_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${selectedMonth.gid}`;
-      const response = await fetch(CSV_URL);
-      const csvText = await response.text();
-      
-      const lines = csvText.split('\n');
-      if (lines.length < 4) throw new Error("Format spreadsheet tidak sesuai standar.");
-
-      const parsedData = lines.slice(3).map((line, index) => {
-        const columns = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-        if (columns.length < 4 || !columns[1]) return null;
-
-        const nama = columns[1].replace(/"/g, '').trim();
-        const kelas = columns[2] ? columns[2].replace(/"/g, '').trim() : 'Tanpa Kelas';
-
-        const attendance = [];
-        for (let day = 1; day <= 31; day++) {
-          const mIdx = 3 + (day - 1) * 2;
-          const pIdx = 4 + (day - 1) * 2;
-          const masuk = columns[mIdx]?.trim() || '';
-          const pulang = columns[pIdx]?.trim() || '';
-          
-          let status = 'A'; 
-          let statusColor = 'bg-red-100 text-red-600';
-          let isLate = false;
-
-          if (masuk) {
-            isLate = checkIsLate(masuk, lateThreshold);
-          }
-
-          if (masuk && pulang) {
-            status = 'H';
-            statusColor = isLate ? 'bg-orange-100 text-orange-600' : 'bg-green-100 text-green-600';
-          } else if (masuk || pulang) {
-            status = 'TK';
-            statusColor = 'bg-yellow-100 text-yellow-600';
-          }
-          
-          attendance.push({ day, masuk, pulang, status, statusColor, isLate });
-        }
-        return { id: index, nama, kelas, attendance };
-      }).filter(item => item !== null);
-
-      const groups = parsedData.reduce((acc, obj) => {
-        const key = obj.kelas;
-        if (!acc[key]) acc[key] = [];
-        acc[key].push(obj);
-        return acc;
-      }, {});
-
-      setData(parsedData);
-      setGroupedData(groups);
-      setLoading(false);
-    } catch (err) {
-      setError("Gagal memuat data.");
-      setLoading(false);
-    }
-  };
-
-  const classList = ['Semua', ...Object.keys(groupedData).sort()];
-  const filteredData = data.filter(user => {
-    const matchName = user.nama.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchClass = selectedClass === 'Semua' || user.kelas === selectedClass;
-    return matchName && matchClass;
-  });
-
-  const getDailyReport = () => {
-    const report = { hadir: 0, tk: 0, alpa: 0, late: 0, total: 0 };
-    const classes = {};
-
-    data.forEach(user => {
-      // Filter kelas untuk hitungan global jika filter aktif
-      if (selectedClass !== 'Semua' && user.kelas !== selectedClass) return;
-      
-      const dayData = user.attendance[reportDate - 1];
-      report.total++;
-      if (dayData.status === 'H') report.hadir++;
-      if (dayData.status === 'TK') report.tk++;
-      if (dayData.status === 'A') report.alpa++;
-      if (dayData.isLate) report.late++;
-
-      // Hitungan per kelas (selalu hitung semua untuk list bawah)
-      if (!classes[user.kelas]) classes[user.kelas] = { hadir: 0, tk: 0, alpa: 0, late: 0, total: 0 };
-      classes[user.kelas].total++;
-      if (dayData.status === 'H') classes[user.kelas].hadir++;
-      if (dayData.status === 'TK') classes[user.kelas].tk++;
-      if (dayData.status === 'A') classes[user.kelas].alpa++;
-      if (dayData.isLate) classes[user.kelas].late++;
-    });
-
-    return { global: report, perClass: classes };
-  };
-
-  const getMonthlyReport = () => {
-    const classes = {};
-    data.forEach(user => {
-      if (!classes[user.kelas]) classes[user.kelas] = { hadir: 0, tk: 0, alpa: 0, late: 0, totalDays: 0 };
-      user.attendance.forEach(day => {
-        classes[user.kelas].totalDays++;
-        if (day.status === 'H') classes[user.kelas].hadir++;
-        if (day.status === 'TK') classes[user.kelas].tk++;
-        if (day.status === 'A') classes[user.kelas].alpa++;
-        if (day.isLate) classes[user.kelas].late++;
-      });
-    });
-    return classes;
-  };
-
-  // --- ACTIONS ---
-  
-  const handleShareWhatsApp = () => {
-    const daily = getDailyReport();
-    const dateStr = `${reportDate} ${selectedMonth.name}`;
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
     
-    let text = `*LAPORAN PRESENSI HARIAN*\n`;
-    text += `📅 Tanggal: ${dateStr}\n`;
-    text += `⏰ Batas Terlambat: ${lateThreshold}\n`;
-    text += `🏫 Filter: ${selectedClass}\n\n`;
-    
-    text += `*Ringkasan Global:*\n`;
-    text += `✅ Hadir: ${daily.global.hadir}\n`;
-    text += `⚠️ Terlambat: ${daily.global.late}\n`;
-    text += `📝 Ket. Kurang (TK): ${daily.global.tk}\n`;
-    text += `❌ Alpa: ${daily.global.alpa}\n`;
-    text += `👥 Total Siswa: ${daily.global.total}\n\n`;
-    
-    text += `*Rincian Per Kelas:*\n`;
-    Object.entries(daily.perClass).forEach(([cls, stats]) => {
-      // Hanya masukkan kelas yang relevan jika filter aktif
-      if (selectedClass === 'Semua' || selectedClass === cls) {
-        text += `🔹 *${cls}*: H=${stats.hadir}, T=${stats.late}, A=${stats.alpa}\n`;
-      }
-    });
+    <!-- Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet">
 
-    text += `\n_Generated by Monitoring App_`;
-    
-    const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
-    window.open(url, '_blank');
-  };
-
-  const handlePrint = () => {
-    window.print();
-  };
-
-  // --- RENDER ---
-
-  if (loading) return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 p-6">
-      <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-      <p className="text-slate-500 font-bold">Sinkronisasi Data...</p>
-    </div>
-  );
-
-  const daily = getDailyReport();
-  const monthly = getMonthlyReport();
-
-  return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans pb-24">
-      {/* Styles for Printing */}
-      <style>{`
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        /* Style khusus cetak */
         @media print {
-          body * { visibility: hidden; }
-          #printable-area, #printable-area * { visibility: visible; }
-          #printable-area { position: absolute; left: 0; top: 0; width: 100%; }
-          .no-print { display: none !important; }
-          .print-full-width { width: 100% !important; max-width: 100% !important; }
-          .print-bg-white { background: white !important; }
+            body * { visibility: hidden; }
+            #printable-area, #printable-area * { visibility: visible; }
+            #printable-area { position: absolute; left: 0; top: 0; width: 100%; }
+            .no-print { display: none !important; }
+            .print-bg-white { background: white !important; }
+            .print-shadow-none { box-shadow: none !important; }
+            .print-break-inside-avoid { break-inside: avoid; }
         }
-      `}</style>
+        /* Sembunyikan scrollbar untuk elemen horizontal */
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900">
 
-      {/* SETTINGS MODAL */}
-      {showSettings && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white rounded-3xl w-full max-w-xs p-6 shadow-2xl">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="font-black text-lg text-slate-800 flex items-center gap-2">
-                <Settings className="w-5 h-5 text-slate-400" /> Pengaturan
-              </h3>
-              <button onClick={() => setShowSettings(false)} className="p-1 bg-slate-100 rounded-full">
-                <X className="w-5 h-5 text-slate-500" />
-              </button>
-            </div>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- DEFINISI IKON (SVG) ---
+        // Karena kita tidak pakai build system, kita buat komponen ikon manual
+        const Icon = ({ path, className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                {path}
+            </svg>
+        );
+
+        const Icons = {
+            Search: (p) => <Icon {...p} path={<><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></>} />,
+            Calendar: (p) => <Icon {...p} path={<><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></>} />,
+            User: (p) => <Icon {...p} path={<><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></>} />,
+            Clock: (p) => <Icon {...p} path={<><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>} />,
+            ChevronRight: (p) => <Icon {...p} path={<path d="m9 18 6-6-6-6"/>} />,
+            ChevronLeft: (p) => <Icon {...p} path={<path d="m15 18-6-6 6-6"/>} />,
+            ChevronDown: (p) => <Icon {...p} path={<path d="m6 9 6 6 6-6"/>} />,
+            Filter: (p) => <Icon {...p} path={<><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></>} />,
+            Info: (p) => <Icon {...p} path={<><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></>} />,
+            Users: (p) => <Icon {...p} path={<><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></>} />,
+            BarChart3: (p) => <Icon {...p} path={<><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></>} />,
+            PieChart: (p) => <Icon {...p} path={<><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></>} />,
+            LayoutDashboard: (p) => <Icon {...p} path={<><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></>} />,
+            Share2: (p) => <Icon {...p} path={<><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/></>} />,
+            Printer: (p) => <Icon {...p} path={<><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></>} />,
+            Settings: (p) => <Icon {...p} path={<><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.39a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></>} />,
+            X: (p) => <Icon {...p} path={<path d="M18 6 6 18M6 6l12 12"/>} />,
+            Save: (p) => <Icon {...p} path={<><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></>} />,
+        };
+
+        // --- KOMPONEN APLIKASI ---
+        
+        const App = () => {
+            const [data, setData] = useState([]);
+            const [groupedData, setGroupedData] = useState({});
+            const [loading, setLoading] = useState(true);
+            const [searchTerm, setSearchTerm] = useState('');
+            const [selectedUser, setSelectedUser] = useState(null);
+            const [selectedClass, setSelectedClass] = useState('Semua');
+            const [activeTab, setActiveTab] = useState('monitoring');
+            const [reportDate, setReportDate] = useState(new Date().getDate());
             
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Batas Jam Terlambat</label>
-                <div className="relative">
-                  <Clock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-blue-500" />
-                  <input 
-                    type="time" 
-                    value={lateThreshold}
-                    onChange={(e) => setLateThreshold(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-12 pr-4 font-bold text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none"
-                  />
-                </div>
-                <p className="text-[10px] text-slate-400 mt-2 leading-relaxed">
-                  Siswa yang absen masuk melebihi jam ini akan ditandai <span className="text-orange-500 font-bold">Terlambat</span> namun tetap dihitung Hadir.
-                </p>
-              </div>
-              
-              <button 
-                onClick={() => setShowSettings(false)}
-                className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold text-sm shadow-lg shadow-blue-200 active:scale-95 transition-all flex items-center justify-center gap-2"
-              >
-                <Save className="w-4 h-4" /> Simpan Pengaturan
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+            // State Pengaturan
+            const [showSettings, setShowSettings] = useState(false);
+            const [lateThreshold, setLateThreshold] = useState('07:00'); // Default jam 7
 
-      {/* Header Utama (Hidden on Print) */}
-      <header className="bg-white border-b sticky top-0 z-30 px-4 pt-4 pb-2 shadow-sm no-print">
-        <div className="max-w-md mx-auto">
-          <div className="flex justify-between items-center mb-4">
-            <div className="relative inline-block">
-              <select 
-                value={selectedMonth.name}
-                onChange={(e) => setSelectedMonth(MONTHS_CONFIG.find(m => m.name === e.target.value))}
-                className="appearance-none bg-slate-100 text-slate-800 font-black text-lg py-1 pl-3 pr-8 rounded-xl focus:outline-none border-none cursor-pointer"
-              >
-                {MONTHS_CONFIG.map(m => <option key={m.name} value={m.name}>{m.name}</option>)}
-              </select>
-              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-            </div>
+            const [error, setError] = useState(null);
             
-            <div className="flex gap-2">
-              <div className="flex bg-slate-100 p-1 rounded-xl">
-                <button 
-                  onClick={() => setActiveTab('monitoring')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'monitoring' ? 'bg-white shadow text-blue-600' : 'text-slate-400'}`}
-                >
-                  Monitor
-                </button>
-                <button 
-                  onClick={() => setActiveTab('laporan')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'laporan' ? 'bg-white shadow text-blue-600' : 'text-slate-400'}`}
-                >
-                  Laporan
-                </button>
-              </div>
-              <button 
-                onClick={() => setShowSettings(true)}
-                className="p-2 bg-slate-100 rounded-xl text-slate-600 active:bg-slate-200 transition-colors"
-              >
-                <Settings className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
-          
-          {activeTab === 'monitoring' && !selectedUser && (
-            <div className="flex flex-col gap-3 mb-2 animate-in fade-in duration-300">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <input 
-                  type="text" placeholder="Cari nama..."
-                  className="w-full bg-slate-100 border-none rounded-2xl py-2.5 pl-10 pr-4 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-                  value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-                {classList.map(cls => (
-                  <button
-                    key={cls} onClick={() => setSelectedClass(cls)}
-                    className={`px-4 py-1.5 rounded-xl text-[10px] font-black whitespace-nowrap uppercase transition-all ${
-                      selectedClass === cls ? 'bg-blue-600 text-white shadow-md' : 'bg-white text-slate-400 border border-slate-200'
-                    }`}
-                  >
-                    {cls}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      </header>
+            const MONTHS_CONFIG = [
+                { name: 'Jan', gid: '821115705' },
+                { name: 'Feb', gid: '6275607' },
+                { name: 'Mar', gid: '2019909701' },
+                { name: 'Apr', gid: '884223058' },
+                { name: 'Mei', gid: '976701946' },
+                { name: 'Jun', gid: '188832318' },
+                { name: 'Jul', gid: '930918475' },
+                { name: 'Agu', gid: '1170976706' },
+                { name: 'Sep', gid: '409082671' },
+                { name: 'Okt', gid: '1549461076' },
+                { name: 'Nov', gid: '1689324045' },
+                { name: 'Des', gid: '2056122051' }
+            ];
 
-      <main className="max-w-md mx-auto p-4 print-full-width" id="printable-area">
-        {activeTab === 'monitoring' ? (
-          selectedUser ? (
-            /* DETAIL VIEW (Updated with Late Indicator) */
-            <div className="animate-in fade-in duration-300 no-print">
-              <button onClick={() => setSelectedUser(null)} className="mb-4 flex items-center text-slate-400 font-black text-[10px] uppercase tracking-widest">
-                <ChevronLeft className="w-4 h-4 mr-1" /> Kembali
-              </button>
-              <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100 mb-6 text-center">
-                <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center text-white mx-auto mb-3 shadow-lg"><User className="w-8 h-8" /></div>
-                <h2 className="text-xl font-black text-slate-800 leading-tight">{selectedUser.nama}</h2>
-                <span className="inline-block mt-1 px-3 py-0.5 bg-blue-50 text-blue-600 rounded-full text-[10px] font-black uppercase">{selectedUser.kelas}</span>
-                <div className="grid grid-cols-4 gap-2 mt-6">
-                  <div className="bg-green-50 p-2 rounded-2xl border border-green-100">
-                    <p className="text-[8px] text-green-600 font-black uppercase mb-1">Hadir</p>
-                    <p className="text-lg font-black text-green-700">{selectedUser.attendance.filter(a => a.status === 'H').length}</p>
-                  </div>
-                  <div className="bg-orange-50 p-2 rounded-2xl border border-orange-100">
-                    <p className="text-[8px] text-orange-600 font-black uppercase mb-1">Terlambat</p>
-                    <p className="text-lg font-black text-orange-700">{selectedUser.attendance.filter(a => a.isLate).length}</p>
-                  </div>
-                  <div className="bg-yellow-50 p-2 rounded-2xl border border-yellow-100">
-                    <p className="text-[8px] text-yellow-600 font-black uppercase mb-1">TK</p>
-                    <p className="text-lg font-black text-yellow-700">{selectedUser.attendance.filter(a => a.status === 'TK').length}</p>
-                  </div>
-                  <div className="bg-red-50 p-2 rounded-2xl border border-red-100">
-                    <p className="text-[8px] text-red-600 font-black uppercase mb-1">Alpa</p>
-                    <p className="text-lg font-black text-red-700">{selectedUser.attendance.filter(a => a.status === 'A').length}</p>
-                  </div>
+            const [selectedMonth, setSelectedMonth] = useState(MONTHS_CONFIG[0]);
+            const SPREADSHEET_ID = '1YbCtOBnFaz8i56sfMmiFaouXUrDyNixHt951WyLNK0U';
+
+            useEffect(() => {
+                fetchData();
+            }, [selectedMonth, lateThreshold]);
+
+            const checkIsLate = (timeStr, thresholdStr) => {
+                if (!timeStr || !thresholdStr) return false;
+                const [h, m] = timeStr.split(':').map(Number);
+                const [th, tm] = thresholdStr.split(':').map(Number);
+                if (isNaN(h) || isNaN(m)) return false;
+                const timeMins = h * 60 + m;
+                const thresholdMins = th * 60 + tm;
+                return timeMins > thresholdMins;
+            };
+
+            const fetchData = async () => {
+                try {
+                    setLoading(true);
+                    setError(null);
+                    const CSV_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${selectedMonth.gid}`;
+                    const response = await fetch(CSV_URL);
+                    const csvText = await response.text();
+                    
+                    const lines = csvText.split('\n');
+                    if (lines.length < 4) throw new Error("Format spreadsheet tidak sesuai standar.");
+
+                    const parsedData = lines.slice(3).map((line, index) => {
+                        const columns = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                        if (columns.length < 4 || !columns[1]) return null;
+
+                        const nama = columns[1].replace(/"/g, '').trim();
+                        const kelas = columns[2] ? columns[2].replace(/"/g, '').trim() : 'Tanpa Kelas';
+
+                        const attendance = [];
+                        for (let day = 1; day <= 31; day++) {
+                            const mIdx = 3 + (day - 1) * 2;
+                            const pIdx = 4 + (day - 1) * 2;
+                            const masuk = columns[mIdx]?.trim() || '';
+                            const pulang = columns[pIdx]?.trim() || '';
+                            
+                            let status = 'A'; 
+                            let statusColor = 'bg-red-100 text-red-600';
+                            let isLate = false;
+
+                            if (masuk) {
+                                isLate = checkIsLate(masuk, lateThreshold);
+                            }
+
+                            if (masuk && pulang) {
+                                status = 'H';
+                                statusColor = isLate ? 'bg-orange-100 text-orange-600' : 'bg-green-100 text-green-600';
+                            } else if (masuk || pulang) {
+                                status = 'TK';
+                                statusColor = 'bg-yellow-100 text-yellow-600';
+                            }
+                            
+                            attendance.push({ day, masuk, pulang, status, statusColor, isLate });
+                        }
+                        return { id: index, nama, kelas, attendance };
+                    }).filter(item => item !== null);
+
+                    const groups = parsedData.reduce((acc, obj) => {
+                        const key = obj.kelas;
+                        if (!acc[key]) acc[key] = [];
+                        acc[key].push(obj);
+                        return acc;
+                    }, {});
+
+                    setData(parsedData);
+                    setGroupedData(groups);
+                    setLoading(false);
+                } catch (err) {
+                    console.error(err);
+                    setError("Gagal memuat data. Pastikan Sheet Publik.");
+                    setLoading(false);
+                }
+            };
+
+            const classList = ['Semua', ...Object.keys(groupedData).sort()];
+            const filteredData = data.filter(user => {
+                const matchName = user.nama.toLowerCase().includes(searchTerm.toLowerCase());
+                const matchClass = selectedClass === 'Semua' || user.kelas === selectedClass;
+                return matchName && matchClass;
+            });
+
+            const getDailyReport = () => {
+                const report = { hadir: 0, tk: 0, alpa: 0, late: 0, total: 0 };
+                const classes = {};
+
+                data.forEach(user => {
+                    if (selectedClass !== 'Semua' && user.kelas !== selectedClass) return;
+                    
+                    const dayData = user.attendance[reportDate - 1];
+                    report.total++;
+                    if (dayData.status === 'H') report.hadir++;
+                    if (dayData.status === 'TK') report.tk++;
+                    if (dayData.status === 'A') report.alpa++;
+                    if (dayData.isLate) report.late++;
+
+                    if (!classes[user.kelas]) classes[user.kelas] = { hadir: 0, tk: 0, alpa: 0, late: 0, total: 0 };
+                    classes[user.kelas].total++;
+                    if (dayData.status === 'H') classes[user.kelas].hadir++;
+                    if (dayData.status === 'TK') classes[user.kelas].tk++;
+                    if (dayData.status === 'A') classes[user.kelas].alpa++;
+                    if (dayData.isLate) classes[user.kelas].late++;
+                });
+
+                return { global: report, perClass: classes };
+            };
+
+            const getMonthlyReport = () => {
+                const classes = {};
+                data.forEach(user => {
+                    if (!classes[user.kelas]) classes[user.kelas] = { hadir: 0, tk: 0, alpa: 0, late: 0, totalDays: 0 };
+                    user.attendance.forEach(day => {
+                        classes[user.kelas].totalDays++;
+                        if (day.status === 'H') classes[user.kelas].hadir++;
+                        if (day.status === 'TK') classes[user.kelas].tk++;
+                        if (day.status === 'A') classes[user.kelas].alpa++;
+                        if (day.isLate) classes[user.kelas].late++;
+                    });
+                });
+                return classes;
+            };
+
+            const handleShareWhatsApp = () => {
+                const daily = getDailyReport();
+                const dateStr = `${reportDate} ${selectedMonth.name}`;
+                
+                let text = `*LAPORAN PRESENSI HARIAN*\n`;
+                text += `📅 Tanggal: ${dateStr}\n`;
+                text += `⏰ Batas Terlambat: ${lateThreshold}\n`;
+                text += `🏫 Filter: ${selectedClass}\n\n`;
+                text += `*Ringkasan Global:*\n`;
+                text += `✅ Hadir: ${daily.global.hadir}\n`;
+                text += `⚠️ Terlambat: ${daily.global.late}\n`;
+                text += `📝 Ket. Kurang (TK): ${daily.global.tk}\n`;
+                text += `❌ Alpa: ${daily.global.alpa}\n`;
+                text += `👥 Total Siswa: ${daily.global.total}\n\n`;
+                text += `*Rincian Per Kelas:*\n`;
+                Object.entries(daily.perClass).forEach(([cls, stats]) => {
+                    if (selectedClass === 'Semua' || selectedClass === cls) {
+                        text += `🔹 *${cls}*: H=${stats.hadir}, T=${stats.late}, A=${stats.alpa}\n`;
+                    }
+                });
+                text += `\n_Generated by Monitoring App_`;
+                
+                const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+                window.open(url, '_blank');
+            };
+
+            const handlePrint = () => {
+                window.print();
+            };
+
+            if (loading) return (
+                <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 p-6">
+                    <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+                    <p className="text-slate-500 font-bold">Sinkronisasi Data...</p>
                 </div>
-              </div>
-              <div className="space-y-2">
-                {selectedUser.attendance.map((day, i) => (
-                  <div key={i} className="bg-white px-4 py-3 rounded-2xl border border-slate-100 flex items-center justify-between shadow-sm">
-                    <div className="flex items-center gap-4">
-                      <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-50 text-[10px] font-black text-slate-400 border border-slate-100">{day.day}</div>
-                      <div className="flex gap-4">
-                        <div><p className="text-[8px] text-slate-300 font-bold uppercase mb-0.5">Masuk</p><p className={`text-xs font-bold ${day.isLate ? 'text-orange-500' : 'text-slate-700'}`}>{day.masuk || '--:--'}</p></div>
-                        <div><p className="text-[8px] text-slate-300 font-bold uppercase mb-0.5">Pulang</p><p className="text-xs font-bold text-slate-700">{day.pulang || '--:--'}</p></div>
-                      </div>
+            );
+
+            if (error) return (
+                <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 p-6 text-center">
+                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                        <Icons.Info className="w-12 h-12 text-red-500 mx-auto mb-4" />
+                        <h2 className="text-lg font-bold text-slate-800 mb-2">Gagal Memuat</h2>
+                        <p className="text-slate-500 text-sm mb-4">{error}</p>
+                        <button onClick={fetchData} className="px-6 py-2 bg-blue-600 text-white rounded-xl font-bold">Coba Lagi</button>
                     </div>
-                    <div className={`w-8 h-8 flex items-center justify-center rounded-lg text-[9px] font-black ${day.statusColor}`}>
-                      {day.status === 'H' && day.isLate ? 'TL' : day.status}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : (
-            /* LIST VIEW (No Print) */
-            <div className="space-y-3 animate-in fade-in duration-300 no-print">
-              {filteredData.map((user, idx) => (
-                <div key={idx} onClick={() => setSelectedUser(user)} className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between active:scale-95 transition-all">
-                  <div className="flex items-center gap-3 overflow-hidden">
-                    <div className="w-12 h-12 bg-slate-50 text-blue-600 rounded-xl flex items-center justify-center font-black text-lg border border-slate-100">{user.nama.charAt(0)}</div>
-                    <div className="overflow-hidden">
-                      <h3 className="font-bold text-slate-800 truncate text-sm leading-tight">{user.nama}</h3>
-                      <p className="text-[10px] font-black text-blue-500 uppercase mt-0.5">{user.kelas}</p>
-                    </div>
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-slate-300" />
                 </div>
-              ))}
-            </div>
-          )
-        ) : (
-          /* LAPORAN VIEW (Printable) */
-          <div className="space-y-6 animate-in slide-in-from-bottom duration-500 print-bg-white">
-            
-            {/* Laporan Harian */}
-            <section className="break-inside-avoid">
-              <div className="flex items-center justify-between mb-4 px-1 no-print">
-                <h3 className="font-black text-slate-800 text-sm flex items-center gap-2 uppercase tracking-wider">
-                  <PieChart className="w-4 h-4 text-blue-600" /> Laporan Harian
-                </h3>
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-2 bg-white px-3 py-1 rounded-xl border border-slate-100 shadow-sm">
-                    <span className="text-[10px] font-bold text-slate-400">TGL</span>
-                    <select 
-                      value={reportDate} 
-                      onChange={(e) => setReportDate(parseInt(e.target.value))}
-                      className="text-[10px] font-black bg-transparent border-none outline-none focus:ring-0"
-                    >
-                      {[...Array(31)].map((_, i) => <option key={i+1} value={i+1}>{i+1}</option>)}
-                    </select>
-                  </div>
-                  <button onClick={handleShareWhatsApp} className="p-2 bg-green-500 text-white rounded-xl shadow-lg shadow-green-200 active:scale-90 transition-transform">
-                    <Share2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
+            );
 
-              {/* Tampilan Cetak Header Harian (Hanya muncul saat print) */}
-              <div className="hidden print:block mb-4 border-b pb-4">
-                 <h1 className="text-xl font-black">Laporan Harian Presensi</h1>
-                 <p className="text-sm">Tanggal: {reportDate} {selectedMonth.name} | Kelas: {selectedClass}</p>
-              </div>
+            const daily = getDailyReport();
+            const monthly = getMonthlyReport();
 
-              <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 mb-4 print:shadow-none print:border print:rounded-lg">
-                <div className="grid grid-cols-4 gap-2">
-                  <div className="text-center">
-                    <p className="text-[9px] font-black text-green-500 uppercase mb-1">Hadir</p>
-                    <p className="text-2xl font-black text-slate-800">{daily.global.hadir}</p>
-                  </div>
-                  <div className="text-center border-l border-slate-100">
-                    <p className="text-[9px] font-black text-orange-500 uppercase mb-1">Late</p>
-                    <p className="text-2xl font-black text-slate-800">{daily.global.late}</p>
-                  </div>
-                  <div className="text-center border-l border-slate-100">
-                    <p className="text-[9px] font-black text-yellow-500 uppercase mb-1">TK</p>
-                    <p className="text-2xl font-black text-slate-800">{daily.global.tk}</p>
-                  </div>
-                  <div className="text-center border-l border-slate-100">
-                    <p className="text-[9px] font-black text-red-500 uppercase mb-1">Alpa</p>
-                    <p className="text-2xl font-black text-slate-800">{daily.global.alpa}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Rincian Per Kelas Hari Ini */}
-              <div className="space-y-2 no-print">
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] px-2">Rincian Per Kelas</p>
-                {Object.entries(daily.perClass).map(([className, stats]) => (
-                  <div key={className} className="bg-white p-4 rounded-2xl border border-slate-100 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center font-black text-[10px] uppercase">{className.charAt(0)}</div>
-                      <span className="font-bold text-sm text-slate-700">{className}</span>
-                    </div>
-                    <div className="flex gap-2 text-[10px] font-black">
-                      <span className="text-green-500">H:{stats.hadir}</span>
-                      <span className="text-orange-500">T:{stats.late}</span>
-                      <span className="text-yellow-500">TK:{stats.tk}</span>
-                      <span className="text-red-400">A:{stats.alpa}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            {/* Laporan Bulanan */}
-            <section className="break-before-auto">
-              <div className="flex items-center justify-between mb-4 px-1 no-print">
-                <h3 className="font-black text-slate-800 text-sm flex items-center gap-2 uppercase tracking-wider">
-                  <BarChart3 className="w-4 h-4 text-blue-600" /> Statistik Bulanan
-                </h3>
-                <button 
-                  onClick={handlePrint}
-                  className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-white rounded-xl shadow-lg active:scale-95 transition-all text-xs font-bold"
-                >
-                  <Printer className="w-4 h-4" /> Cetak / PDF
-                </button>
-              </div>
-
-              <div className="hidden print:block mb-4 mt-8 border-b pb-4">
-                 <h1 className="text-xl font-black">Laporan Bulanan Presensi</h1>
-                 <p className="text-sm">Bulan: {selectedMonth.name} | Generated by System</p>
-              </div>
-
-              <div className="space-y-3 print:space-y-4">
-                {Object.entries(monthly).map(([className, stats]) => {
-                  // Filter jika kelas dipilih
-                  if (selectedClass !== 'Semua' && className !== selectedClass) return null;
-
-                  const hadirPct = Math.round((stats.hadir / stats.totalDays) * 100);
-                  return (
-                    <div key={className} className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden print:border-slate-300 print:rounded-xl print:shadow-none print:break-inside-avoid">
-                      <div className="flex justify-between items-end mb-2">
-                        <div>
-                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Kelas</p>
-                          <p className="text-lg font-black text-slate-800 leading-none">{className}</p>
+            return (
+                <div className="min-h-screen bg-slate-50 text-slate-900 pb-24">
+                    {/* SETTINGS MODAL */}
+                    {showSettings && (
+                        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
+                            <div className="bg-white rounded-3xl w-full max-w-xs p-6 shadow-2xl">
+                                <div className="flex justify-between items-center mb-6">
+                                    <h3 className="font-black text-lg text-slate-800 flex items-center gap-2">
+                                        <Icons.Settings className="w-5 h-5 text-slate-400" /> Pengaturan
+                                    </h3>
+                                    <button onClick={() => setShowSettings(false)} className="p-1 bg-slate-100 rounded-full">
+                                        <Icons.X className="w-5 h-5 text-slate-500" />
+                                    </button>
+                                </div>
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Batas Jam Terlambat</label>
+                                        <div className="relative">
+                                            <div className="absolute left-4 top-1/2 -translate-y-1/2"><Icons.Clock className="w-5 h-5 text-blue-500" /></div>
+                                            <input 
+                                                type="time" 
+                                                value={lateThreshold}
+                                                onChange={(e) => setLateThreshold(e.target.value)}
+                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-12 pr-4 font-bold text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none"
+                                            />
+                                        </div>
+                                        <p className="text-[10px] text-slate-400 mt-2 leading-relaxed">Siswa yang masuk melebihi jam ini akan ditandai <span className="text-orange-500 font-bold">Terlambat</span>.</p>
+                                    </div>
+                                    <button onClick={() => setShowSettings(false)} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold text-sm shadow-lg shadow-blue-200 flex items-center justify-center gap-2">
+                                        <Icons.Save className="w-4 h-4" /> Simpan Pengaturan
+                                    </button>
+                                </div>
+                            </div>
                         </div>
-                        <div className="text-right">
-                          <p className="text-[10px] font-black text-blue-600 uppercase mb-1">Kehadiran</p>
-                          <p className="text-2xl font-black text-blue-700 leading-none">{hadirPct}%</p>
+                    )}
+
+                    {/* HEADER */}
+                    <header className="bg-white border-b sticky top-0 z-30 px-4 pt-4 pb-2 shadow-sm no-print">
+                        <div className="max-w-md mx-auto">
+                            <div className="flex justify-between items-center mb-4">
+                                <div className="relative inline-block">
+                                    <select 
+                                        value={selectedMonth.name}
+                                        onChange={(e) => setSelectedMonth(MONTHS_CONFIG.find(m => m.name === e.target.value))}
+                                        className="appearance-none bg-slate-100 text-slate-800 font-black text-lg py-1 pl-3 pr-8 rounded-xl focus:outline-none border-none cursor-pointer"
+                                    >
+                                        {MONTHS_CONFIG.map(m => <option key={m.name} value={m.name}>{m.name}</option>)}
+                                    </select>
+                                    <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none"><Icons.ChevronDown className="w-4 h-4 text-slate-400" /></div>
+                                </div>
+                                
+                                <div className="flex gap-2">
+                                    <div className="flex bg-slate-100 p-1 rounded-xl">
+                                        <button onClick={() => setActiveTab('monitoring')} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'monitoring' ? 'bg-white shadow text-blue-600' : 'text-slate-400'}`}>Monitor</button>
+                                        <button onClick={() => setActiveTab('laporan')} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'laporan' ? 'bg-white shadow text-blue-600' : 'text-slate-400'}`}>Laporan</button>
+                                    </div>
+                                    <button onClick={() => setShowSettings(true)} className="p-2 bg-slate-100 rounded-xl text-slate-600 active:bg-slate-200 transition-colors">
+                                        <Icons.Settings className="w-5 h-5" />
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            {activeTab === 'monitoring' && !selectedUser && (
+                                <div className="flex flex-col gap-3 mb-2 animate-in fade-in duration-300">
+                                    <div className="relative">
+                                        <div className="absolute left-3 top-1/2 -translate-y-1/2"><Icons.Search className="w-4 h-4 text-slate-400" /></div>
+                                        <input type="text" placeholder="Cari nama..." className="w-full bg-slate-100 border-none rounded-2xl py-2.5 pl-10 pr-4 text-sm outline-none focus:ring-2 focus:ring-blue-500" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                                    </div>
+                                    <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                                        {classList.map(cls => (
+                                            <button key={cls} onClick={() => setSelectedClass(cls)} className={`px-4 py-1.5 rounded-xl text-[10px] font-black whitespace-nowrap uppercase transition-all ${selectedClass === cls ? 'bg-blue-600 text-white shadow-md' : 'bg-white text-slate-400 border border-slate-200'}`}>
+                                                {cls}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
-                      </div>
-                      <div className="bg-slate-100 h-1.5 rounded-full overflow-hidden mt-3 print:bg-slate-200">
-                        <div className="bg-blue-600 h-full rounded-full print:bg-slate-800" style={{ width: `${hadirPct}%`, WebkitPrintColorAdjust: 'exact' }}></div>
-                      </div>
-                      <div className="flex justify-between mt-4">
-                         <div className="flex flex-col"><span className="text-[8px] font-bold text-slate-400 uppercase">Hadir</span><span className="text-xs font-black text-slate-700">{stats.hadir}</span></div>
-                         <div className="flex flex-col"><span className="text-[8px] font-bold text-orange-400 uppercase">Late</span><span className="text-xs font-black text-slate-700">{stats.late}</span></div>
-                         <div className="flex flex-col"><span className="text-[8px] font-bold text-yellow-400 uppercase">TK</span><span className="text-xs font-black text-slate-700">{stats.tk}</span></div>
-                         <div className="flex flex-col"><span className="text-[8px] font-bold text-red-400 uppercase">Alpa</span><span className="text-xs font-black text-slate-700">{stats.alpa}</span></div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
-          </div>
-        )}
-      </main>
+                    </header>
 
-      {/* Footer / Floating Info Bar (No Print) */}
-      {!selectedUser && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[85%] max-w-xs bg-slate-900/95 text-white px-6 py-4 rounded-[2rem] shadow-2xl flex items-center justify-between backdrop-blur-md border border-white/10 z-40 animate-in slide-in-from-bottom duration-500 no-print">
-          <div className="flex items-center gap-3">
-            <div className="bg-blue-600 p-2 rounded-xl">
-              {activeTab === 'monitoring' ? <LayoutDashboard className="w-4 h-4" /> : <BarChart3 className="w-4 h-4" />}
-            </div>
-            <div className="flex flex-col">
-              <span className="text-[9px] font-black uppercase text-blue-400 tracking-widest">{selectedMonth.name} • {activeTab}</span>
-              <span className="text-xs font-bold">{activeTab === 'monitoring' ? `${filteredData.length} Orang` : `Laporan Data`}</span>
-            </div>
-          </div>
-          <button onClick={fetchData} className="p-2 hover:bg-white/10 rounded-full transition-colors">
-            <Clock className="w-4 h-4 text-slate-400" />
-          </button>
-        </div>
-      )}
-    </div>
-  );
-};
+                    <main className="max-w-md mx-auto p-4 print-full-width" id="printable-area">
+                        {activeTab === 'monitoring' ? (
+                            selectedUser ? (
+                                <div className="animate-in fade-in duration-300 no-print">
+                                    <button onClick={() => setSelectedUser(null)} className="mb-4 flex items-center text-slate-400 font-black text-[10px] uppercase tracking-widest">
+                                        <Icons.ChevronLeft className="w-4 h-4 mr-1" /> Kembali
+                                    </button>
+                                    <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100 mb-6 text-center">
+                                        <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center text-white mx-auto mb-3 shadow-lg"><Icons.User className="w-8 h-8" /></div>
+                                        <h2 className="text-xl font-black text-slate-800 leading-tight">{selectedUser.nama}</h2>
+                                        <span className="inline-block mt-1 px-3 py-0.5 bg-blue-50 text-blue-600 rounded-full text-[10px] font-black uppercase">{selectedUser.kelas}</span>
+                                        <div className="grid grid-cols-4 gap-2 mt-6">
+                                            <div className="bg-green-50 p-2 rounded-2xl border border-green-100"><p className="text-[8px] text-green-600 font-black uppercase mb-1">Hadir</p><p className="text-lg font-black text-green-700">{selectedUser.attendance.filter(a => a.status === 'H').length}</p></div>
+                                            <div className="bg-orange-50 p-2 rounded-2xl border border-orange-100"><p className="text-[8px] text-orange-600 font-black uppercase mb-1">Late</p><p className="text-lg font-black text-orange-700">{selectedUser.attendance.filter(a => a.isLate).length}</p></div>
+                                            <div className="bg-yellow-50 p-2 rounded-2xl border border-yellow-100"><p className="text-[8px] text-yellow-600 font-black uppercase mb-1">TK</p><p className="text-lg font-black text-yellow-700">{selectedUser.attendance.filter(a => a.status === 'TK').length}</p></div>
+                                            <div className="bg-red-50 p-2 rounded-2xl border border-red-100"><p className="text-[8px] text-red-600 font-black uppercase mb-1">Alpa</p><p className="text-lg font-black text-red-700">{selectedUser.attendance.filter(a => a.status === 'A').length}</p></div>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        {selectedUser.attendance.map((day, i) => (
+                                            <div key={i} className="bg-white px-4 py-3 rounded-2xl border border-slate-100 flex items-center justify-between shadow-sm">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-50 text-[10px] font-black text-slate-400 border border-slate-100">{day.day}</div>
+                                                    <div className="flex gap-4">
+                                                        <div><p className="text-[8px] text-slate-300 font-bold uppercase mb-0.5">Masuk</p><p className={`text-xs font-bold ${day.isLate ? 'text-orange-500' : 'text-slate-700'}`}>{day.masuk || '--:--'}</p></div>
+                                                        <div><p className="text-[8px] text-slate-300 font-bold uppercase mb-0.5">Pulang</p><p className="text-xs font-bold text-slate-700">{day.pulang || '--:--'}</p></div>
+                                                    </div>
+                                                </div>
+                                                <div className={`w-8 h-8 flex items-center justify-center rounded-lg text-[9px] font-black ${day.statusColor}`}>
+                                                    {day.status === 'H' && day.isLate ? 'TL' : day.status}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="space-y-3 animate-in fade-in duration-300 no-print">
+                                    {filteredData.map((user, idx) => (
+                                        <div key={idx} onClick={() => setSelectedUser(user)} className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between active:scale-95 transition-all cursor-pointer">
+                                            <div className="flex items-center gap-3 overflow-hidden">
+                                                <div className="w-12 h-12 bg-slate-50 text-blue-600 rounded-xl flex items-center justify-center font-black text-lg border border-slate-100">{user.nama.charAt(0)}</div>
+                                                <div className="overflow-hidden">
+                                                    <h3 className="font-bold text-slate-800 truncate text-sm leading-tight">{user.nama}</h3>
+                                                    <p className="text-[10px] font-black text-blue-500 uppercase mt-0.5">{user.kelas}</p>
+                                                </div>
+                                            </div>
+                                            <Icons.ChevronRight className="w-5 h-5 text-slate-300" />
+                                        </div>
+                                    ))}
+                                </div>
+                            )
+                        ) : (
+                            <div className="space-y-6 animate-in slide-in-from-bottom duration-500 print-bg-white">
+                                <section className="break-inside-avoid">
+                                    <div className="flex items-center justify-between mb-4 px-1 no-print">
+                                        <h3 className="font-black text-slate-800 text-sm flex items-center gap-2 uppercase tracking-wider">
+                                            <Icons.PieChart className="w-4 h-4 text-blue-600" /> Laporan Harian
+                                        </h3>
+                                        <div className="flex items-center gap-2">
+                                            <div className="flex items-center gap-2 bg-white px-3 py-1 rounded-xl border border-slate-100 shadow-sm">
+                                                <span className="text-[10px] font-bold text-slate-400">TGL</span>
+                                                <select value={reportDate} onChange={(e) => setReportDate(parseInt(e.target.value))} className="text-[10px] font-black bg-transparent border-none outline-none focus:ring-0">
+                                                    {[...Array(31)].map((_, i) => <option key={i+1} value={i+1}>{i+1}</option>)}
+                                                </select>
+                                            </div>
+                                            <button onClick={handleShareWhatsApp} className="p-2 bg-green-500 text-white rounded-xl shadow-lg shadow-green-200 active:scale-90 transition-transform">
+                                                <Icons.Share2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="hidden print:block mb-4 border-b pb-4">
+                                         <h1 className="text-xl font-black">Laporan Harian Presensi</h1>
+                                         <p className="text-sm">Tanggal: {reportDate} {selectedMonth.name} | Kelas: {selectedClass}</p>
+                                    </div>
 
-export default App;
+                                    <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 mb-4 print:shadow-none print:border print:rounded-lg">
+                                        <div className="grid grid-cols-4 gap-2">
+                                            <div className="text-center"><p className="text-[9px] font-black text-green-500 uppercase mb-1">Hadir</p><p className="text-2xl font-black text-slate-800">{daily.global.hadir}</p></div>
+                                            <div className="text-center border-l border-slate-100"><p className="text-[9px] font-black text-orange-500 uppercase mb-1">Late</p><p className="text-2xl font-black text-slate-800">{daily.global.late}</p></div>
+                                            <div className="text-center border-l border-slate-100"><p className="text-[9px] font-black text-yellow-500 uppercase mb-1">TK</p><p className="text-2xl font-black text-slate-800">{daily.global.tk}</p></div>
+                                            <div className="text-center border-l border-slate-100"><p className="text-[9px] font-black text-red-500 uppercase mb-1">Alpa</p><p className="text-2xl font-black text-slate-800">{daily.global.alpa}</p></div>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2 no-print">
+                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] px-2">Rincian Per Kelas</p>
+                                        {Object.entries(daily.perClass).map(([className, stats]) => (
+                                            <div key={className} className="bg-white p-4 rounded-2xl border border-slate-100 flex items-center justify-between">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center font-black text-[10px] uppercase">{className.charAt(0)}</div>
+                                                    <span className="font-bold text-sm text-slate-700">{className}</span>
+                                                </div>
+                                                <div className="flex gap-2 text-[10px] font-black">
+                                                    <span className="text-green-500">H:{stats.hadir}</span>
+                                                    <span className="text-orange-500">T:{stats.late}</span>
+                                                    <span className="text-yellow-500">TK:{stats.tk}</span>
+                                                    <span className="text-red-400">A:{stats.alpa}</span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </section>
+
+                                <section className="break-before-auto">
+                                    <div className="flex items-center justify-between mb-4 px-1 no-print">
+                                        <h3 className="font-black text-slate-800 text-sm flex items-center gap-2 uppercase tracking-wider">
+                                            <Icons.BarChart3 className="w-4 h-4 text-blue-600" /> Statistik Bulanan
+                                        </h3>
+                                        <button onClick={handlePrint} className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-white rounded-xl shadow-lg active:scale-95 transition-all text-xs font-bold">
+                                            <Icons.Printer className="w-4 h-4" /> Cetak / PDF
+                                        </button>
+                                    </div>
+                                    
+                                    <div className="hidden print:block mb-4 mt-8 border-b pb-4">
+                                         <h1 className="text-xl font-black">Laporan Bulanan Presensi</h1>
+                                         <p className="text-sm">Bulan: {selectedMonth.name} | Generated by System</p>
+                                    </div>
+
+                                    <div className="space-y-3 print:space-y-4">
+                                        {Object.entries(monthly).map(([className, stats]) => {
+                                            if (selectedClass !== 'Semua' && className !== selectedClass) return null;
+                                            const hadirPct = Math.round((stats.hadir / stats.totalDays) * 100);
+                                            return (
+                                                <div key={className} className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden print:border-slate-300 print:rounded-xl print:shadow-none print:break-inside-avoid">
+                                                    <div className="flex justify-between items-end mb-2">
+                                                        <div><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Kelas</p><p className="text-lg font-black text-slate-800 leading-none">{className}</p></div>
+                                                        <div className="text-right"><p className="text-[10px] font-black text-blue-600 uppercase mb-1">Kehadiran</p><p className="text-2xl font-black text-blue-700 leading-none">{hadirPct}%</p></div>
+                                                    </div>
+                                                    <div className="bg-slate-100 h-1.5 rounded-full overflow-hidden mt-3 print:bg-slate-200">
+                                                        <div className="bg-blue-600 h-full rounded-full print:bg-slate-800" style={{ width: `${hadirPct}%` }}></div>
+                                                    </div>
+                                                    <div className="flex justify-between mt-4">
+                                                        <div className="flex flex-col"><span className="text-[8px] font-bold text-slate-400 uppercase">Hadir</span><span className="text-xs font-black text-slate-700">{stats.hadir}</span></div>
+                                                        <div className="flex flex-col"><span className="text-[8px] font-bold text-orange-400 uppercase">Late</span><span className="text-xs font-black text-slate-700">{stats.late}</span></div>
+                                                        <div className="flex flex-col"><span className="text-[8px] font-bold text-yellow-400 uppercase">TK</span><span className="text-xs font-black text-slate-700">{stats.tk}</span></div>
+                                                        <div className="flex flex-col"><span className="text-[8px] font-bold text-red-400 uppercase">Alpa</span><span className="text-xs font-black text-slate-700">{stats.alpa}</span></div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </section>
+                            </div>
+                        )}
+                    </main>
+
+                    {!selectedUser && (
+                        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[85%] max-w-xs bg-slate-900/95 text-white px-6 py-4 rounded-[2rem] shadow-2xl flex items-center justify-between backdrop-blur-md border border-white/10 z-40 animate-in slide-in-from-bottom duration-500 no-print">
+                            <div className="flex items-center gap-3">
+                                <div className="bg-blue-600 p-2 rounded-xl">
+                                    {activeTab === 'monitoring' ? <Icons.LayoutDashboard className="w-4 h-4" /> : <Icons.BarChart3 className="w-4 h-4" />}
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-[9px] font-black uppercase text-blue-400 tracking-widest">{selectedMonth.name} • {activeTab}</span>
+                                    <span className="text-xs font-bold">{activeTab === 'monitoring' ? `${filteredData.length} Orang` : `Laporan Data`}</span>
+                                </div>
+                            </div>
+                            <button onClick={fetchData} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+                                <Icons.Clock className="w-4 h-4 text-slate-400" />
+                            </button>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
