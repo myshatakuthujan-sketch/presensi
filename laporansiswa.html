@@ -28,27 +28,10 @@
             .no-print { display: none !important; }
         }
 
-        /* Custom Scrollbar */
-        .table-container::-webkit-scrollbar {
-            height: 8px;
-        }
-        .table-container::-webkit-scrollbar-track {
-            background: #f1f5f9;
-            border-radius: 10px;
-        }
-        .table-container::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 10px;
-        }
-        .table-container::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
-        }
-        
-        .table-container {
-            overflow-x: auto;
-            position: relative;
-            -webkit-overflow-scrolling: touch;
-        }
+        .table-container::-webkit-scrollbar { height: 8px; }
+        .table-container::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 10px; }
+        .table-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .table-container::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
         
         .sticky-col {
             position: sticky;
@@ -64,7 +47,14 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* Status colors */
+        .shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+
         .status-h { color: #10b981; } 
         .status-tl { color: #f59e0b; } 
         .status-i { color: #3b82f6; } 
@@ -80,7 +70,7 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useMemo, useRef } = React;
+        const { useState, useEffect, useMemo } = React;
 
         const Icon = ({ path, className }) => (
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -98,7 +88,8 @@
             Download: (p) => <Icon {...p} path={<><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></>} />,
             Lock: (p) => <Icon {...p} path={<><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></>} />,
             Unlock: (p) => <Icon {...p} path={<><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></>} />,
-            ChevronRight: (p) => <Icon {...p} path={<path d="m9 18 6-6-6-6"/>} />
+            Key: (p) => <Icon {...p} path={<><path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4.1a1 1 0 0 0-1.4 0l-2.1 2.1a1 1 0 0 0 0 1.4zm-5 7.5 4.3-4.3M4 20l2.7-2.7m0 0L8.5 19l1.4-1.4L8.5 16l1.5-1.5L8.6 13l1.4-1.4L13 13l4.3-4.3"/></>} />,
+            FileSpreadsheet: (p) => <Icon {...p} path={<><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14.5 2 14.5 8 20 8"/><path d="M8 13h2"/><path d="M8 17h2"/><path d="M14 13h2"/><path d="M14 17h2"/><path d="M8 15h8"/></>} />
         };
 
         const App = () => {
@@ -113,6 +104,14 @@
             const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
             const [searchQuery, setSearchQuery] = useState('');
             
+            // Auth States
+            const [isAdmin, setIsAdmin] = useState(false);
+            const [showAuthModal, setShowAuthModal] = useState(false);
+            const [passwordInput, setPasswordInput] = useState('');
+            const [authError, setAuthError] = useState(false);
+            const [authCallback, setAuthCallback] = useState(null);
+
+            const ADMIN_PASSWORD = 'dani';
             const STORAGE_KEY_OVERRIDES = 'sman8_manual_overrides';
             const STORAGE_KEY_HOLIDAYS = 'sman8_holiday_dates';
 
@@ -241,24 +240,34 @@
                 fetchData();
             }, [selectedMonth, lateThreshold, selectedYear, manualOverrides, holidayDates]);
 
+            const runAsAdmin = (callback) => {
+                if (isAdmin) {
+                    callback();
+                } else {
+                    setAuthCallback(() => callback);
+                    setShowAuthModal(true);
+                    setAuthError(false);
+                    setPasswordInput('');
+                }
+            };
+
+            const submitAuth = () => {
+                if (passwordInput === ADMIN_PASSWORD) {
+                    setIsAdmin(true);
+                    setShowAuthModal(false);
+                    if (authCallback) authCallback();
+                } else {
+                    setAuthError(true);
+                    setTimeout(() => setAuthError(false), 2000);
+                }
+            };
+
             const handleStatusCycle = (nama, day, currentStatus) => {
                 if (isLocked) return;
                 const key = `${nama}-${selectedMonth.id}-${day}`;
                 const cycle = { 'A': 'I', 'I': 'S', 'S': 'H', 'H': 'A', 'TL': 'I', 'L': 'L' };
                 if (currentStatus === 'L') return;
                 setManualOverrides(prev => ({ ...prev, [key]: cycle[currentStatus] || 'I' }));
-            };
-
-            const toggleHoliday = (day) => {
-                const holidayKey = `${selectedMonth.id}-${day}`;
-                setHolidayDates(prev => prev.includes(holidayKey) ? prev.filter(d => d !== holidayKey) : [...prev, holidayKey]);
-            };
-
-            const clearAllData = () => {
-                if (window.confirm("Hapus semua data input manual (Izin, Sakit, Libur)?")) {
-                    setManualOverrides({});
-                    setHolidayDates([]);
-                }
             };
 
             const filteredData = useMemo(() => {
@@ -277,24 +286,49 @@
                 return { avgHadir, totalTelat };
             }, [filteredData, daysInMonth]);
 
-            const exportToCSV = () => {
-                const header1 = ["Nama Siswa", ...[...Array(daysInMonth)].map((_, i) => i + 1), "Total"];
-                const rows = filteredData.map(u => [
-                    u.nama,
-                    ...u.attendance.map(a => a.status),
-                    u.stats.hadir
-                ]);
-                
-                const csvContent = [header1, ...rows].map(e => e.join(",")).join("\n");
-                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                const link = document.createElement("a");
+            const exportToExcel = () => {
+                let html = `
+                    <table border="1">
+                        <thead>
+                            <tr>
+                                <th colspan="${daysInMonth + 2}" style="font-size: 16px; font-weight: bold;">REKAP PRESENSI SISWA SMAN 8 MUKOMUKO</th>
+                            </tr>
+                            <tr>
+                                <th colspan="${daysInMonth + 2}" style="font-size: 12px;">Bulan: ${selectedMonth.name} ${selectedYear} | Kelas: ${selectedClass}</th>
+                            </tr>
+                            <tr style="background-color: #f1f5f9;">
+                                <th>Nama Siswa</th>
+                                ${[...Array(daysInMonth)].map((_, i) => `<th>${i+1}</th>`).join('')}
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+
+                filteredData.forEach(user => {
+                    html += `<tr><td>${user.nama}</td>`;
+                    user.attendance.forEach(att => {
+                        let color = '';
+                        if (att.status === 'H') color = '#10b981';
+                        if (att.status === 'TL') color = '#f59e0b';
+                        if (att.status === 'A') color = '#f43f5e';
+                        if (att.status === 'I') color = '#3b82f6';
+                        if (att.status === 'S') color = '#6366f1';
+                        if (att.status === 'L') color = '#94a3b8';
+                        html += `<td style="color: ${color}; text-align: center; font-weight: bold;">${att.status}</td>`;
+                    });
+                    html += `<td style="text-align: center; font-weight: bold;">${user.stats.hadir}</td></tr>`;
+                });
+
+                html += `</tbody></table>`;
+
+                const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
                 const url = URL.createObjectURL(blob);
-                link.setAttribute("href", url);
-                link.setAttribute("download", `Rekap_Presensi_${selectedMonth.name}_${selectedClass}.csv`);
-                link.style.visibility = 'hidden';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Presensi_SMAN8_${selectedClass}_${selectedMonth.name}.xls`;
+                a.click();
+                URL.revokeObjectURL(url);
             };
 
             if (loading) return (
@@ -306,6 +340,37 @@
 
             return (
                 <div className="min-h-screen bg-slate-50 text-slate-900 pb-32">
+                    
+                    {/* AUTH MODAL */}
+                    {showAuthModal && (
+                        <div className="fixed inset-0 bg-slate-900/60 z-[100] flex items-center justify-center p-6 backdrop-blur-md fade-in">
+                            <div className="bg-white rounded-[2.5rem] w-full max-w-sm p-8 shadow-2xl">
+                                <div className="text-center mb-6">
+                                    <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-3xl flex items-center justify-center mx-auto mb-4">
+                                        <Icons.Key className="w-8 h-8" />
+                                    </div>
+                                    <h3 className="text-xl font-black text-slate-800">Verifikasi Guru</h3>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Gunakan password untuk mengakses fitur ini</p>
+                                </div>
+                                <div className="space-y-4">
+                                    <input 
+                                        type="password" 
+                                        placeholder="Ketik password..."
+                                        value={passwordInput}
+                                        onChange={(e) => setPasswordInput(e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && submitAuth()}
+                                        className={`w-full bg-slate-50 border-2 rounded-2xl py-4 px-6 font-bold text-center outline-none transition-all ${authError ? 'border-rose-500 bg-rose-50 shake text-rose-500' : 'border-slate-100 focus:border-blue-500'}`}
+                                        autoFocus
+                                    />
+                                    <div className="flex gap-2">
+                                        <button onClick={() => setShowAuthModal(false)} className="flex-1 py-4 rounded-2xl font-black text-xs uppercase tracking-widest text-slate-400 hover:bg-slate-50">Batal</button>
+                                        <button onClick={submitAuth} className="flex-1 bg-blue-600 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-blue-200">Buka Akses</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* SETTINGS MODAL */}
                     {showSettings && (
                         <div className="fixed inset-0 bg-slate-900/40 z-50 flex items-center justify-center p-6 backdrop-blur-sm fade-in">
@@ -326,19 +391,21 @@
                                         <input type="time" value={lateThreshold} onChange={(e) => setLateThreshold(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl py-3 px-4 font-bold outline-none focus:border-blue-500" />
                                     </div>
                                     <div className="pt-4 border-t border-slate-100">
-                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Atur Libur Massal ({selectedMonth.name})</label>
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Libur Massal ({selectedMonth.name})</label>
                                         <div className="grid grid-cols-7 gap-1">
                                             {[...Array(daysInMonth)].map((_, i) => {
                                                 const d = i + 1;
                                                 const holidayKey = `${selectedMonth.id}-${d}`;
                                                 const isH = holidayDates.includes(holidayKey);
                                                 return (
-                                                    <button key={d} onClick={() => toggleHoliday(d)} className={`h-8 rounded-lg text-[9px] font-bold transition-all ${isH ? 'bg-rose-500 text-white shadow-md' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`}>{d}</button>
+                                                    <button key={d} onClick={() => {
+                                                        setHolidayDates(prev => prev.includes(holidayKey) ? prev.filter(v => v !== holidayKey) : [...prev, holidayKey]);
+                                                    }} className={`h-8 rounded-lg text-[9px] font-bold transition-all ${isH ? 'bg-rose-500 text-white shadow-md' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`}>{d}</button>
                                                 );
                                             })}
                                         </div>
                                     </div>
-                                    <button onClick={clearAllData} className="w-full py-3 rounded-xl border-2 border-rose-50 text-rose-500 font-bold text-[10px] uppercase tracking-widest hover:bg-rose-50 transition-colors">Reset Input Manual</button>
+                                    <button onClick={() => { if(confirm("Hapus rekap manual?")) { setManualOverrides({}); setHolidayDates([]); } }} className="w-full py-3 rounded-xl border-2 border-rose-50 text-rose-500 font-bold text-[10px] uppercase tracking-widest hover:bg-rose-50 transition-colors">Reset Input Manual</button>
                                     <button onClick={() => setShowSettings(false)} className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-sm shadow-lg shadow-blue-200">Selesai</button>
                                 </div>
                             </div>
@@ -380,7 +447,7 @@
                     </header>
 
                     <main className="max-w-7xl mx-auto p-6" id="printable-area">
-                        {/* STATS CARDS */}
+                        {/* STATS */}
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 no-print">
                             <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
                                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Rata Kehadiran</p>
@@ -396,7 +463,7 @@
                             </div>
                             <div className="bg-blue-600 p-6 rounded-[2rem] shadow-lg shadow-blue-100 hidden md:block">
                                 <p className="text-[9px] font-black text-blue-200 uppercase tracking-widest mb-1">Batas Absen</p>
-                                <h4 className="text-2xl font-black text-white">{lateThreshold} WIB</h4>
+                                <h4 className="text-2xl font-black text-white">{lateThreshold}</h4>
                             </div>
                         </div>
 
@@ -406,10 +473,7 @@
                                 <button onClick={() => setActiveTab('laporan')} className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${activeTab === 'laporan' ? 'bg-slate-900 text-white shadow-xl' : 'bg-white text-slate-400 shadow-sm'}`}><Icons.FileText className="w-4 h-4" /> Tabel</button>
                             </div>
                             <div className="flex gap-3">
-                                <button onClick={exportToCSV} className="hidden sm:flex items-center gap-3 px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest bg-emerald-50 text-emerald-600 border border-emerald-100 hover:bg-emerald-100 transition-all">
-                                    <Icons.Download className="w-4 h-4" /> Export CSV
-                                </button>
-                                <button onClick={() => setIsLocked(!isLocked)} className={`flex items-center gap-3 px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] transition-all border-2 ${isLocked ? 'bg-white border-slate-100 text-slate-400' : 'bg-amber-50 border-amber-200 text-amber-600 shadow-lg shadow-amber-100'}`}>
+                                <button onClick={() => runAsAdmin(() => setIsLocked(!isLocked))} className={`flex items-center gap-3 px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] transition-all border-2 ${isLocked ? 'bg-white border-slate-100 text-slate-400' : 'bg-amber-50 border-amber-200 text-amber-600 shadow-lg shadow-amber-100'}`}>
                                     {isLocked ? <><Icons.Lock className="w-4 h-4" /> Mode Lihat</> : <><Icons.Unlock className="w-4 h-4" /> Mode Edit</>}
                                 </button>
                             </div>
@@ -429,7 +493,7 @@
                                         <div className="flex justify-between items-center pt-4 border-t border-slate-50">
                                             <div className="text-center">
                                                 <p className="text-[8px] font-black text-slate-300 uppercase mb-1 tracking-tighter">Hadir</p>
-                                                <p className="text-sm font-black text-slate-700">{user.stats.hadir} hr</p>
+                                                <p className="text-sm font-black text-slate-700">{user.stats.hadir}</p>
                                             </div>
                                             <div className="text-center">
                                                 <p className="text-[8px] font-black text-slate-300 uppercase mb-1 tracking-tighter">Telat</p>
@@ -442,9 +506,6 @@
                                         </div>
                                     </div>
                                 ))}
-                                {filteredData.length === 0 && (
-                                    <div className="col-span-full py-20 text-center text-slate-400 font-bold uppercase tracking-widest text-xs">Siswa tidak ditemukan</div>
-                                )}
                             </div>
                         ) : (
                             <div className="fade-in">
@@ -455,9 +516,9 @@
                                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">{selectedMonth.name} {selectedYear} • {selectedClass}</p>
                                         </div>
                                         <div className="flex items-center gap-3 no-print">
-                                            <div className="animate-bounce flex items-center gap-2 text-blue-600 bg-blue-50 px-3 py-1 rounded-full text-[9px] font-black uppercase">
-                                                Geser Tabel <Icons.ChevronRight className="w-3 h-3" />
-                                            </div>
+                                            <button onClick={exportToExcel} className="flex items-center gap-2 px-5 py-3 bg-emerald-600 text-white rounded-2xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 text-[10px] font-black uppercase tracking-widest">
+                                                <Icons.FileSpreadsheet className="w-4 h-4" /> Export Excel
+                                            </button>
                                             <button onClick={() => window.print()} className="p-3 bg-slate-900 text-white rounded-2xl hover:bg-blue-600 transition-colors shadow-lg shadow-slate-200"><Icons.Printer className="w-5 h-5" /></button>
                                         </div>
                                     </div>
@@ -468,12 +529,12 @@
                                                 <tr className="bg-slate-50">
                                                     <th rowSpan="2" className="sticky-col px-4 py-4 text-left font-black text-slate-400 uppercase tracking-widest min-w-[200px] text-[9px] align-middle">Nama Siswa</th>
                                                     {[...Array(daysInMonth)].map((_, i) => {
-                                                        const day = i + 1;
-                                                        const holidayKey = `${selectedMonth.id}-${day}`;
-                                                        const isH = holidayDates.includes(holidayKey);
+                                                        const d = i + 1;
+                                                        const hKey = `${selectedMonth.id}-${d}`;
+                                                        const isH = holidayDates.includes(hKey);
                                                         return (
-                                                            <th key={`dayname-${i}`} className={`px-1 py-2 text-center font-black border-l border-slate-100 min-w-[32px] ${isH ? 'bg-rose-500 text-white' : isWeekend(day) ? 'bg-rose-50 text-rose-400' : 'text-slate-400'}`}>
-                                                                {getDayName(day)}
+                                                            <th key={`dn-${i}`} className={`px-1 py-2 text-center font-black border-l border-slate-100 min-w-[32px] ${isH ? 'bg-rose-500 text-white' : isWeekend(d) ? 'bg-rose-50 text-rose-400' : 'text-slate-400'}`}>
+                                                                {getDayName(d)}
                                                             </th>
                                                         );
                                                     })}
@@ -481,12 +542,12 @@
                                                 </tr>
                                                 <tr className="bg-slate-50 border-t border-slate-100">
                                                     {[...Array(daysInMonth)].map((_, i) => {
-                                                        const day = i + 1;
-                                                        const holidayKey = `${selectedMonth.id}-${day}`;
-                                                        const isH = holidayDates.includes(holidayKey);
+                                                        const d = i + 1;
+                                                        const hKey = `${selectedMonth.id}-${d}`;
+                                                        const isH = holidayDates.includes(hKey);
                                                         return (
-                                                            <th key={`daynum-${i}`} className={`px-1 py-2 text-center font-black border-l border-slate-100 ${isH ? 'bg-rose-600 text-white' : isWeekend(day) ? 'bg-rose-50/50 text-rose-300' : 'text-slate-500'}`}>
-                                                                {day}
+                                                            <th key={`di-${i}`} className={`px-1 py-2 text-center font-black border-l border-slate-100 ${isH ? 'bg-rose-600 text-white' : isWeekend(d) ? 'bg-rose-50/50 text-rose-300' : 'text-slate-500'}`}>
+                                                                {d}
                                                             </th>
                                                         );
                                                     })}
@@ -507,25 +568,19 @@
                                             </tbody>
                                         </table>
                                     </div>
-                                    
-                                    <div className="mt-8 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 text-[9px] font-black uppercase tracking-widest no-print border-t border-slate-50 pt-6">
-                                        <div className="flex items-center gap-2 text-emerald-600"><span className="w-5 h-5 bg-emerald-100 rounded-lg flex items-center justify-center">H</span> Hadir</div>
-                                        <div className="flex items-center gap-2 text-amber-500"><span className="w-5 h-5 bg-amber-100 rounded-lg flex items-center justify-center">TL</span> Telat</div>
-                                        <div className="flex items-center gap-2 text-blue-500"><span className="w-5 h-5 bg-blue-100 rounded-lg flex items-center justify-center">I</span> Izin</div>
-                                        <div className="flex items-center gap-2 text-indigo-500"><span className="w-5 h-5 bg-indigo-100 rounded-lg flex items-center justify-center">S</span> Sakit</div>
-                                        <div className="flex items-center gap-2 text-rose-500"><span className="w-5 h-5 bg-rose-100 rounded-lg flex items-center justify-center">A</span> Alpa</div>
-                                        <div className="flex items-center gap-2 text-slate-300"><span className="w-5 h-5 bg-slate-100 rounded-lg flex items-center justify-center font-bold">L</span> Libur</div>
-                                    </div>
                                 </div>
                             </div>
                         )}
                     </main>
 
+                    {/* BOTTOM NAVIGATION */}
                     <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-[280px] bg-slate-900/95 backdrop-blur-md rounded-[2.5rem] p-2 flex items-center justify-around shadow-2xl z-50 no-print border border-white/10">
                         <button onClick={() => setActiveTab('monitoring')} className={`p-4 rounded-[2rem] transition-all duration-300 ${activeTab === 'monitoring' ? 'bg-white text-slate-900 shadow-lg' : 'text-slate-500 hover:text-white'}`}><Icons.Calendar className="w-5 h-5" /></button>
                         <button onClick={() => setActiveTab('laporan')} className={`p-4 rounded-[2rem] transition-all duration-300 ${activeTab === 'laporan' ? 'bg-white text-slate-900 shadow-lg' : 'text-slate-500 hover:text-white'}`}><Icons.FileText className="w-5 h-5" /></button>
                         <div className="w-[1px] h-6 bg-slate-700/50"></div>
-                        <button onClick={() => setShowSettings(true)} className="p-4 text-slate-500 hover:text-white transition-colors duration-300"><Icons.Settings className="w-5 h-5" /></button>
+                        <button onClick={() => runAsAdmin(() => setShowSettings(true))} className={`p-4 transition-all duration-300 ${isAdmin ? 'text-blue-400' : 'text-slate-500 hover:text-white'}`}>
+                            <Icons.Settings className="w-5 h-5" />
+                        </button>
                     </nav>
                 </div>
             );
