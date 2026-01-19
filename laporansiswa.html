@@ -26,7 +26,6 @@
             #printable-area, #printable-area * { visibility: visible; }
             #printable-area { position: absolute; left: 0; top: 0; width: 100%; }
             .no-print { display: none !important; }
-            .print-table { font-size: 8px !important; }
         }
 
         .custom-shadow { box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05); }
@@ -38,13 +37,12 @@
             position: relative;
         }
         
-        /* Sticky Column untuk Nama Siswa */
         .sticky-col {
             position: sticky;
             left: 0;
             background: white;
-            z-index: 10;
-            border-right: 1px solid #f1f5f9;
+            z-index: 20;
+            border-right: 2px solid #f1f5f9;
         }
 
         .fade-in { animation: fadeIn 0.3s ease-out; }
@@ -61,8 +59,6 @@
     <script type="text/babel">
         const { useState, useEffect, useMemo } = React;
 
-        const LOGO_URL = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEi2iWi5Y8Dt91tWD8v24sfYGNL9jWxhRp2epChSaav1QQ3CZWhRb753XFGQOsT9u82kEEQAVkdZVKbbQ2I4Tkhkr9h00KJkaYnZK3jI-HPuUqcO6A3UXFZ9l43qF0sajMqs5asm2ttdvjYUxsxswINcBf7bN7gcNooq-R0KVSFwirkTeTICe6cTnGlyPmQ/s1600/logo%20mapan.png";
-
         const Icon = ({ path, className }) => (
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
                 {path}
@@ -70,11 +66,6 @@
         );
 
         const Icons = {
-            Search: (p) => <Icon {...p} path={<><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></>} />,
-            User: (p) => <Icon {...p} path={<><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></>} />,
-            ChevronRight: (p) => <Icon {...p} path={<path d="m9 18 6-6-6-6"/>} />,
-            ChevronLeft: (p) => <Icon {...p} path={<path d="m15 18-6-6 6-6"/>} />,
-            ChevronDown: (p) => <Icon {...p} path={<path d="m6 9 6 6 6-6"/>} />,
             Printer: (p) => <Icon {...p} path={<><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></>} />,
             Settings: (p) => <Icon {...p} path={<><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.39a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></>} />,
             X: (p) => <Icon {...p} path={<path d="M18 6 6 18M6 6l12 12"/>} />,
@@ -86,28 +77,44 @@
             const [data, setData] = useState([]);
             const [groupedData, setGroupedData] = useState({});
             const [loading, setLoading] = useState(true);
-            const [searchTerm, setSearchTerm] = useState('');
-            const [selectedUser, setSelectedUser] = useState(null);
             const [selectedClass, setSelectedClass] = useState('Semua');
             const [activeTab, setActiveTab] = useState('monitoring');
             const [showSettings, setShowSettings] = useState(false);
-            const [lateThreshold, setLateThreshold] = useState('07:15'); 
+            const [lateThreshold, setLateThreshold] = useState('07:15');
+            const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
             const MONTHS_CONFIG = [
-                { name: 'Januari', gid: '821115705' }, { name: 'Februari', gid: '6275607' },
-                { name: 'Maret', gid: '2019909701' }, { name: 'April', gid: '884223058' },
-                { name: 'Mei', gid: '976701946' }, { name: 'Juni', gid: '188832318' },
-                { name: 'Juli', gid: '930918475' }, { name: 'Agustus', gid: '1170976706' },
-                { name: 'September', gid: '409082671' }, { name: 'Oktober', gid: '1549461076' },
-                { name: 'November', gid: '1689324045' }, { name: 'Desember', gid: '2056122051' }
+                { id: 0, name: 'Januari', gid: '821115705' }, { id: 1, name: 'Februari', gid: '6275607' },
+                { id: 2, name: 'Maret', gid: '2019909701' }, { id: 3, name: 'April', gid: '884223058' },
+                { id: 4, name: 'Mei', gid: '976701946' }, { id: 5, name: 'Juni', gid: '188832318' },
+                { id: 6, name: 'Juli', gid: '930918475' }, { id: 7, name: 'Agustus', gid: '1170976706' },
+                { id: 8, name: 'September', gid: '409082671' }, { id: 9, name: 'Oktober', gid: '1549461076' },
+                { id: 10, name: 'November', gid: '1689324045' }, { id: 11, name: 'Desember', gid: '2056122051' }
             ];
 
-            const [selectedMonth, setSelectedMonth] = useState(MONTHS_CONFIG[0]);
+            const [selectedMonth, setSelectedMonth] = useState(MONTHS_CONFIG[new Date().getMonth()]);
             const SPREADSHEET_ID = '1YbCtOBnFaz8i56sfMmiFaouXUrDyNixHt951WyLNK0U';
+
+            const daysInMonth = useMemo(() => {
+                return new Date(selectedYear, selectedMonth.id + 1, 0).getDate();
+            }, [selectedMonth, selectedYear]);
+
+            // Helper untuk mendapatkan inisial hari (Sn, Sl, Rb, dst)
+            const getDayName = (day) => {
+                const days = ['Mg', 'Sn', 'Sl', 'Rb', 'Km', 'Jm', 'Sb'];
+                const date = new Date(selectedYear, selectedMonth.id, day);
+                return days[date.getDay()];
+            };
+
+            const isWeekend = (day) => {
+                const date = new Date(selectedYear, selectedMonth.id, day);
+                const dayOfWeek = date.getDay();
+                return dayOfWeek === 0 || dayOfWeek === 6; 
+            };
 
             useEffect(() => {
                 fetchData();
-            }, [selectedMonth, lateThreshold]);
+            }, [selectedMonth, lateThreshold, selectedYear]);
 
             const fetchData = async () => {
                 try {
@@ -128,33 +135,31 @@
                         let hadirCount = 0;
                         let terlambatCount = 0;
 
-                        for (let day = 1; day <= 31; day++) {
+                        for (let day = 1; day <= daysInMonth; day++) {
                             const mIdx = 3 + (day - 1) * 2;
-                            const pIdx = 4 + (day - 1) * 2;
                             const masuk = columns[mIdx]?.trim() || '';
-                            const pulang = columns[pIdx]?.trim() || '';
                             
                             let status = '-'; 
                             let color = 'text-slate-300';
-                            let isLate = false;
 
                             if (masuk) {
                                 const [h, m] = masuk.split(':').map(Number);
                                 const [th, tm] = lateThreshold.split(':').map(Number);
-                                isLate = (h * 60 + m) > (th * 60 + tm);
+                                const isLate = (h * 60 + m) > (th * 60 + tm);
                                 if (isLate) terlambatCount++;
                                 
                                 status = isLate ? 'TL' : 'H';
                                 color = isLate ? 'text-amber-500' : 'text-emerald-500';
                                 hadirCount++;
+                            } else if (isWeekend(day)) {
+                                status = 'L';
+                                color = 'text-slate-200';
                             } else {
-                                // Jika tidak ada jam masuk, cek apakah hari ini sudah lewat
-                                // Untuk simulasi, kita anggap '-' adalah Alpa jika tidak ada data
                                 status = 'A';
                                 color = 'text-rose-400';
                             }
                             
-                            attendance.push({ day, status, isLate, color });
+                            attendance.push({ day, status, color });
                         }
                         
                         return { id: index, nama, kelas, attendance, stats: { hadir: hadirCount, telat: terlambatCount } };
@@ -175,37 +180,51 @@
                 }
             };
 
-            const reportData = useMemo(() => {
+            const filteredData = useMemo(() => {
                 if (selectedClass === 'Semua') return data;
                 return groupedData[selectedClass] || [];
             }, [data, groupedData, selectedClass]);
 
+            const years = [2024, 2025, 2026, 2027, 2028];
+
             if (loading) return (
                 <div className="flex flex-col items-center justify-center min-h-screen bg-white">
                     <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-                    <p className="text-slate-400 font-bold animate-pulse uppercase tracking-widest text-[10px]">Memuat Data...</p>
+                    <p className="text-slate-400 font-bold animate-pulse uppercase tracking-widest text-[10px]">Menyiapkan Laporan...</p>
                 </div>
             );
 
             return (
                 <div className="min-h-screen bg-slate-50 text-slate-900 pb-24">
-                    {/* SETTINGS MODAL */}
+                    {/* MODAL PENGATURAN */}
                     {showSettings && (
                         <div className="fixed inset-0 bg-slate-900/40 z-50 flex items-center justify-center p-6 backdrop-blur-sm fade-in">
                             <div className="bg-white rounded-[2rem] w-full max-w-xs p-8 shadow-2xl">
                                 <div className="flex justify-between items-center mb-6">
-                                    <h3 className="font-black text-lg">Pengaturan</h3>
-                                    <button onClick={() => setShowSettings(false)} className="p-2 bg-slate-100 rounded-full"><Icons.X className="w-4 h-4" /></button>
+                                    <h3 className="font-black text-lg text-slate-900">Konfigurasi</h3>
+                                    <button onClick={() => setShowSettings(false)} className="p-2 bg-slate-100 rounded-full text-slate-500 hover:bg-slate-200 transition-colors"><Icons.X className="w-4 h-4" /></button>
                                 </div>
-                                <div className="space-y-4">
-                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Batas Terlambat</label>
-                                    <input 
-                                        type="time" 
-                                        value={lateThreshold} 
-                                        onChange={(e) => setLateThreshold(e.target.value)} 
-                                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl py-3 px-4 font-bold outline-none focus:border-blue-500" 
-                                    />
-                                    <button onClick={() => setShowSettings(false)} className="w-full bg-slate-900 text-white py-4 rounded-xl font-bold text-sm">Simpan</button>
+                                <div className="space-y-6">
+                                    <div>
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Tahun Ajaran</label>
+                                        <select 
+                                            value={selectedYear}
+                                            onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                                            className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl py-3 px-4 font-bold outline-none focus:border-blue-500"
+                                        >
+                                            {years.map(y => <option key={y} value={y}>{y}</option>)}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Batas Terlambat</label>
+                                        <input 
+                                            type="time" 
+                                            value={lateThreshold} 
+                                            onChange={(e) => setLateThreshold(e.target.value)} 
+                                            className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl py-3 px-4 font-bold outline-none focus:border-blue-500" 
+                                        />
+                                    </div>
+                                    <button onClick={() => setShowSettings(false)} className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-sm shadow-lg shadow-blue-200">Simpan Perubahan</button>
                                 </div>
                             </div>
                         </div>
@@ -213,18 +232,20 @@
 
                     {/* HEADER */}
                     <header className="bg-white border-b border-slate-100 sticky top-0 z-30 px-6 py-6 no-print">
-                        <div className="max-w-5xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
                             <div>
-                                <h1 className="text-2xl font-black text-slate-900 tracking-tight">E-Presensi SMAN 8</h1>
+                                <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                                    E-Presensi <span className="text-blue-600">SMAN 8</span>
+                                </h1>
                                 <div className="flex items-center gap-2 mt-1">
                                     <select 
                                         value={selectedMonth.name} 
                                         onChange={(e) => setSelectedMonth(MONTHS_CONFIG.find(m => m.name === e.target.value))}
                                         className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-lg outline-none cursor-pointer"
                                     >
-                                        {MONTHS_CONFIG.map(m => <option key={m.name} value={m.name}>{m.name}</option>)}
+                                        {MONTHS_CONFIG.map(m => <option key={m.id} value={m.name}>{m.name}</option>)}
                                     </select>
-                                    <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Mukomuko</span>
+                                    <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">{selectedYear}</span>
                                 </div>
                             </div>
                             
@@ -233,7 +254,7 @@
                                     <button 
                                         key={cls} 
                                         onClick={() => setSelectedClass(cls)}
-                                        className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${selectedClass === cls ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`}
+                                        className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${selectedClass === cls ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`}
                                     >
                                         {cls}
                                     </button>
@@ -242,14 +263,14 @@
                         </div>
                     </header>
 
-                    <main className="max-w-5xl mx-auto p-6" id="printable-area">
-                        {/* TAB NAVIGATION */}
-                        <div className="flex gap-4 mb-8 no-print">
+                    <main className="max-w-7xl mx-auto p-6" id="printable-area">
+                        {/* NAVIGASI TAB */}
+                        <div className="flex gap-3 mb-8 no-print">
                             <button 
                                 onClick={() => setActiveTab('monitoring')}
                                 className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${activeTab === 'monitoring' ? 'bg-slate-900 text-white shadow-xl' : 'bg-white text-slate-400 shadow-sm'}`}
                             >
-                                <Icons.Calendar className="w-4 h-4" /> Monitoring
+                                <Icons.Calendar className="w-4 h-4" /> Ringkasan
                             </button>
                             <button 
                                 onClick={() => setActiveTab('laporan')}
@@ -260,12 +281,11 @@
                         </div>
 
                         {activeTab === 'monitoring' ? (
-                            /* VIEW MONITORING: KARTU SISWA */
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 fade-in">
-                                {reportData.filter(u => u.nama.toLowerCase().includes(searchTerm.toLowerCase())).map((user, idx) => (
-                                    <div key={idx} className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-all">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 fade-in">
+                                {filteredData.map((user, idx) => (
+                                    <div key={idx} className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-all group">
                                         <div className="flex items-center gap-4 mb-4">
-                                            <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center font-black">{user.nama.charAt(0)}</div>
+                                            <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center font-black group-hover:bg-blue-600 group-hover:text-white transition-colors">{user.nama.charAt(0)}</div>
                                             <div className="overflow-hidden">
                                                 <h3 className="font-black text-slate-800 text-sm truncate">{user.nama}</h3>
                                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{user.kelas}</p>
@@ -273,56 +293,73 @@
                                         </div>
                                         <div className="flex justify-between items-center pt-4 border-t border-slate-50">
                                             <div className="text-center">
-                                                <p className="text-[8px] font-black text-slate-300 uppercase mb-1">Hadir</p>
+                                                <p className="text-[8px] font-black text-slate-300 uppercase mb-1 tracking-tighter">Hadir</p>
                                                 <p className="text-sm font-black text-slate-700">{user.stats.hadir} hr</p>
                                             </div>
                                             <div className="text-center">
-                                                <p className="text-[8px] font-black text-slate-300 uppercase mb-1">Telat</p>
+                                                <p className="text-[8px] font-black text-slate-300 uppercase mb-1 tracking-tighter">Telat</p>
                                                 <p className="text-sm font-black text-amber-500">{user.stats.telat}</p>
                                             </div>
                                             <div className="text-center">
-                                                <p className="text-[8px] font-black text-slate-300 uppercase mb-1">Skor</p>
-                                                <p className="text-sm font-black text-emerald-500">{Math.round((user.stats.hadir/25)*100)}%</p>
+                                                <p className="text-[8px] font-black text-slate-300 uppercase mb-1 tracking-tighter">Persen</p>
+                                                <p className="text-sm font-black text-emerald-500">{Math.round((user.stats.hadir/daysInMonth)*100)}%</p>
                                             </div>
                                         </div>
                                     </div>
                                 ))}
                             </div>
                         ) : (
-                            /* VIEW LAPORAN: TABEL MATRIKS TANGGAL 1-31 */
                             <div className="fade-in">
                                 <div className="bg-white rounded-[2.5rem] p-4 md:p-8 shadow-sm border border-slate-100 overflow-hidden">
-                                    <div className="flex justify-between items-center mb-8">
+                                    <div className="flex justify-between items-end mb-8">
                                         <div>
-                                            <h2 className="text-xl font-black text-slate-900">Rekapitulasi Presensi</h2>
-                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">{selectedMonth.name} • {selectedClass}</p>
+                                            <h2 className="text-xl font-black text-slate-900 tracking-tight">Rekapitulasi Presensi</h2>
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">{selectedMonth.name} {selectedYear} • {selectedClass}</p>
                                         </div>
-                                        <button onClick={() => window.print()} className="no-print p-3 bg-slate-900 text-white rounded-2xl hover:bg-blue-600 transition-colors">
+                                        <button onClick={() => window.print()} className="no-print p-3 bg-slate-900 text-white rounded-2xl hover:bg-blue-600 transition-colors shadow-lg shadow-slate-200">
                                             <Icons.Printer className="w-5 h-5" />
                                         </button>
                                     </div>
 
-                                    <div className="table-container scrollbar-hide">
+                                    <div className="table-container scrollbar-hide border border-slate-100 rounded-3xl">
                                         <table className="w-full text-[10px] border-collapse">
                                             <thead>
                                                 <tr className="bg-slate-50">
-                                                    <th className="sticky-col px-4 py-3 text-left font-black text-slate-400 uppercase tracking-widest min-w-[150px]">Nama Siswa</th>
-                                                    {[...Array(31)].map((_, i) => (
-                                                        <th key={i} className="px-2 py-3 text-center font-black text-slate-400 border-l border-slate-100 min-w-[30px]">{i + 1}</th>
-                                                    ))}
-                                                    <th className="px-4 py-3 text-center font-black text-blue-600 border-l border-slate-100 uppercase tracking-widest">H</th>
+                                                    <th rowSpan="2" className="sticky-col px-4 py-4 text-left font-black text-slate-400 uppercase tracking-widest min-w-[200px] text-[9px] align-middle">Nama Siswa</th>
+                                                    {[...Array(daysInMonth)].map((_, i) => {
+                                                        const day = i + 1;
+                                                        const dayName = getDayName(day);
+                                                        const weekend = isWeekend(day);
+                                                        return (
+                                                            <th key={`dayname-${i}`} className={`px-2 py-2 text-center font-black border-l border-slate-100 min-w-[34px] ${weekend ? 'bg-rose-50 text-rose-400' : 'text-slate-400'}`}>
+                                                                {dayName}
+                                                            </th>
+                                                        );
+                                                    })}
+                                                    <th rowSpan="2" className="px-4 py-4 text-center font-black text-blue-600 border-l border-slate-200 uppercase tracking-widest bg-blue-50/30 align-middle">Total</th>
+                                                </tr>
+                                                <tr className="bg-slate-50 border-t border-slate-100">
+                                                    {[...Array(daysInMonth)].map((_, i) => {
+                                                        const day = i + 1;
+                                                        const weekend = isWeekend(day);
+                                                        return (
+                                                            <th key={`daynum-${i}`} className={`px-2 py-2 text-center font-black border-l border-slate-100 min-w-[34px] ${weekend ? 'bg-rose-50/50 text-rose-300' : 'text-slate-500'}`}>
+                                                                {day}
+                                                            </th>
+                                                        );
+                                                    })}
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-slate-100">
-                                                {reportData.map((user, idx) => (
-                                                    <tr key={idx} className="hover:bg-slate-50 transition-colors">
-                                                        <td className="sticky-col px-4 py-3 font-bold text-slate-700 whitespace-nowrap">{user.nama}</td>
-                                                        {user.attendance.map((day, i) => (
-                                                            <td key={i} className={`px-1 py-3 text-center font-black border-l border-slate-50/50 ${day.color}`}>
-                                                                {day.status}
+                                                {filteredData.map((user, idx) => (
+                                                    <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
+                                                        <td className="sticky-col px-4 py-3 font-bold text-slate-700 whitespace-nowrap bg-white">{user.nama}</td>
+                                                        {user.attendance.map((att, i) => (
+                                                            <td key={i} className={`px-1 py-3 text-center font-black border-l border-slate-50/50 ${att.color} ${att.status === 'L' ? 'bg-slate-50/30' : ''}`}>
+                                                                {att.status}
                                                             </td>
                                                         ))}
-                                                        <td className="px-4 py-3 text-center font-black text-slate-900 border-l border-slate-100 bg-slate-50/30">
+                                                        <td className="px-4 py-3 text-center font-black text-slate-900 border-l border-slate-200 bg-blue-50/10">
                                                             {user.stats.hadir}
                                                         </td>
                                                     </tr>
@@ -331,26 +368,27 @@
                                         </table>
                                     </div>
                                     
-                                    <div className="mt-8 flex flex-wrap gap-4 text-[9px] font-black uppercase tracking-widest no-print">
-                                        <div className="flex items-center gap-2"><span className="w-3 h-3 bg-emerald-100 rounded text-emerald-600 flex items-center justify-center text-[7px]">H</span> Hadir Tepat</div>
-                                        <div className="flex items-center gap-2"><span className="w-3 h-3 bg-amber-100 rounded text-amber-600 flex items-center justify-center text-[7px]">TL</span> Terlambat</div>
-                                        <div className="flex items-center gap-2"><span className="w-3 h-3 bg-rose-100 rounded text-rose-600 flex items-center justify-center text-[7px]">A</span> Tanpa Keterangan</div>
+                                    <div className="mt-8 flex flex-wrap gap-5 text-[9px] font-black uppercase tracking-widest no-print border-t border-slate-50 pt-6">
+                                        <div className="flex items-center gap-2 text-emerald-600"><span className="w-4 h-4 bg-emerald-100 rounded-md flex items-center justify-center text-[7px] font-bold">H</span> Hadir</div>
+                                        <div className="flex items-center gap-2 text-amber-500"><span className="w-4 h-4 bg-amber-100 rounded-md flex items-center justify-center text-[7px] font-bold">TL</span> Terlambat</div>
+                                        <div className="flex items-center gap-2 text-rose-500"><span className="w-4 h-4 bg-rose-100 rounded-md flex items-center justify-center text-[7px] font-bold">A</span> Alpa</div>
+                                        <div className="flex items-center gap-2 text-slate-300"><span className="w-4 h-4 bg-slate-100 rounded-md flex items-center justify-center text-[7px] font-bold">L</span> Libur</div>
                                     </div>
                                 </div>
                             </div>
                         )}
                     </main>
 
-                    {/* NAVIGASI BAWAH (MOBILE OPTIMIZED) */}
-                    <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-xs bg-slate-900 rounded-[2rem] p-2 flex items-center justify-around shadow-2xl z-40 no-print">
-                        <button onClick={() => { setActiveTab('monitoring'); window.scrollTo(0,0); }} className={`p-3 rounded-2xl transition-all ${activeTab === 'monitoring' ? 'bg-white text-slate-900' : 'text-slate-500'}`}>
+                    {/* NAVIGASI BAWAH */}
+                    <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-xs bg-slate-900/95 backdrop-blur-md rounded-[2.5rem] p-2 flex items-center justify-around shadow-2xl z-40 no-print border border-white/10">
+                        <button onClick={() => { setActiveTab('monitoring'); window.scrollTo(0,0); }} className={`p-4 rounded-[2rem] transition-all duration-300 ${activeTab === 'monitoring' ? 'bg-white text-slate-900 shadow-lg shadow-white/10' : 'text-slate-500 hover:text-white'}`}>
                             <Icons.Calendar className="w-5 h-5" />
                         </button>
-                        <button onClick={() => { setActiveTab('laporan'); window.scrollTo(0,0); }} className={`p-3 rounded-2xl transition-all ${activeTab === 'laporan' ? 'bg-white text-slate-900' : 'text-slate-500'}`}>
+                        <button onClick={() => { setActiveTab('laporan'); window.scrollTo(0,0); }} className={`p-4 rounded-[2rem] transition-all duration-300 ${activeTab === 'laporan' ? 'bg-white text-slate-900 shadow-lg shadow-white/10' : 'text-slate-500 hover:text-white'}`}>
                             <Icons.FileText className="w-5 h-5" />
                         </button>
-                        <div className="w-px h-6 bg-slate-800"></div>
-                        <button onClick={() => setShowSettings(true)} className="p-3 text-slate-500 hover:text-white transition-colors">
+                        <div className="w-[1px] h-6 bg-slate-700/50"></div>
+                        <button onClick={() => setShowSettings(true)} className="p-4 text-slate-500 hover:text-white transition-colors duration-300">
                             <Icons.Settings className="w-5 h-5" />
                         </button>
                     </nav>
