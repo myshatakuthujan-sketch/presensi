@@ -42,8 +42,9 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
+        const LOGO_URL = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEi2iWi5Y8Dt91tWD8v24sfYGNL9jWxhRp2epChSaav1QQ3CZWhRb753XFGQOsT9u82kEEQAVkdZVKbbQ2I4Tkhkr9h00KJkaYnZK3jI-HPuUqcO6A3UXFZ9l43qF0sajMqs5asm2ttdvjYUxsxswINcBf7bN7gcNooq-R0KVSFwirkTeTICe6cTnGlyPmQ/s1600/logo%20mapan.png";
+
         // --- DEFINISI IKON (SVG) ---
-        // Karena kita tidak pakai build system, kita buat komponen ikon manual
         const Icon = ({ path, className }) => (
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
                 {path}
@@ -71,8 +72,6 @@
             Save: (p) => <Icon {...p} path={<><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></>} />,
         };
 
-        // --- KOMPONEN APLIKASI ---
-        
         const App = () => {
             const [data, setData] = useState([]);
             const [groupedData, setGroupedData] = useState({});
@@ -83,25 +82,18 @@
             const [activeTab, setActiveTab] = useState('monitoring');
             const [reportDate, setReportDate] = useState(new Date().getDate());
             
-            // State Pengaturan
             const [showSettings, setShowSettings] = useState(false);
-            const [lateThreshold, setLateThreshold] = useState('07:00'); // Default jam 7
+            const [lateThreshold, setLateThreshold] = useState('07:15'); 
 
             const [error, setError] = useState(null);
             
             const MONTHS_CONFIG = [
-                { name: 'Jan', gid: '821115705' },
-                { name: 'Feb', gid: '6275607' },
-                { name: 'Mar', gid: '2019909701' },
-                { name: 'Apr', gid: '884223058' },
-                { name: 'Mei', gid: '976701946' },
-                { name: 'Jun', gid: '188832318' },
-                { name: 'Jul', gid: '930918475' },
-                { name: 'Agu', gid: '1170976706' },
-                { name: 'Sep', gid: '409082671' },
-                { name: 'Okt', gid: '1549461076' },
-                { name: 'Nov', gid: '1689324045' },
-                { name: 'Des', gid: '2056122051' }
+                { name: 'Jan', gid: '821115705' }, { name: 'Feb', gid: '6275607' },
+                { name: 'Mar', gid: '2019909701' }, { name: 'Apr', gid: '884223058' },
+                { name: 'Mei', gid: '976701946' }, { name: 'Jun', gid: '188832318' },
+                { name: 'Jul', gid: '930918475' }, { name: 'Agu', gid: '1170976706' },
+                { name: 'Sep', gid: '409082671' }, { name: 'Okt', gid: '1549461076' },
+                { name: 'Nov', gid: '1689324045' }, { name: 'Des', gid: '2056122051' }
             ];
 
             const [selectedMonth, setSelectedMonth] = useState(MONTHS_CONFIG[0]);
@@ -115,10 +107,7 @@
                 if (!timeStr || !thresholdStr) return false;
                 const [h, m] = timeStr.split(':').map(Number);
                 const [th, tm] = thresholdStr.split(':').map(Number);
-                if (isNaN(h) || isNaN(m)) return false;
-                const timeMins = h * 60 + m;
-                const thresholdMins = th * 60 + tm;
-                return timeMins > thresholdMins;
+                return (h * 60 + m) > (th * 60 + tm);
             };
 
             const fetchData = async () => {
@@ -148,11 +137,7 @@
                             
                             let status = 'A'; 
                             let statusColor = 'bg-red-100 text-red-600';
-                            let isLate = false;
-
-                            if (masuk) {
-                                isLate = checkIsLate(masuk, lateThreshold);
-                            }
+                            let isLate = masuk ? checkIsLate(masuk, lateThreshold) : false;
 
                             if (masuk && pulang) {
                                 status = 'H';
@@ -178,7 +163,6 @@
                     setGroupedData(groups);
                     setLoading(false);
                 } catch (err) {
-                    console.error(err);
                     setError("Gagal memuat data. Pastikan Sheet Publik.");
                     setLoading(false);
                 }
@@ -234,48 +218,17 @@
             const handleShareWhatsApp = () => {
                 const daily = getDailyReport();
                 const dateStr = `${reportDate} ${selectedMonth.name}`;
-                
-                let text = `*LAPORAN PRESENSI HARIAN*\n`;
-                text += `📅 Tanggal: ${dateStr}\n`;
-                text += `⏰ Batas Terlambat: ${lateThreshold}\n`;
-                text += `🏫 Filter: ${selectedClass}\n\n`;
-                text += `*Ringkasan Global:*\n`;
-                text += `✅ Hadir: ${daily.global.hadir}\n`;
-                text += `⚠️ Terlambat: ${daily.global.late}\n`;
-                text += `📝 Ket. Kurang (TK): ${daily.global.tk}\n`;
-                text += `❌ Alpa: ${daily.global.alpa}\n`;
-                text += `👥 Total Siswa: ${daily.global.total}\n\n`;
-                text += `*Rincian Per Kelas:*\n`;
-                Object.entries(daily.perClass).forEach(([cls, stats]) => {
-                    if (selectedClass === 'Semua' || selectedClass === cls) {
-                        text += `🔹 *${cls}*: H=${stats.hadir}, T=${stats.late}, A=${stats.alpa}\n`;
-                    }
-                });
+                let text = `*LAPORAN E-PRESENSI SMAN 8 MUKOMUKO*\n`;
+                text += `📅 Tanggal: ${dateStr}\n\n`;
+                text += `*Ringkasan:* H:${daily.global.hadir}, L:${daily.global.late}, TK:${daily.global.tk}, A:${daily.global.alpa}\n`;
                 text += `\n_Generated by Monitoring App_`;
-                
-                const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
-                window.open(url, '_blank');
-            };
-
-            const handlePrint = () => {
-                window.print();
+                window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
             };
 
             if (loading) return (
                 <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 p-6">
                     <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
                     <p className="text-slate-500 font-bold">Sinkronisasi Data...</p>
-                </div>
-            );
-
-            if (error) return (
-                <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 p-6 text-center">
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                        <Icons.Info className="w-12 h-12 text-red-500 mx-auto mb-4" />
-                        <h2 className="text-lg font-bold text-slate-800 mb-2">Gagal Memuat</h2>
-                        <p className="text-slate-500 text-sm mb-4">{error}</p>
-                        <button onClick={fetchData} className="px-6 py-2 bg-blue-600 text-white rounded-xl font-bold">Coba Lagi</button>
-                    </div>
                 </div>
             );
 
@@ -299,20 +252,9 @@
                                 <div className="space-y-4">
                                     <div>
                                         <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Batas Jam Terlambat</label>
-                                        <div className="relative">
-                                            <div className="absolute left-4 top-1/2 -translate-y-1/2"><Icons.Clock className="w-5 h-5 text-blue-500" /></div>
-                                            <input 
-                                                type="time" 
-                                                value={lateThreshold}
-                                                onChange={(e) => setLateThreshold(e.target.value)}
-                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-12 pr-4 font-bold text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none"
-                                            />
-                                        </div>
-                                        <p className="text-[10px] text-slate-400 mt-2 leading-relaxed">Siswa yang masuk melebihi jam ini akan ditandai <span className="text-orange-500 font-bold">Terlambat</span>.</p>
+                                        <input type="time" value={lateThreshold} onChange={(e) => setLateThreshold(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 font-bold text-slate-800 outline-none" />
                                     </div>
-                                    <button onClick={() => setShowSettings(false)} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold text-sm shadow-lg shadow-blue-200 flex items-center justify-center gap-2">
-                                        <Icons.Save className="w-4 h-4" /> Simpan Pengaturan
-                                    </button>
+                                    <button onClick={() => setShowSettings(false)} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold text-sm shadow-lg">Simpan</button>
                                 </div>
                             </div>
                         </div>
@@ -323,38 +265,25 @@
                         <div className="max-w-md mx-auto">
                             <div className="flex justify-between items-center mb-4">
                                 <div className="relative inline-block">
-                                    <select 
-                                        value={selectedMonth.name}
-                                        onChange={(e) => setSelectedMonth(MONTHS_CONFIG.find(m => m.name === e.target.value))}
-                                        className="appearance-none bg-slate-100 text-slate-800 font-black text-lg py-1 pl-3 pr-8 rounded-xl focus:outline-none border-none cursor-pointer"
-                                    >
+                                    <select value={selectedMonth.name} onChange={(e) => setSelectedMonth(MONTHS_CONFIG.find(m => m.name === e.target.value))} className="appearance-none bg-slate-100 text-slate-800 font-black text-lg py-1 pl-3 pr-8 rounded-xl focus:outline-none border-none">
                                         {MONTHS_CONFIG.map(m => <option key={m.name} value={m.name}>{m.name}</option>)}
                                     </select>
                                     <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none"><Icons.ChevronDown className="w-4 h-4 text-slate-400" /></div>
                                 </div>
-                                
                                 <div className="flex gap-2">
                                     <div className="flex bg-slate-100 p-1 rounded-xl">
                                         <button onClick={() => setActiveTab('monitoring')} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'monitoring' ? 'bg-white shadow text-blue-600' : 'text-slate-400'}`}>Monitor</button>
                                         <button onClick={() => setActiveTab('laporan')} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'laporan' ? 'bg-white shadow text-blue-600' : 'text-slate-400'}`}>Laporan</button>
                                     </div>
-                                    <button onClick={() => setShowSettings(true)} className="p-2 bg-slate-100 rounded-xl text-slate-600 active:bg-slate-200 transition-colors">
-                                        <Icons.Settings className="w-5 h-5" />
-                                    </button>
+                                    <button onClick={() => setShowSettings(true)} className="p-2 bg-slate-100 rounded-xl text-slate-600"><Icons.Settings className="w-5 h-5" /></button>
                                 </div>
                             </div>
-                            
                             {activeTab === 'monitoring' && !selectedUser && (
-                                <div className="flex flex-col gap-3 mb-2 animate-in fade-in duration-300">
-                                    <div className="relative">
-                                        <div className="absolute left-3 top-1/2 -translate-y-1/2"><Icons.Search className="w-4 h-4 text-slate-400" /></div>
-                                        <input type="text" placeholder="Cari nama..." className="w-full bg-slate-100 border-none rounded-2xl py-2.5 pl-10 pr-4 text-sm outline-none focus:ring-2 focus:ring-blue-500" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
-                                    </div>
+                                <div className="flex flex-col gap-3 mb-2 animate-in fade-in">
+                                    <input type="text" placeholder="Cari nama..." className="w-full bg-slate-100 border-none rounded-2xl py-2.5 px-4 text-sm outline-none" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                                     <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
                                         {classList.map(cls => (
-                                            <button key={cls} onClick={() => setSelectedClass(cls)} className={`px-4 py-1.5 rounded-xl text-[10px] font-black whitespace-nowrap uppercase transition-all ${selectedClass === cls ? 'bg-blue-600 text-white shadow-md' : 'bg-white text-slate-400 border border-slate-200'}`}>
-                                                {cls}
-                                            </button>
+                                            <button key={cls} onClick={() => setSelectedClass(cls)} className={`px-4 py-1.5 rounded-xl text-[10px] font-black whitespace-nowrap uppercase transition-all ${selectedClass === cls ? 'bg-blue-600 text-white shadow-md' : 'bg-white text-slate-400 border border-slate-200'}`}>{cls}</button>
                                         ))}
                                     </div>
                                 </div>
@@ -366,46 +295,36 @@
                         {activeTab === 'monitoring' ? (
                             selectedUser ? (
                                 <div className="animate-in fade-in duration-300 no-print">
-                                    <button onClick={() => setSelectedUser(null)} className="mb-4 flex items-center text-slate-400 font-black text-[10px] uppercase tracking-widest">
-                                        <Icons.ChevronLeft className="w-4 h-4 mr-1" /> Kembali
-                                    </button>
+                                    <button onClick={() => setSelectedUser(null)} className="mb-4 flex items-center text-slate-400 font-black text-[10px] uppercase tracking-widest"><Icons.ChevronLeft className="w-4 h-4 mr-1" /> Kembali</button>
                                     <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100 mb-6 text-center">
-                                        <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center text-white mx-auto mb-3 shadow-lg"><Icons.User className="w-8 h-8" /></div>
-                                        <h2 className="text-xl font-black text-slate-800 leading-tight">{selectedUser.nama}</h2>
+                                        <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center text-white mx-auto mb-3"><Icons.User className="w-8 h-8" /></div>
+                                        <h2 className="text-xl font-black text-slate-800">{selectedUser.nama}</h2>
                                         <span className="inline-block mt-1 px-3 py-0.5 bg-blue-50 text-blue-600 rounded-full text-[10px] font-black uppercase">{selectedUser.kelas}</span>
-                                        <div className="grid grid-cols-4 gap-2 mt-6">
-                                            <div className="bg-green-50 p-2 rounded-2xl border border-green-100"><p className="text-[8px] text-green-600 font-black uppercase mb-1">Hadir</p><p className="text-lg font-black text-green-700">{selectedUser.attendance.filter(a => a.status === 'H').length}</p></div>
-                                            <div className="bg-orange-50 p-2 rounded-2xl border border-orange-100"><p className="text-[8px] text-orange-600 font-black uppercase mb-1">Late</p><p className="text-lg font-black text-orange-700">{selectedUser.attendance.filter(a => a.isLate).length}</p></div>
-                                            <div className="bg-yellow-50 p-2 rounded-2xl border border-yellow-100"><p className="text-[8px] text-yellow-600 font-black uppercase mb-1">TK</p><p className="text-lg font-black text-yellow-700">{selectedUser.attendance.filter(a => a.status === 'TK').length}</p></div>
-                                            <div className="bg-red-50 p-2 rounded-2xl border border-red-100"><p className="text-[8px] text-red-600 font-black uppercase mb-1">Alpa</p><p className="text-lg font-black text-red-700">{selectedUser.attendance.filter(a => a.status === 'A').length}</p></div>
-                                        </div>
                                     </div>
                                     <div className="space-y-2">
                                         {selectedUser.attendance.map((day, i) => (
-                                            <div key={i} className="bg-white px-4 py-3 rounded-2xl border border-slate-100 flex items-center justify-between shadow-sm">
+                                            <div key={i} className="bg-white px-4 py-3 rounded-2xl border border-slate-100 flex items-center justify-between">
                                                 <div className="flex items-center gap-4">
-                                                    <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-50 text-[10px] font-black text-slate-400 border border-slate-100">{day.day}</div>
-                                                    <div className="flex gap-4">
-                                                        <div><p className="text-[8px] text-slate-300 font-bold uppercase mb-0.5">Masuk</p><p className={`text-xs font-bold ${day.isLate ? 'text-orange-500' : 'text-slate-700'}`}>{day.masuk || '--:--'}</p></div>
-                                                        <div><p className="text-[8px] text-slate-300 font-bold uppercase mb-0.5">Pulang</p><p className="text-xs font-bold text-slate-700">{day.pulang || '--:--'}</p></div>
+                                                    <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-50 text-[10px] font-black text-slate-400">{day.day}</div>
+                                                    <div className="flex gap-4 text-xs font-bold text-slate-700">
+                                                        <span>M: {day.masuk || '--:--'}</span>
+                                                        <span>P: {day.pulang || '--:--'}</span>
                                                     </div>
                                                 </div>
-                                                <div className={`w-8 h-8 flex items-center justify-center rounded-lg text-[9px] font-black ${day.statusColor}`}>
-                                                    {day.status === 'H' && day.isLate ? 'TL' : day.status}
-                                                </div>
+                                                <div className={`w-8 h-8 flex items-center justify-center rounded-lg text-[9px] font-black ${day.statusColor}`}>{day.status === 'H' && day.isLate ? 'TL' : day.status}</div>
                                             </div>
                                         ))}
                                     </div>
                                 </div>
                             ) : (
-                                <div className="space-y-3 animate-in fade-in duration-300 no-print">
+                                <div className="space-y-3 animate-in fade-in no-print">
                                     {filteredData.map((user, idx) => (
-                                        <div key={idx} onClick={() => setSelectedUser(user)} className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between active:scale-95 transition-all cursor-pointer">
+                                        <div key={idx} onClick={() => setSelectedUser(user)} className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between cursor-pointer">
                                             <div className="flex items-center gap-3 overflow-hidden">
-                                                <div className="w-12 h-12 bg-slate-50 text-blue-600 rounded-xl flex items-center justify-center font-black text-lg border border-slate-100">{user.nama.charAt(0)}</div>
+                                                <div className="w-10 h-10 bg-slate-50 text-blue-600 rounded-xl flex items-center justify-center font-black">{user.nama.charAt(0)}</div>
                                                 <div className="overflow-hidden">
-                                                    <h3 className="font-bold text-slate-800 truncate text-sm leading-tight">{user.nama}</h3>
-                                                    <p className="text-[10px] font-black text-blue-500 uppercase mt-0.5">{user.kelas}</p>
+                                                    <h3 className="font-bold text-slate-800 truncate text-sm">{user.nama}</h3>
+                                                    <p className="text-[10px] font-black text-blue-500 uppercase">{user.kelas}</p>
                                                 </div>
                                             </div>
                                             <Icons.ChevronRight className="w-5 h-5 text-slate-300" />
@@ -414,91 +333,58 @@
                                 </div>
                             )
                         ) : (
-                            <div className="space-y-6 animate-in slide-in-from-bottom duration-500 print-bg-white">
-                                <section className="break-inside-avoid">
-                                    <div className="flex items-center justify-between mb-4 px-1 no-print">
-                                        <h3 className="font-black text-slate-800 text-sm flex items-center gap-2 uppercase tracking-wider">
-                                            <Icons.PieChart className="w-4 h-4 text-blue-600" /> Laporan Harian
-                                        </h3>
-                                        <div className="flex items-center gap-2">
-                                            <div className="flex items-center gap-2 bg-white px-3 py-1 rounded-xl border border-slate-100 shadow-sm">
-                                                <span className="text-[10px] font-bold text-slate-400">TGL</span>
-                                                <select value={reportDate} onChange={(e) => setReportDate(parseInt(e.target.value))} className="text-[10px] font-black bg-transparent border-none outline-none focus:ring-0">
-                                                    {[...Array(31)].map((_, i) => <option key={i+1} value={i+1}>{i+1}</option>)}
-                                                </select>
-                                            </div>
-                                            <button onClick={handleShareWhatsApp} className="p-2 bg-green-500 text-white rounded-xl shadow-lg shadow-green-200 active:scale-90 transition-transform">
-                                                <Icons.Share2 className="w-4 h-4" />
-                                            </button>
+                            <div className="space-y-6 animate-in slide-in-from-bottom duration-500">
+                                {/* KOP SURAT / HEADER LAPORAN */}
+                                <section className="print-bg-white print-break-inside-avoid">
+                                    <div className="flex items-center gap-4 mb-6 border-b-2 border-slate-900 pb-4">
+                                        <img src={LOGO_URL} alt="Logo" className="w-16 h-16 object-contain" />
+                                        <div className="flex-1">
+                                            <h1 className="text-lg font-black leading-tight uppercase tracking-tight">Laporan E-Presensi Siswa</h1>
+                                            <h2 className="text-xl font-black text-blue-700 leading-tight uppercase">SMAN 8 Mukomuko</h2>
+                                            <p className="text-[10px] font-bold text-slate-500">Masa Laporan: {selectedMonth.name} • Tanggal Cetak: {new Date().toLocaleDateString('id-ID')}</p>
                                         </div>
-                                    </div>
-                                    
-                                    <div className="hidden print:block mb-4 border-b pb-4">
-                                         <h1 className="text-xl font-black">Laporan Harian Presensi</h1>
-                                         <p className="text-sm">Tanggal: {reportDate} {selectedMonth.name} | Kelas: {selectedClass}</p>
-                                    </div>
-
-                                    <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 mb-4 print:shadow-none print:border print:rounded-lg">
-                                        <div className="grid grid-cols-4 gap-2">
-                                            <div className="text-center"><p className="text-[9px] font-black text-green-500 uppercase mb-1">Hadir</p><p className="text-2xl font-black text-slate-800">{daily.global.hadir}</p></div>
-                                            <div className="text-center border-l border-slate-100"><p className="text-[9px] font-black text-orange-500 uppercase mb-1">Late</p><p className="text-2xl font-black text-slate-800">{daily.global.late}</p></div>
-                                            <div className="text-center border-l border-slate-100"><p className="text-[9px] font-black text-yellow-500 uppercase mb-1">TK</p><p className="text-2xl font-black text-slate-800">{daily.global.tk}</p></div>
-                                            <div className="text-center border-l border-slate-100"><p className="text-[9px] font-black text-red-500 uppercase mb-1">Alpa</p><p className="text-2xl font-black text-slate-800">{daily.global.alpa}</p></div>
+                                        <div className="no-print flex gap-2">
+                                            <button onClick={handleShareWhatsApp} className="p-2 bg-green-500 text-white rounded-xl shadow-lg"><Icons.Share2 className="w-4 h-4" /></button>
+                                            <button onClick={() => window.print()} className="p-2 bg-slate-800 text-white rounded-xl shadow-lg"><Icons.Printer className="w-4 h-4" /></button>
                                         </div>
                                     </div>
 
-                                    <div className="space-y-2 no-print">
-                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] px-2">Rincian Per Kelas</p>
-                                        {Object.entries(daily.perClass).map(([className, stats]) => (
-                                            <div key={className} className="bg-white p-4 rounded-2xl border border-slate-100 flex items-center justify-between">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-8 h-8 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center font-black text-[10px] uppercase">{className.charAt(0)}</div>
-                                                    <span className="font-bold text-sm text-slate-700">{className}</span>
-                                                </div>
-                                                <div className="flex gap-2 text-[10px] font-black">
-                                                    <span className="text-green-500">H:{stats.hadir}</span>
-                                                    <span className="text-orange-500">T:{stats.late}</span>
-                                                    <span className="text-yellow-500">TK:{stats.tk}</span>
-                                                    <span className="text-red-400">A:{stats.alpa}</span>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </section>
-
-                                <section className="break-before-auto">
-                                    <div className="flex items-center justify-between mb-4 px-1 no-print">
-                                        <h3 className="font-black text-slate-800 text-sm flex items-center gap-2 uppercase tracking-wider">
-                                            <Icons.BarChart3 className="w-4 h-4 text-blue-600" /> Statistik Bulanan
-                                        </h3>
-                                        <button onClick={handlePrint} className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-white rounded-xl shadow-lg active:scale-95 transition-all text-xs font-bold">
-                                            <Icons.Printer className="w-4 h-4" /> Cetak / PDF
-                                        </button>
-                                    </div>
-                                    
-                                    <div className="hidden print:block mb-4 mt-8 border-b pb-4">
-                                         <h1 className="text-xl font-black">Laporan Bulanan Presensi</h1>
-                                         <p className="text-sm">Bulan: {selectedMonth.name} | Generated by System</p>
+                                    {/* RINGKASAN HARIAN */}
+                                    <div className="mb-6">
+                                        <div className="flex justify-between items-center mb-4 no-print">
+                                            <h3 className="text-xs font-black uppercase text-slate-400">Ringkasan Harian ({reportDate})</h3>
+                                            <select value={reportDate} onChange={(e) => setReportDate(parseInt(e.target.value))} className="text-xs font-bold bg-white border rounded-lg px-2 py-1">
+                                                {[...Array(31)].map((_, i) => <option key={i+1} value={i+1}>{i+1}</option>)}
+                                            </select>
+                                        </div>
+                                        <div className="grid grid-cols-4 gap-2 bg-white p-4 rounded-2xl border border-slate-100 print:shadow-none print:border-slate-300">
+                                            <div className="text-center"><p className="text-[8px] font-black text-green-500 uppercase mb-1">Hadir</p><p className="text-xl font-black">{daily.global.hadir}</p></div>
+                                            <div className="text-center border-l border-slate-100"><p className="text-[8px] font-black text-orange-500 uppercase mb-1">Late</p><p className="text-xl font-black">{daily.global.late}</p></div>
+                                            <div className="text-center border-l border-slate-100"><p className="text-[8px] font-black text-yellow-500 uppercase mb-1">TK</p><p className="text-xl font-black">{daily.global.tk}</p></div>
+                                            <div className="text-center border-l border-slate-100"><p className="text-[8px] font-black text-red-500 uppercase mb-1">Alpa</p><p className="text-xl font-black">{daily.global.alpa}</p></div>
+                                        </div>
                                     </div>
 
-                                    <div className="space-y-3 print:space-y-4">
+                                    {/* RINGKASAN BULANAN PER KELAS */}
+                                    <div className="space-y-3">
+                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest no-print">Statistik Bulanan per Kelas</p>
                                         {Object.entries(monthly).map(([className, stats]) => {
                                             if (selectedClass !== 'Semua' && className !== selectedClass) return null;
                                             const hadirPct = Math.round((stats.hadir / stats.totalDays) * 100);
                                             return (
-                                                <div key={className} className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden print:border-slate-300 print:rounded-xl print:shadow-none print:break-inside-avoid">
-                                                    <div className="flex justify-between items-end mb-2">
-                                                        <div><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Kelas</p><p className="text-lg font-black text-slate-800 leading-none">{className}</p></div>
-                                                        <div className="text-right"><p className="text-[10px] font-black text-blue-600 uppercase mb-1">Kehadiran</p><p className="text-2xl font-black text-blue-700 leading-none">{hadirPct}%</p></div>
+                                                <div key={className} className="bg-white p-4 rounded-2xl border border-slate-100 print:border-slate-300 print:break-inside-avoid">
+                                                    <div className="flex justify-between items-center mb-2">
+                                                        <span className="font-black text-slate-800 uppercase text-xs">{className}</span>
+                                                        <span className="text-blue-600 font-black text-sm">{hadirPct}%</span>
                                                     </div>
-                                                    <div className="bg-slate-100 h-1.5 rounded-full overflow-hidden mt-3 print:bg-slate-200">
-                                                        <div className="bg-blue-600 h-full rounded-full print:bg-slate-800" style={{ width: `${hadirPct}%` }}></div>
+                                                    <div className="bg-slate-100 h-1.5 rounded-full overflow-hidden mb-3">
+                                                        <div className="bg-blue-600 h-full" style={{ width: `${hadirPct}%` }}></div>
                                                     </div>
-                                                    <div className="flex justify-between mt-4">
-                                                        <div className="flex flex-col"><span className="text-[8px] font-bold text-slate-400 uppercase">Hadir</span><span className="text-xs font-black text-slate-700">{stats.hadir}</span></div>
-                                                        <div className="flex flex-col"><span className="text-[8px] font-bold text-orange-400 uppercase">Late</span><span className="text-xs font-black text-slate-700">{stats.late}</span></div>
-                                                        <div className="flex flex-col"><span className="text-[8px] font-bold text-yellow-400 uppercase">TK</span><span className="text-xs font-black text-slate-700">{stats.tk}</span></div>
-                                                        <div className="flex flex-col"><span className="text-[8px] font-bold text-red-400 uppercase">Alpa</span><span className="text-xs font-black text-slate-700">{stats.alpa}</span></div>
+                                                    <div className="flex justify-between text-[10px] font-bold text-slate-500">
+                                                        <span>H: {stats.hadir}</span>
+                                                        <span>L: {stats.late}</span>
+                                                        <span>TK: {stats.tk}</span>
+                                                        <span>A: {stats.alpa}</span>
                                                     </div>
                                                 </div>
                                             );
@@ -510,19 +396,17 @@
                     </main>
 
                     {!selectedUser && (
-                        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[85%] max-w-xs bg-slate-900/95 text-white px-6 py-4 rounded-[2rem] shadow-2xl flex items-center justify-between backdrop-blur-md border border-white/10 z-40 animate-in slide-in-from-bottom duration-500 no-print">
+                        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[85%] max-w-xs bg-slate-900/95 text-white px-6 py-4 rounded-[2rem] shadow-2xl flex items-center justify-between backdrop-blur-md z-40 no-print">
                             <div className="flex items-center gap-3">
                                 <div className="bg-blue-600 p-2 rounded-xl">
                                     {activeTab === 'monitoring' ? <Icons.LayoutDashboard className="w-4 h-4" /> : <Icons.BarChart3 className="w-4 h-4" />}
                                 </div>
                                 <div className="flex flex-col">
-                                    <span className="text-[9px] font-black uppercase text-blue-400 tracking-widest">{selectedMonth.name} • {activeTab}</span>
-                                    <span className="text-xs font-bold">{activeTab === 'monitoring' ? `${filteredData.length} Orang` : `Laporan Data`}</span>
+                                    <span className="text-[9px] font-black uppercase text-blue-400">{selectedMonth.name} • {activeTab}</span>
+                                    <span className="text-xs font-bold">{activeTab === 'monitoring' ? `${filteredData.length} Siswa` : `Selesai`}</span>
                                 </div>
                             </div>
-                            <button onClick={fetchData} className="p-2 hover:bg-white/10 rounded-full transition-colors">
-                                <Icons.Clock className="w-4 h-4 text-slate-400" />
-                            </button>
+                            <button onClick={fetchData} className="p-2 hover:bg-white/10 rounded-full transition-colors"><Icons.Clock className="w-4 h-4 text-slate-400" /></button>
                         </div>
                     )}
                 </div>
