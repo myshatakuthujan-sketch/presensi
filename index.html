@@ -340,7 +340,7 @@
     <!-- SCRIPT LOGIC -->
     <script>
         // --- 1. KONFIGURASI URL & VARIABEL GLOBAL ---
-        var urlGAS= 'https://script.google.com/macros/s/AKfycbyCgmHnY_pEMHgM-CndJZ3olNJXdkC8zitef5xUSHAb9RltEERHkak0FkHOuaUP_ZQA_A/exec';
+        var urlGAS= 'https://script.google.com/macros/s/AKfycbyf1oRQZ0uzz0W50bjRaj5W17XjGzNbRIE57-y1eeS0StXPKti5TrzD2Zxl2w44diL3Wg/exec';
         var urlTime = "https://script.google.com/macros/s/AKfycbyd5AcbAnWi2Yn0xhFRbyzS4qMq1VucMVgVvhul5XqS9HkAyJY/exec?tz=Asia/Jakarta";
         
         // --- PENGATURAN BYPASS / DEBUGGING ---
@@ -627,7 +627,7 @@
 
         function kirimSatuData(valStore, keyStore) {
             const params = { mode: 'tulispresensi', data: JSON.stringify([valStore]) };
-            fetch(urlGAS + '?' + new URLSearchParams(params))
+            fetch( + '?' + new URLSearchParams(params))
                 .then(res => res.json())
                 .then(res => {
                     if(res.status === 'success' || res.message === 'Semua data berhasil dikirim'){
@@ -780,7 +780,7 @@
             if(dataKirim.length === 0){ Swal.fire({ icon: 'info', title: 'Kosong', text: 'Tidak ada data pending' }); return; }
             const params = { mode: 'tulispresensi', data: JSON.stringify(dataKirim) };
             Swal.fire({ title: 'Sinkronisasi Manual...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-            fetch(urlGAS + '?' + new URLSearchParams(params))
+            fetch( + '?' + new URLSearchParams(params))
                 .then(res => res.json())
                 .then(res => {
                     Swal.close();
