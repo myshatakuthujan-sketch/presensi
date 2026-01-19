@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PRESENSI SMAPANMU (v9.0)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js"></script>
+    <style>
+        canvas {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: cover;
+            pointer-events: none;
+            z-index: 10;
+        }
+        .video-wrapper {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 4 / 3;
+            background: #000;
+            border-radius: 32px;
+            overflow: hidden;
+            box-shadow: 0 30px 60px -12px rgba(0,0,0,0.6);
+            border: 4px solid #fff;
+        }
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+        }
+        .step-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.1);
+            transition: all 0.3s ease;
+        }
+        .step-dot.active { background: #6366f1; transform: scale(1.5); box-shadow: 0 0 20px #6366f1; }
+        .step-dot.completed { background: #10b981; }
+        
+        @keyframes scanline {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(100%); }
+        }
+        .scanner-line {
+            position: absolute;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(to right, transparent, #6366f1, transparent);
+            box-shadow: 0 0 15px #6366f1;
+            animation: scanline 2s linear infinite;
+            z-index: 20;
+        }
+    </style>
+</head>
+<body class="bg-[#f0f4f8] min-h-screen font-sans">
+
+    <div class="max-w-6xl mx-auto px-4 py-8">
+        <header class="flex justify-between items-end mb-8">
+            <div>
+                <h1 class="text-3xl font-[1000] text-slate-900 tracking-tighter italic uppercase">PRESENSI <span class="text-indigo-600">SMAPANMU</span></h1>
+                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-[0.3em] mt-1 italic">Sistem Keamanan Biometrik Sekolah v9.0</p>
+            </div>
+            <div class="flex flex-col items-end gap-1">
+                <div class="bg-slate-900 text-indigo-400 px-4 py-1.5 rounded-full font-mono text-[10px] font-black shadow-lg">
+                    FPS: <span id="latencyDisplay">60</span> | ACC: 99.8%
+                </div>
+                <div id="blinkIndicator" class="text-[9px] font-black text-slate-400 uppercase tracking-widest text-right">MENCARI TARGET</div>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <div class="lg:col-span-7">
+                <div class="video-wrapper">
+                    <video id="video" autoplay muted playsinline></video>
+                    <div id="scannerLine" class="scanner-line hidden"></div>
+                    
+                    <div id="loader" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-950 z-50">
+                        <div class="w-16 h-16 border-[6px] border-indigo-600 border-t-transparent rounded-full animate-spin mb-6"></div>
+                        <p class="text-[11px] font-black text-white tracking-[0.5em] uppercase animate-pulse">Menyiapkan Mesin Biometrik...</p>
+                    </div>
+
+                    <!-- Enrollment Overlay -->
+                    <div id="regOverlay" class="absolute inset-0 bg-slate-950/98 backdrop-blur-2xl hidden z-40 flex flex-col items-center justify-center text-white p-8">
+                        <div class="text-center mb-8">
+                            <h3 id="regNameDisplay" class="text-4xl font-black text-indigo-500 mb-2 uppercase tracking-tighter italic">REGISTRASI</h3>
+                            <p id="regInstruction" class="text-[11px] font-bold tracking-[0.4em] text-white/50 uppercase">Tunggu Sebentar...</p>
+                        </div>
+                        <div class="flex gap-5 mb-12">
+                            <div class="step-dot" id="dot0"></div>
+                            <div class="step-dot" id="dot1"></div>
+                            <div class="step-dot" id="dot2"></div>
+                            <div class="step-dot" id="dot3"></div>
+                            <div class="step-dot" id="dot4"></div>
+                        </div>
+                        <div class="relative w-44 h-44 rounded-full border-4 border-indigo-500/10 flex items-center justify-center">
+                            <svg class="absolute inset-0 w-full h-full -rotate-90">
+                                <circle id="progressRing" cx="88" cy="88" r="80" stroke="currentColor" stroke-width="8" fill="transparent" class="text-indigo-600" stroke-dasharray="502" stroke-dashoffset="502" style="transition: stroke-dashoffset 0.3s ease;"></circle>
+                            </svg>
+                            <div class="text-3xl font-black text-white" id="regProgress">0%</div>
+                        </div>
+                    </div>
+
+                    <div class="absolute bottom-8 left-0 right-0 px-10 z-30">
+                        <div id="instructionBanner" class="bg-white/10 backdrop-blur-md py-5 rounded-[2rem] border border-white/20 text-center shadow-2xl">
+                            <p id="mainInstruction" class="text-white text-xs font-black uppercase tracking-[0.3em]">Posisikan Wajah Anda Di Tengah</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="lg:col-span-5 space-y-6">
+                <!-- Result Display -->
+                <div id="statusCard" class="bg-white p-8 rounded-[3rem] shadow-2xl border border-slate-100 transition-all duration-500">
+                    <div id="resultContent" class="flex items-center gap-6">
+                        <div id="statusIcon" class="w-24 h-24 bg-slate-50 rounded-[2.5rem] flex items-center justify-center text-slate-300 border-2 border-slate-50 transition-all">
+                            <svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.312-2.84.873-4.085M6.701 2.216A1.213 1.213 0 018 1c.609 0 1.115.454 1.258 1.056l.162.684a13.953 13.953 0 011.666-.08c.553 0 1.097.032 1.633.096l.161-.682A1.213 1.213 0 0114 1c.609 0 1.115.454 1.258 1.056l.088.373A8.078 8.078 0 0115 2.112"/></svg>
+                        </div>
+                        <div class="flex-1">
+                            <p id="statusLabel" class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Terminal Presensi</p>
+                            <h2 id="statusTitle" class="text-3xl font-[1000] text-slate-900 leading-none tracking-tighter mb-2">SIAP</h2>
+                            <p id="statusDesc" class="text-[11px] text-slate-400 font-bold uppercase tracking-tight">Menunggu verifikasi mata</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Registration -->
+                <div class="bg-slate-900 p-8 rounded-[3rem] shadow-xl">
+                    <h3 class="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-6 italic">Pendaftaran Biometrik</h3>
+                    <div class="space-y-4">
+                        <input type="text" id="nameInput" placeholder="NAMA LENGKAP GURU" class="w-full px-7 py-5 bg-white/5 border-2 border-transparent rounded-2xl focus:border-indigo-500 focus:bg-white/10 outline-none text-white text-[11px] font-black uppercase tracking-widest transition-all">
+                        <input type="text" id="jobInput" placeholder="JABATAN / BIDANG" class="w-full px-7 py-5 bg-white/5 border-2 border-transparent rounded-2xl focus:border-indigo-500 focus:bg-white/10 outline-none text-white text-[11px] font-black uppercase tracking-widest transition-all">
+                        <button id="startRegBtn" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-[1000] py-5 rounded-2xl transition-all active:scale-95 text-[11px] uppercase tracking-[0.2em] shadow-lg shadow-indigo-900/40">Daftarkan Wajah Baru</button>
+                    </div>
+                </div>
+
+                <!-- Database List -->
+                <div class="bg-white p-8 rounded-[3rem] shadow-sm border border-slate-100">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Data Terdaftar</h3>
+                        <span id="dbCount" class="bg-slate-100 text-slate-800 text-[10px] font-[1000] px-3 py-1 rounded-full italic">0 ENTRI</span>
+                    </div>
+                    <div id="teacherList" class="max-h-[140px] overflow-y-auto space-y-3 pr-2 scrollbar-hide">
+                        <p class="text-[10px] text-slate-300 font-bold text-center py-6 uppercase tracking-widest">Belum Ada Data</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const loader = document.getElementById('loader');
+        const regOverlay = document.getElementById('regOverlay');
+        const regInstruction = document.getElementById('regInstruction');
+        const regNameDisplay = document.getElementById('regNameDisplay');
+        const regProgress = document.getElementById('regProgress');
+        const progressRing = document.getElementById('progressRing');
+        const mainInstruction = document.getElementById('mainInstruction');
+        const statusCard = document.getElementById('statusCard');
+        const latencyDisplay = document.getElementById('latencyDisplay');
+        const teacherList = document.getElementById('teacherList');
+        const dbCount = document.getElementById('dbCount');
+        const blinkIndicator = document.getElementById('blinkIndicator');
+        const scannerLine = document.getElementById('scannerLine');
+
+        let faceMatcher = null;
+        let labeledDescriptors = [];
+        let isRegistering = false;
+        let currentStep = 0;
+        let tempDescriptors = [];
+        let isProcessing = false;
+
+        let eyeClosed = false;
+        let lastBlinkTs = 0;
+        let lastValidDescriptor = null;
+        const SUCCESS_HOLD_TIME = 3500; 
+
+        const STEPS = ["Hadap Depan Lurus", "Tengok Kanan (45°)", "Tengok Kiri (45°)", "Kepala Dongak", "Kepala Menunduk"];
+        const tinyOptions = new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.6 });
+
+        async function init() {
+            const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/';
+            await Promise.all([
+                faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+                faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+                faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+            ]);
+            loader.classList.add('hidden');
+            startVideo();
+        }
+
+        function startVideo() {
+            navigator.mediaDevices.getUserMedia({ 
+                video: { width: 640, height: 480, frameRate: { ideal: 60 } } 
+            }).then(stream => {
+                video.srcObject = stream;
+                scannerLine.classList.remove('hidden');
+            });
+        }
+
+        document.getElementById('startRegBtn').onclick = () => {
+            const name = document.getElementById('nameInput').value;
+            if (!name) return;
+            isRegistering = true;
+            currentStep = 0;
+            tempDescriptors = [];
+            regNameDisplay.textContent = name;
+            regOverlay.classList.remove('hidden');
+            capturePose();
+        };
+
+        async function capturePose() {
+            if (!isRegistering) return;
+            regInstruction.textContent = STEPS[currentStep];
+            
+            const progress = ((currentStep) / 5) * 100;
+            regProgress.textContent = `${Math.round(progress)}%`;
+            progressRing.style.strokeDashoffset = 502 - (502 * progress / 100);
+            
+            for(let i=0; i<5; i++) {
+                document.getElementById(`dot${i}`).className = `step-dot ${i < currentStep ? 'completed' : (i === currentStep ? 'active' : '')}`;
+            }
+
+            let poseSamples = [];
+            let attempts = 0;
+            
+            while(poseSamples.length < 10 && attempts < 30) {
+                const detect = await faceapi.detectSingleFace(video, tinyOptions).withFaceLandmarks().withFaceDescriptor();
+                if (detect) poseSamples.push(detect.descriptor);
+                attempts++;
+                await new Promise(r => setTimeout(r, 50));
+            }
+
+            if (poseSamples.length > 0) {
+                const avgDescriptor = new Float32Array(128);
+                for(let i=0; i<128; i++) {
+                    let sum = 0;
+                    poseSamples.forEach(s => sum += s[i]);
+                    avgDescriptor[i] = sum / poseSamples.length;
+                }
+                tempDescriptors.push(avgDescriptor);
+                currentStep++;
+                
+                if (currentStep < 5) {
+                    setTimeout(capturePose, 600);
+                } else {
+                    progressRing.style.strokeDashoffset = 0;
+                    regProgress.textContent = `100%`;
+                    setTimeout(finishRegistration, 500);
+                }
+            } else {
+                capturePose();
+            }
+        }
+
+        function finishRegistration() {
+            const name = document.getElementById('nameInput').value;
+            const job = document.getElementById('jobInput').value || "Guru";
+            labeledDescriptors.push(new faceapi.LabeledFaceDescriptors(`${name}|${job}`, tempDescriptors));
+            
+            faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.62);
+            
+            isRegistering = false;
+            regOverlay.classList.add('hidden');
+            updateList(name, job);
+            document.getElementById('nameInput').value = '';
+            document.getElementById('jobInput').value = '';
+            dbCount.textContent = `${labeledDescriptors.length} ENTRI`;
+        }
+
+        function updateList(name, job) {
+            if (labeledDescriptors.length === 1) teacherList.innerHTML = '';
+            const div = document.createElement('div');
+            div.className = "flex justify-between items-center p-5 bg-slate-50 rounded-3xl border border-slate-100 hover:bg-slate-100 transition-colors";
+            div.innerHTML = `<div><p class="text-[11px] font-[1000] text-slate-900 uppercase tracking-tighter">${name}</p><p class="text-[9px] font-bold text-indigo-600 uppercase tracking-widest">${job}</p></div><div class="w-2.5 h-2.5 bg-emerald-500 rounded-full"></div>`;
+            teacherList.prepend(div);
+        }
+
+        function getEAR(eye) {
+            const v1 = Math.hypot(eye[1].x - eye[5].x, eye[1].y - eye[5].y);
+            const v2 = Math.hypot(eye[2].x - eye[4].x, eye[2].y - eye[4].y);
+            const h = Math.hypot(eye[0].x - eye[3].x, eye[0].y - eye[3].y);
+            return (v1 + v2) / (2 * h);
+        }
+
+        video.addEventListener('play', () => {
+            const canvas = faceapi.createCanvasFromMedia(video);
+            document.querySelector('.video-wrapper').append(canvas);
+            const displaySize = { width: video.offsetWidth, height: video.offsetHeight };
+            faceapi.matchDimensions(canvas, displaySize);
+            const ctx = canvas.getContext('2d', { alpha: false });
+
+            async function renderLoop() {
+                if (isRegistering) {
+                    requestAnimationFrame(renderLoop);
+                    return;
+                }
+
+                const startTime = performance.now();
+                const detection = await faceapi.detectSingleFace(video, tinyOptions).withFaceLandmarks().withFaceDescriptor();
+                
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                if (detection) {
+                    const resized = faceapi.resizeResults(detection, displaySize);
+                    lastValidDescriptor = detection.descriptor;
+
+                    const leftEAR = getEAR(resized.landmarks.getLeftEye());
+                    const rightEAR = getEAR(resized.landmarks.getRightEye());
+                    const ear = (leftEAR + rightEAR) / 2;
+                    
+                    if (ear < 0.27) { 
+                        if (!eyeClosed) {
+                            eyeClosed = true;
+                            blinkIndicator.textContent = "KEDIPAN TERDETEKSI";
+                            blinkIndicator.className = "text-[9px] font-black text-indigo-500 uppercase tracking-widest text-right animate-pulse";
+                            processIdentity(lastValidDescriptor);
+                        }
+                    } else {
+                        eyeClosed = false;
+                        if (!isProcessing) {
+                            blinkIndicator.textContent = "MENUNGGU KEDIPAN";
+                            blinkIndicator.className = "text-[9px] font-black text-slate-400 uppercase tracking-widest text-right";
+                        }
+                    }
+
+                    if (startTime - lastBlinkTs > SUCCESS_HOLD_TIME) {
+                        if (!isProcessing) resetUI();
+                    }
+
+                    const box = resized.detection.box;
+                    ctx.strokeStyle = (startTime - lastBlinkTs < SUCCESS_HOLD_TIME) ? '#10b981' : '#6366f1';
+                    ctx.setLineDash((startTime - lastBlinkTs < SUCCESS_HOLD_TIME) ? [] : [5, 5]);
+                    ctx.lineWidth = 3;
+                    ctx.strokeRect(box.x, box.y, box.width, box.height);
+                } else {
+                    mainInstruction.textContent = "MENCARI BIOMETRIK WAJAH...";
+                }
+
+                latencyDisplay.textContent = Math.round(performance.now() - startTime);
+                requestAnimationFrame(renderLoop);
+            }
+
+            async function processIdentity(descriptor) {
+                if (!faceMatcher || !descriptor || isProcessing) return;
+                isProcessing = true;
+                
+                const match = faceMatcher.findBestMatch(descriptor);
+                lastBlinkTs = performance.now();
+
+                if (match.label !== 'unknown') {
+                    const [name, job] = match.label.split('|');
+                    showPresensiResult(name, job, true);
+                } else {
+                    showPresensiResult("TIDAK DIKENAL", "Verifikasi Gagal", false);
+                }
+                
+                setTimeout(() => { isProcessing = false; }, 2000);
+            }
+
+            function showPresensiResult(name, job, isSuccess) {
+                statusCard.className = `p-8 rounded-[3rem] shadow-2xl transition-all duration-300 ${isSuccess ? 'bg-emerald-500 border-transparent scale-105' : 'bg-rose-500 border-transparent scale-105'}`;
+                
+                const icon = isSuccess ? 
+                    '<svg width="48" height="48" fill="none" stroke="white" stroke-width="3" viewBox="0 0 24 24"><path d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>' :
+                    '<svg width="48" height="48" fill="none" stroke="white" stroke-width="3" viewBox="0 0 24 24"><path d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg>';
+
+                document.getElementById('statusIcon').className = "w-24 h-24 bg-white/20 rounded-[2.5rem] flex items-center justify-center text-white border-none";
+                document.getElementById('statusIcon').innerHTML = icon;
+                document.getElementById('statusLabel').textContent = isSuccess ? "Berhasil Absen" : "Gagal Absen";
+                document.getElementById('statusLabel').className = "text-[10px] font-black text-white/60 uppercase tracking-widest mb-1";
+                document.getElementById('statusTitle').textContent = name;
+                document.getElementById('statusTitle').className = "text-2xl font-[1000] text-white leading-tight tracking-tighter uppercase";
+                document.getElementById('statusDesc').textContent = job;
+                document.getElementById('statusDesc').className = "text-[11px] text-white/80 font-bold mt-1 uppercase italic";
+                
+                mainInstruction.textContent = isSuccess ? "PRESENSI BERHASIL DICATAT" : "COBA LAGI / PERIKSA DATA";
+            }
+
+            function resetUI() {
+                statusCard.className = "bg-white p-8 rounded-[3rem] shadow-2xl border border-slate-100 transition-all duration-500";
+                document.getElementById('statusIcon').className = "w-24 h-24 bg-slate-50 rounded-[2.5rem] flex items-center justify-center text-slate-300 border-2 border-slate-50";
+                document.getElementById('statusIcon').innerHTML = '<svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.312-2.84.873-4.085M6.701 2.216A1.213 1.213 0 018 1c.609 0 1.115.454 1.258 1.056l.162.684a13.953 13.953 0 011.666-.08c.553 0 1.097.032 1.633.096l.161-.682A1.213 1.213 0 0114 1c.609 0 1.115.454 1.258 1.056l.088.373A8.078 8.078 0 0115 2.112"/></svg>';
+                document.getElementById('statusLabel').textContent = "Terminal Presensi";
+                document.getElementById('statusLabel').className = "text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1";
+                document.getElementById('statusTitle').textContent = "SIAP";
+                document.getElementById('statusTitle').className = "text-3xl font-[1000] text-slate-900 leading-none tracking-tighter mb-2";
+                document.getElementById('statusDesc').textContent = "Menunggu verifikasi mata";
+                document.getElementById('statusDesc').className = "text-[11px] text-slate-400 font-bold uppercase tracking-tight";
+                mainInstruction.textContent = "KEDIPKAN MATA UNTUK VERIFIKASI";
+            }
+
+            renderLoop();
+        });
+
+        init();
+    </script>
+</body>
+</html>
