@@ -18,6 +18,34 @@
     <!-- Font -->
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
+    <!-- Firebase SDK Setup -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Konfigurasi Firebase otomatis dari environment
+        const firebaseConfig = JSON.parse(window.__firebase_config || '{}');
+        const appId = window.__app_id || 'default-app-id';
+
+        if (Object.keys(firebaseConfig).length > 0) {
+            const app = initializeApp(firebaseConfig);
+            window.auth = getAuth(app);
+            window.db = getFirestore(app);
+            window.signInAnonymously = signInAnonymously;
+            window.signInWithCustomToken = signInWithCustomToken;
+            window.doc = doc;
+            window.setDoc = setDoc;
+            window.onSnapshot = onSnapshot;
+            window.collection = collection;
+            window.appId = appId;
+            window.isFirebaseReady = true;
+        } else {
+            console.warn("Firebase config not found. Falling back to local storage only.");
+            window.isFirebaseReady = false;
+        }
+    </script>
+
     <style>
         body { font-family: 'Plus Jakarta Sans', sans-serif; }
         
@@ -63,6 +91,18 @@
         .status-l { color: #94a3b8; }
         
         .scrollbar-hide::-webkit-scrollbar { display: none; }
+        
+        .pulse-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background-color: #10b981;
+            box-shadow: 0 0 0 rgba(16, 185, 129, 0.4);
+            animation: pulse-green 2s infinite;
+        }
+        @keyframes pulse-green {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900">
@@ -89,7 +129,9 @@
             Lock: (p) => <Icon {...p} path={<><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></>} />,
             Unlock: (p) => <Icon {...p} path={<><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></>} />,
             Key: (p) => <Icon {...p} path={<><path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4.1a1 1 0 0 0-1.4 0l-2.1 2.1a1 1 0 0 0 0 1.4zm-5 7.5 4.3-4.3M4 20l2.7-2.7m0 0L8.5 19l1.4-1.4L8.5 16l1.5-1.5L8.6 13l1.4-1.4L13 13l4.3-4.3"/></>} />,
-            FileSpreadsheet: (p) => <Icon {...p} path={<><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14.5 2 14.5 8 20 8"/><path d="M8 13h2"/><path d="M8 17h2"/><path d="M14 13h2"/><path d="M14 17h2"/><path d="M8 15h8"/></>} />
+            FileSpreadsheet: (p) => <Icon {...p} path={<><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14.5 2 14.5 8 20 8"/><path d="M8 13h2"/><path d="M8 17h2"/><path d="M14 13h2"/><path d="M14 17h2"/><path d="M8 15h8"/></>} />,
+            Cloud: (p) => <Icon {...p} path={<><path d="M17.5 19c0-3.037-2.463-5.5-5.5-5.5S6.5 15.963 6.5 19"/><path d="M20.9 14.9C20.4 12.2 18.1 10 15.3 10c-.5 0-.9.1-1.3.2C13.5 7.6 10.9 6 8 6 3.6 6 0 9.6 0 14c0 .5.1 1 .2 1.4"/></>} />,
+            Clock: (p) => <Icon {...p} path={<><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>} />
         };
 
         const App = () => {
@@ -104,6 +146,13 @@
             const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
             const [searchQuery, setSearchQuery] = useState('');
             
+            // New State for Daily View
+            const [selectedDailyDate, setSelectedDailyDate] = useState(new Date().getDate());
+            
+            // Database State
+            const [dbReady, setDbReady] = useState(false);
+            const [syncStatus, setSyncStatus] = useState('offline'); // offline, syncing, online
+            
             // Auth States
             const [isAdmin, setIsAdmin] = useState(false);
             const [showAuthModal, setShowAuthModal] = useState(false);
@@ -112,17 +161,11 @@
             const [authCallback, setAuthCallback] = useState(null);
 
             const ADMIN_PASSWORD = 'dani';
-            const STORAGE_KEY_OVERRIDES = 'sman8_manual_overrides';
-            const STORAGE_KEY_HOLIDAYS = 'sman8_holiday_dates';
+            const SPREADSHEET_ID = '1YbCtOBnFaz8i56sfMmiFaouXUrDyNixHt951WyLNK0U';
 
-            const [manualOverrides, setManualOverrides] = useState(() => {
-                const saved = localStorage.getItem(STORAGE_KEY_OVERRIDES);
-                return saved ? JSON.parse(saved) : {};
-            }); 
-            const [holidayDates, setHolidayDates] = useState(() => {
-                const saved = localStorage.getItem(STORAGE_KEY_HOLIDAYS);
-                return saved ? JSON.parse(saved) : [];
-            });
+            // State for data that syncs to DB
+            const [manualOverrides, setManualOverrides] = useState({}); 
+            const [holidayDates, setHolidayDates] = useState([]);
 
             const MONTHS_CONFIG = [
                 { id: 0, name: 'Januari', gid: '821115705' }, { id: 1, name: 'Februari', gid: '6275607' },
@@ -134,15 +177,121 @@
             ];
 
             const [selectedMonth, setSelectedMonth] = useState(MONTHS_CONFIG[new Date().getMonth()]);
-            const SPREADSHEET_ID = '1YbCtOBnFaz8i56sfMmiFaouXUrDyNixHt951WyLNK0U';
 
+            // --- DATABASE CONNECTION SETUP ---
             useEffect(() => {
-                localStorage.setItem(STORAGE_KEY_OVERRIDES, JSON.stringify(manualOverrides));
-            }, [manualOverrides]);
+                const initDb = async () => {
+                    if (window.isFirebaseReady) {
+                        try {
+                            setSyncStatus('syncing');
+                            
+                            // Check for custom token provided by the environment
+                            const authToken = window.__initial_auth_token;
+                            if (authToken) {
+                                await window.signInWithCustomToken(window.auth, authToken);
+                            } else {
+                                await window.signInAnonymously(window.auth);
+                            }
+                            
+                            setDbReady(true);
+                            setSyncStatus('online');
+                        } catch (e) {
+                            console.error("Auth failed:", e);
+                            setSyncStatus('error');
+                        }
+                    } else {
+                        // Fallback to localStorage if Firebase not available
+                        const savedOverrides = localStorage.getItem('sman8_manual_overrides');
+                        if (savedOverrides) setManualOverrides(JSON.parse(savedOverrides));
+                        const savedHolidays = localStorage.getItem('sman8_holiday_dates');
+                        if (savedHolidays) setHolidayDates(JSON.parse(savedHolidays));
+                        
+                        const savedThreshold = localStorage.getItem('sman8_late_threshold');
+                        if (savedThreshold) setLateThreshold(savedThreshold);
+                    }
+                };
+                // Wait a tick for window vars to populate
+                setTimeout(initDb, 500);
+            }, []);
 
+            // --- REAL-TIME SYNC LISTENERS ---
             useEffect(() => {
-                localStorage.setItem(STORAGE_KEY_HOLIDAYS, JSON.stringify(holidayDates));
-            }, [holidayDates]);
+                if (!dbReady) return;
+
+                const collectionPath = ['artifacts', window.appId, 'public', 'data', 'sman8_presence'];
+                const overridesRef = window.doc(window.db, ...collectionPath, 'overrides');
+                const holidaysRef = window.doc(window.db, ...collectionPath, 'holidays');
+                const configRef = window.doc(window.db, ...collectionPath, 'config');
+
+                // Listen to Overrides
+                const unsubOverrides = window.onSnapshot(overridesRef, (docSnap) => {
+                    if (docSnap.exists()) {
+                        setManualOverrides(docSnap.data().data || {});
+                    }
+                }, (error) => console.error("Sync Error Ovr:", error));
+
+                // Listen to Holidays
+                const unsubHolidays = window.onSnapshot(holidaysRef, (docSnap) => {
+                    if (docSnap.exists()) {
+                        setHolidayDates(docSnap.data().dates || []);
+                    }
+                }, (error) => console.error("Sync Error Hol:", error));
+
+                // Listen to Config (Late Threshold & Year)
+                const unsubConfig = window.onSnapshot(configRef, (docSnap) => {
+                    if (docSnap.exists()) {
+                        const d = docSnap.data();
+                        if (d.lateThreshold) setLateThreshold(d.lateThreshold);
+                        if (d.selectedYear) setSelectedYear(d.selectedYear);
+                    }
+                }, (error) => console.error("Sync Error Config:", error));
+
+                return () => {
+                    unsubOverrides();
+                    unsubHolidays();
+                    unsubConfig();
+                };
+            }, [dbReady]);
+
+            // Helper to save data
+            const saveToDb = async (type, data) => {
+                if (!dbReady) {
+                    // Fallback local storage
+                    if (type === 'overrides') {
+                        localStorage.setItem('sman8_manual_overrides', JSON.stringify(data));
+                    } else if (type === 'holidays') {
+                        localStorage.setItem('sman8_holiday_dates', JSON.stringify(data));
+                    } else if (type === 'config') {
+                        if (data.lateThreshold) localStorage.setItem('sman8_late_threshold', data.lateThreshold);
+                    }
+                    return;
+                }
+
+                try {
+                    const collectionPath = ['artifacts', window.appId, 'public', 'data', 'sman8_presence'];
+                    if (type === 'overrides') {
+                        const ref = window.doc(window.db, ...collectionPath, 'overrides');
+                        await window.setDoc(ref, { data }, { merge: true });
+                    } else if (type === 'holidays') {
+                        const ref = window.doc(window.db, ...collectionPath, 'holidays');
+                        await window.setDoc(ref, { dates: data }, { merge: true });
+                    } else if (type === 'config') {
+                        const ref = window.doc(window.db, ...collectionPath, 'config');
+                        await window.setDoc(ref, data, { merge: true });
+                    }
+                } catch (e) {
+                    console.error("Save failed:", e);
+                }
+            };
+
+            const handleConfigChange = (key, value) => {
+                // Update local state immediately
+                if (key === 'lateThreshold') setLateThreshold(value);
+                if (key === 'selectedYear') setSelectedYear(value);
+                
+                // Sync to DB
+                saveToDb('config', { [key]: value });
+            };
 
             const daysInMonth = useMemo(() => {
                 return new Date(selectedYear, selectedMonth.id + 1, 0).getDate();
@@ -182,6 +331,7 @@
                         for (let day = 1; day <= daysInMonth; day++) {
                             const mIdx = 3 + (day - 1) * 2;
                             const masuk = columns[mIdx]?.trim() || '';
+                            const pulang = columns[mIdx + 1]?.trim() || ''; // Added Pulang Time
                             
                             let status = '-'; 
                             let colorClass = 'status-l';
@@ -215,7 +365,8 @@
                                 colorClass = 'status-a';
                             }
                             
-                            attendance.push({ day, status, colorClass });
+                            // Include masuk and pulang times in the data
+                            attendance.push({ day, status, colorClass, masuk: masuk || '-', pulang: pulang || '-' });
                         }
                         
                         return { id: index, nama, kelas, attendance, stats: { hadir: hadirCount, telat: terlambatCount } };
@@ -267,7 +418,26 @@
                 const key = `${nama}-${selectedMonth.id}-${day}`;
                 const cycle = { 'A': 'I', 'I': 'S', 'S': 'H', 'H': 'A', 'TL': 'I', 'L': 'L' };
                 if (currentStatus === 'L') return;
-                setManualOverrides(prev => ({ ...prev, [key]: cycle[currentStatus] || 'I' }));
+                
+                const newStatus = cycle[currentStatus] || 'I';
+                
+                // Optimistic Update
+                const newOverrides = { ...manualOverrides, [key]: newStatus };
+                setManualOverrides(newOverrides);
+                
+                // Sync to DB
+                saveToDb('overrides', newOverrides);
+            };
+            
+            const handleHolidayToggle = (holidayKey) => {
+                 let newHolidays;
+                 if (holidayDates.includes(holidayKey)) {
+                     newHolidays = holidayDates.filter(v => v !== holidayKey);
+                 } else {
+                     newHolidays = [...holidayDates, holidayKey];
+                 }
+                 setHolidayDates(newHolidays);
+                 saveToDb('holidays', newHolidays);
             };
 
             const filteredData = useMemo(() => {
@@ -277,6 +447,18 @@
                 }
                 return base;
             }, [data, groupedData, selectedClass, searchQuery]);
+            
+            // Data for Daily View
+            const dailyData = useMemo(() => {
+                return filteredData.map(user => {
+                    // attendance array index is 0-based, so day 1 is index 0
+                    const dayData = user.attendance[selectedDailyDate - 1];
+                    return {
+                        ...user,
+                        daily: dayData
+                    };
+                });
+            }, [filteredData, selectedDailyDate]);
 
             const globalStats = useMemo(() => {
                 if (filteredData.length === 0) return { avgHadir: 0, totalTelat: 0 };
@@ -382,13 +564,31 @@
                                 <div className="space-y-6">
                                     <div>
                                         <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Tahun Ajaran</label>
-                                        <select value={selectedYear} onChange={(e) => setSelectedYear(parseInt(e.target.value))} className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl py-3 px-4 font-bold outline-none focus:border-blue-500">
+                                        <select value={selectedYear} onChange={(e) => handleConfigChange('selectedYear', parseInt(e.target.value))} className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl py-3 px-4 font-bold outline-none focus:border-blue-500">
                                             {[2024, 2025, 2026, 2027, 2028].map(y => <option key={y} value={y}>{y}</option>)}
                                         </select>
                                     </div>
                                     <div>
                                         <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Batas Terlambat</label>
-                                        <input type="time" value={lateThreshold} onChange={(e) => setLateThreshold(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl py-3 px-4 font-bold outline-none focus:border-blue-500" />
+                                        <div className="flex flex-col gap-3">
+                                            <input 
+                                                type="time" 
+                                                value={lateThreshold} 
+                                                onChange={(e) => handleConfigChange('lateThreshold', e.target.value)} 
+                                                className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl py-3 px-4 font-bold outline-none focus:border-blue-500 text-lg" 
+                                            />
+                                            <div className="flex gap-2 justify-between">
+                                                {['07:00', '07:15', '07:30', '08:00'].map(t => (
+                                                    <button 
+                                                        key={t} 
+                                                        onClick={() => handleConfigChange('lateThreshold', t)} 
+                                                        className={`flex-1 py-2 rounded-lg text-[10px] font-bold border transition-all ${lateThreshold === t ? 'bg-blue-600 border-blue-600 text-white shadow-md' : 'bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100'}`}
+                                                    >
+                                                        {t}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
                                     </div>
                                     <div className="pt-4 border-t border-slate-100">
                                         <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Libur Massal ({selectedMonth.name})</label>
@@ -398,14 +598,19 @@
                                                 const holidayKey = `${selectedMonth.id}-${d}`;
                                                 const isH = holidayDates.includes(holidayKey);
                                                 return (
-                                                    <button key={d} onClick={() => {
-                                                        setHolidayDates(prev => prev.includes(holidayKey) ? prev.filter(v => v !== holidayKey) : [...prev, holidayKey]);
-                                                    }} className={`h-8 rounded-lg text-[9px] font-bold transition-all ${isH ? 'bg-rose-500 text-white shadow-md' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`}>{d}</button>
+                                                    <button key={d} onClick={() => handleHolidayToggle(holidayKey)} className={`h-8 rounded-lg text-[9px] font-bold transition-all ${isH ? 'bg-rose-500 text-white shadow-md' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`}>{d}</button>
                                                 );
                                             })}
                                         </div>
                                     </div>
-                                    <button onClick={() => { if(confirm("Hapus rekap manual?")) { setManualOverrides({}); setHolidayDates([]); } }} className="w-full py-3 rounded-xl border-2 border-rose-50 text-rose-500 font-bold text-[10px] uppercase tracking-widest hover:bg-rose-50 transition-colors">Reset Input Manual</button>
+                                    <button onClick={() => { 
+                                        if(confirm("Hapus rekap manual?")) { 
+                                            setManualOverrides({}); 
+                                            setHolidayDates([]); 
+                                            saveToDb('overrides', {});
+                                            saveToDb('holidays', []);
+                                        } 
+                                    }} className="w-full py-3 rounded-xl border-2 border-rose-50 text-rose-500 font-bold text-[10px] uppercase tracking-widest hover:bg-rose-50 transition-colors">Reset Input Manual</button>
                                     <button onClick={() => setShowSettings(false)} className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-sm shadow-lg shadow-blue-200">Selesai</button>
                                 </div>
                             </div>
@@ -417,7 +622,10 @@
                         <div className="max-w-7xl mx-auto">
                             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-6">
                                 <div>
-                                    <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">E-Presensi <span className="text-blue-600">SMAN 8</span></h1>
+                                    <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                                        E-Presensi <span className="text-blue-600">SMAN 8</span>
+                                        {dbReady && <div className="pulse-dot ml-2" title="Online Sync Active"></div>}
+                                    </h1>
                                     <div className="flex items-center gap-2 mt-1">
                                         <select value={selectedMonth.name} onChange={(e) => setSelectedMonth(MONTHS_CONFIG.find(m => m.name === e.target.value))} className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-lg outline-none cursor-pointer">
                                             {MONTHS_CONFIG.map(m => <option key={m.id} value={m.name}>{m.name}</option>)}
@@ -471,6 +679,7 @@
                             <div className="flex gap-3">
                                 <button onClick={() => setActiveTab('monitoring')} className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${activeTab === 'monitoring' ? 'bg-slate-900 text-white shadow-xl' : 'bg-white text-slate-400 shadow-sm'}`}><Icons.Calendar className="w-4 h-4" /> Kartu</button>
                                 <button onClick={() => setActiveTab('laporan')} className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${activeTab === 'laporan' ? 'bg-slate-900 text-white shadow-xl' : 'bg-white text-slate-400 shadow-sm'}`}><Icons.FileText className="w-4 h-4" /> Tabel</button>
+                                <button onClick={() => setActiveTab('harian')} className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${activeTab === 'harian' ? 'bg-slate-900 text-white shadow-xl' : 'bg-white text-slate-400 shadow-sm'}`}><Icons.Clock className="w-4 h-4" /> Harian</button>
                             </div>
                             <div className="flex gap-3">
                                 <button onClick={() => runAsAdmin(() => setIsLocked(!isLocked))} className={`flex items-center gap-3 px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] transition-all border-2 ${isLocked ? 'bg-white border-slate-100 text-slate-400' : 'bg-amber-50 border-amber-200 text-amber-600 shadow-lg shadow-amber-100'}`}>
@@ -507,7 +716,7 @@
                                     </div>
                                 ))}
                             </div>
-                        ) : (
+                        ) : activeTab === 'laporan' ? (
                             <div className="fade-in">
                                 <div className="bg-white rounded-[2.5rem] p-4 md:p-8 shadow-sm border border-slate-100 overflow-hidden relative">
                                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-8 gap-4">
@@ -570,13 +779,79 @@
                                     </div>
                                 </div>
                             </div>
+                        ) : (
+                            <div className="fade-in">
+                                <div className="bg-white rounded-[2.5rem] p-4 md:p-8 shadow-sm border border-slate-100 overflow-hidden relative">
+                                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-8 gap-4">
+                                        <div>
+                                            <h2 className="text-xl font-black text-slate-900 tracking-tight">Cek Data Harian</h2>
+                                            <div className="flex items-center gap-2 mt-2">
+                                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Tanggal:</p>
+                                                 <select 
+                                                    value={selectedDailyDate} 
+                                                    onChange={(e) => setSelectedDailyDate(parseInt(e.target.value))}
+                                                    className="bg-blue-50 text-blue-600 font-bold text-sm px-3 py-1 rounded-lg outline-none cursor-pointer"
+                                                 >
+                                                    {[...Array(daysInMonth)].map((_, i) => (
+                                                        <option key={i+1} value={i+1}>{i+1} {selectedMonth.name} {selectedYear}</option>
+                                                    ))}
+                                                 </select>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="table-container border border-slate-100 rounded-3xl overflow-x-auto">
+                                        <table className="w-full text-xs border-collapse">
+                                            <thead>
+                                                <tr className="bg-slate-50">
+                                                    <th className="px-6 py-4 text-left font-black text-slate-400 uppercase tracking-widest w-10">No</th>
+                                                    <th className="px-6 py-4 text-left font-black text-slate-400 uppercase tracking-widest">Nama Siswa</th>
+                                                    <th className="px-6 py-4 text-left font-black text-slate-400 uppercase tracking-widest">Kelas</th>
+                                                    <th className="px-6 py-4 text-center font-black text-slate-400 uppercase tracking-widest">Jam Masuk</th>
+                                                    <th className="px-6 py-4 text-center font-black text-slate-400 uppercase tracking-widest">Jam Pulang</th>
+                                                    <th className="px-6 py-4 text-center font-black text-slate-400 uppercase tracking-widest">Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-100">
+                                                {dailyData.map((user, idx) => (
+                                                    <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
+                                                        <td className="px-6 py-4 font-bold text-slate-400 text-center">{idx + 1}</td>
+                                                        <td className="px-6 py-4 font-bold text-slate-700">{user.nama}</td>
+                                                        <td className="px-6 py-4 font-bold text-slate-500">{user.kelas}</td>
+                                                        <td className="px-6 py-4 font-bold text-center text-slate-600">{user.daily?.masuk || '-'}</td>
+                                                        <td className="px-6 py-4 font-bold text-center text-slate-600">{user.daily?.pulang || '-'}</td>
+                                                        <td className="px-6 py-4 text-center">
+                                                            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                                                                user.daily?.status === 'H' ? 'bg-emerald-100 text-emerald-600' :
+                                                                user.daily?.status === 'TL' ? 'bg-amber-100 text-amber-600' :
+                                                                user.daily?.status === 'A' ? 'bg-rose-100 text-rose-600' :
+                                                                user.daily?.status === 'S' ? 'bg-indigo-100 text-indigo-600' :
+                                                                user.daily?.status === 'I' ? 'bg-blue-100 text-blue-600' :
+                                                                'bg-slate-100 text-slate-400'
+                                                            }`}>
+                                                                {user.daily?.status === 'H' ? 'Hadir' :
+                                                                 user.daily?.status === 'TL' ? 'Terlambat' :
+                                                                 user.daily?.status === 'A' ? 'Alpha' :
+                                                                 user.daily?.status === 'S' ? 'Sakit' :
+                                                                 user.daily?.status === 'I' ? 'Izin' : 
+                                                                 user.daily?.status === 'L' ? 'Libur' : '-'}
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
                         )}
                     </main>
 
                     {/* BOTTOM NAVIGATION */}
-                    <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-[280px] bg-slate-900/95 backdrop-blur-md rounded-[2.5rem] p-2 flex items-center justify-around shadow-2xl z-50 no-print border border-white/10">
+                    <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-[340px] bg-slate-900/95 backdrop-blur-md rounded-[2.5rem] p-2 flex items-center justify-around shadow-2xl z-50 no-print border border-white/10">
                         <button onClick={() => setActiveTab('monitoring')} className={`p-4 rounded-[2rem] transition-all duration-300 ${activeTab === 'monitoring' ? 'bg-white text-slate-900 shadow-lg' : 'text-slate-500 hover:text-white'}`}><Icons.Calendar className="w-5 h-5" /></button>
                         <button onClick={() => setActiveTab('laporan')} className={`p-4 rounded-[2rem] transition-all duration-300 ${activeTab === 'laporan' ? 'bg-white text-slate-900 shadow-lg' : 'text-slate-500 hover:text-white'}`}><Icons.FileText className="w-5 h-5" /></button>
+                        <button onClick={() => setActiveTab('harian')} className={`p-4 rounded-[2rem] transition-all duration-300 ${activeTab === 'harian' ? 'bg-white text-slate-900 shadow-lg' : 'text-slate-500 hover:text-white'}`}><Icons.Clock className="w-5 h-5" /></button>
                         <div className="w-[1px] h-6 bg-slate-700/50"></div>
                         <button onClick={() => runAsAdmin(() => setShowSettings(true))} className={`p-4 transition-all duration-300 ${isAdmin ? 'text-blue-400' : 'text-slate-500 hover:text-white'}`}>
                             <Icons.Settings className="w-5 h-5" />
