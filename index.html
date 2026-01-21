@@ -627,7 +627,8 @@
 
         function kirimSatuData(valStore, keyStore) {
             const params = { mode: 'tulispresensi', data: JSON.stringify([valStore]) };
-            fetch( + '?' + new URLSearchParams(params))
+            // FIX: Menambahkan urlGAS yang sebelumnya hilang
+            fetch(urlGAS + '?' + new URLSearchParams(params))
                 .then(res => res.json())
                 .then(res => {
                     if(res.status === 'success' || res.message === 'Semua data berhasil dikirim'){
@@ -780,7 +781,9 @@
             if(dataKirim.length === 0){ Swal.fire({ icon: 'info', title: 'Kosong', text: 'Tidak ada data pending' }); return; }
             const params = { mode: 'tulispresensi', data: JSON.stringify(dataKirim) };
             Swal.fire({ title: 'Sinkronisasi Manual...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-            fetch( + '?' + new URLSearchParams(params))
+            
+            // FIX: Menambahkan urlGAS yang sebelumnya hilang
+            fetch(urlGAS + '?' + new URLSearchParams(params))
                 .then(res => res.json())
                 .then(res => {
                     Swal.close();
