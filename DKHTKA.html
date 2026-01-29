@@ -15,43 +15,37 @@
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- SheetJS for Excel Reading (Library Baru) -->
+    <!-- SheetJS for Excel Reading -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
     
-    <!-- Font Awesome for Icons -->
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, getDocs, writeBatch, query, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Expose Firebase to window for React
+        window.firebaseModules = { 
+            initializeApp, getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken,
+            getFirestore, collection, doc, setDoc, getDocs, writeBatch, query, onSnapshot, deleteDoc 
+        };
+    </script>
+    
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
 
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f3f4f6;
-        }
-        .bg-pattern {
-            background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
-        }
-        .print-area {
-            display: none;
-        }
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        .bg-pattern { background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E"); }
+        .print-area { display: none; }
         @media print {
-            body * {
-                visibility: hidden;
-            }
-            .print-area, .print-area * {
-                visibility: visible;
-                display: block;
-            }
-            .print-area {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100%;
-            }
-            .no-print {
-                display: none !important;
-            }
+            body * { visibility: hidden; }
+            .print-area, .print-area * { visibility: visible; display: block; }
+            .print-area { position: absolute; left: 0; top: 0; width: 100%; }
+            .no-print { display: none !important; }
         }
     </style>
 </head>
@@ -61,411 +55,164 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        // Data Sampel Awal (Diambil dari snippet file Excel Anda)
-        // Data ini akan muncul otomatis tanpa perlu upload
-        const initialData = [
-            {
-                id: 1,
-                no_urut: "1",
-                nomor_peserta: "T3-25-26-07-0008-0001-8",
-                nisn: "0072229971",
-                nama: "ANGGI OCTAVIANI",
-                ttl: "Mekar jaya, 19 Oktober 2007",
-                nilai: {
-                    indo: { skor: "43.04", predikat: "Memadai" },
-                    mtk: { skor: "39.04", predikat: "Memadai" },
-                    inggris: { skor: "5.00", predikat: "Kurang" }
-                },
-                pilihan1: { mapel: "Geografi", skor: "70.16", predikat: "Memadai" },
-                pilihan2: { mapel: "Sejarah", skor: "53.39", predikat: "Kurang" }
-            },
-            {
-                id: 2,
-                no_urut: "2",
-                nomor_peserta: "T3-25-26-07-0008-0002-7",
-                nisn: "0066192047",
-                nama: "SITI NURSAADAH",
-                ttl: "Bukit Haraapan, 9 Desember 2006",
-                nilai: {
-                    indo: { skor: "43.13", predikat: "Memadai" },
-                    mtk: { skor: "39.41", predikat: "Memadai" },
-                    inggris: { skor: "5.00", predikat: "Kurang" }
-                },
-                pilihan1: { mapel: "Biologi", skor: "42.89", predikat: "Kurang" },
-                pilihan2: { mapel: "Geografi", skor: "67.02", predikat: "Kurang" }
-            },
-            {
-                id: 3,
-                no_urut: "3",
-                nomor_peserta: "T3-25-26-07-0008-0003-6",
-                nisn: "0078686873",
-                nama: "NOVA SANTIKA",
-                ttl: "Bukit Harapan, 4 November 2007",
-                nilai: {
-                    indo: { skor: "58.51", predikat: "Baik" },
-                    mtk: { skor: "35.62", predikat: "Memadai" },
-                    inggris: { skor: "33.51", predikat: "Baik" }
-                },
-                pilihan1: { mapel: "Sosiologi", skor: "53.06", predikat: "Memadai" },
-                pilihan2: { mapel: "Geografi", skor: "65.57", predikat: "Kurang" }
-            },
-            {
-                id: 137,
-                no_urut: "137",
-                nomor_peserta: "T3-25-26-07-0008-0137-8",
-                nisn: "0076824929",
-                nama: "OKTA RAMADHANI",
-                ttl: "TAPAN, 7 Oktober 2007",
-                nilai: {
-                    indo: { skor: "43.46", predikat: "Memadai" },
-                    mtk: { skor: "35.39", predikat: "Memadai" },
-                    inggris: { skor: "26.89", predikat: "Memadai" }
-                },
-                pilihan1: { mapel: "Biologi", skor: "39.03", predikat: "Kurang" },
-                pilihan2: { mapel: "PPKN", skor: "47.63", predikat: "Kurang" }
-            },
-            {
-                id: 138,
-                no_urut: "138",
-                nomor_peserta: "T3-25-26-07-0008-0138-7",
-                nisn: "0076622146",
-                nama: "ZEFANYA BERLAN F.S.",
-                ttl: "BENGKULU, 6 September 2007",
-                nilai: {
-                    indo: { skor: "72.54", predikat: "Istimewa" },
-                    mtk: { skor: "39.77", predikat: "Memadai" },
-                    inggris: { skor: "22.28", predikat: "Memadai" }
-                },
-                pilihan1: { mapel: "Matematika TL", skor: "33.80", predikat: "Memadai" },
-                pilihan2: { mapel: "B. Inggris TL", skor: "41.89", predikat: "Kurang" }
-            },
-            {
-                id: 139,
-                no_urut: "139",
-                nomor_peserta: "T3-25-26-07-0008-0139-6",
-                nisn: "0075361418",
-                nama: "INDAH AMANDA SARI",
-                ttl: "Bengkulu Utara, 6 Mei 2007",
-                nilai: {
-                    indo: { skor: "48.80", predikat: "Baik" },
-                    mtk: { skor: "50.39", predikat: "Baik" },
-                    inggris: { skor: "25.85", predikat: "Memadai" }
-                },
-                pilihan1: { mapel: "B. Indonesia TL", skor: "73.62", predikat: "Baik" },
-                pilihan2: { mapel: "Biologi", skor: "52.34", predikat: "Memadai" }
-            }
-        ];
-
-        // Komponen Kartu Nilai (Score Card)
-        const ScoreCard = ({ label, score, predikat, colorClass }) => (
-            <div className={`p-4 rounded-lg border ${colorClass} bg-opacity-10 flex flex-col items-center justify-center text-center h-full`}>
-                <span className="text-xs font-semibold uppercase tracking-wider text-gray-600 mb-1">{label}</span>
-                <span className="text-2xl font-bold text-gray-800">{score}</span>
-                <span className={`text-xs font-medium px-2 py-0.5 rounded-full mt-1 ${
-                    predikat && predikat.includes('Istimewa') ? 'bg-purple-100 text-purple-700' :
-                    predikat && predikat.includes('Baik') ? 'bg-green-100 text-green-700' :
-                    predikat && predikat.includes('Memadai') ? 'bg-blue-100 text-blue-700' :
-                    'bg-red-100 text-red-700'
-                }`}>
-                    {predikat || "-"}
-                </span>
-            </div>
-        );
-
-        // Komponen Modal Detail Siswa
-        const StudentDetail = ({ student, onClose }) => {
-            if (!student) return null;
-
-            const handlePrint = () => {
-                window.print();
-            };
-
-            return (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm overflow-y-auto no-print">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl overflow-hidden relative animate-fade-in">
-                        
-                        {/* Header Modal */}
-                        <div className="bg-blue-900 text-white p-6 flex justify-between items-start bg-pattern">
-                            <div>
-                                <h2 className="text-2xl font-bold">Hasil Tes Kemampuan Akademik</h2>
-                                <p className="text-blue-200 text-sm">SMA Negeri 8 Mukomuko - Tahun 2025</p>
-                            </div>
-                            <button onClick={onClose} className="text-white hover:text-gray-200 transition">
-                                <i className="fas fa-times text-xl"></i>
-                            </button>
-                        </div>
-
-                        {/* Body Modal */}
-                        <div className="p-6 md:p-8">
-                            {/* Identitas */}
-                            <div className="flex flex-col md:flex-row justify-between mb-8 border-b pb-6">
-                                <div>
-                                    <h3 className="text-3xl font-bold text-gray-800 mb-1">{student.nama}</h3>
-                                    <p className="text-gray-500"><i className="fas fa-id-card mr-2"></i>NISN: {student.nisn}</p>
-                                    <p className="text-gray-500"><i className="fas fa-calendar-alt mr-2"></i>{student.ttl}</p>
-                                </div>
-                                <div className="mt-4 md:mt-0 text-left md:text-right">
-                                    <div className="bg-gray-100 px-4 py-2 rounded-lg inline-block">
-                                        <span className="block text-xs text-gray-500 uppercase">Nomor Peserta</span>
-                                        <span className="font-mono font-bold text-lg">{student.nomor_peserta}</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Nilai Mata Pelajaran Dasar */}
-                            <h4 className="font-bold text-gray-700 mb-4 border-l-4 border-blue-600 pl-3">Mata Pelajaran Umum</h4>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                                <ScoreCard 
-                                    label="Bahasa Indonesia" 
-                                    score={student.nilai.indo.skor} 
-                                    predikat={student.nilai.indo.predikat}
-                                    colorClass="border-blue-200 bg-blue-50"
-                                />
-                                <ScoreCard 
-                                    label="Matematika" 
-                                    score={student.nilai.mtk.skor} 
-                                    predikat={student.nilai.mtk.predikat}
-                                    colorClass="border-green-200 bg-green-50"
-                                />
-                                <ScoreCard 
-                                    label="Bahasa Inggris" 
-                                    score={student.nilai.inggris.skor} 
-                                    predikat={student.nilai.inggris.predikat}
-                                    colorClass="border-yellow-200 bg-yellow-50"
-                                />
-                            </div>
-
-                            {/* Nilai Mata Pelajaran Pilihan */}
-                            <h4 className="font-bold text-gray-700 mb-4 border-l-4 border-purple-600 pl-3">Mata Pelajaran Pilihan</h4>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-                                <div className="p-5 border border-purple-100 bg-purple-50 rounded-lg">
-                                    <div className="flex justify-between items-center mb-2">
-                                        <span className="text-xs font-bold uppercase text-purple-600">Pilihan 1</span>
-                                        <span className={`text-xs px-2 py-0.5 rounded-full ${
-                                            student.pilihan1.predikat && student.pilihan1.predikat.includes('Baik') ? 'bg-green-100 text-green-700' : 
-                                            student.pilihan1.predikat && student.pilihan1.predikat.includes('Memadai') ? 'bg-blue-100 text-blue-700' :
-                                            'bg-red-100 text-red-700'
-                                        }`}>{student.pilihan1.predikat || "-"}</span>
-                                    </div>
-                                    <h5 className="font-bold text-lg text-gray-800 mb-1">{student.pilihan1.mapel}</h5>
-                                    <div className="text-3xl font-bold text-gray-700">{student.pilihan1.skor}</div>
-                                </div>
-
-                                <div className="p-5 border border-purple-100 bg-purple-50 rounded-lg">
-                                    <div className="flex justify-between items-center mb-2">
-                                        <span className="text-xs font-bold uppercase text-purple-600">Pilihan 2</span>
-                                        <span className={`text-xs px-2 py-0.5 rounded-full ${
-                                            student.pilihan2.predikat && student.pilihan2.predikat.includes('Baik') ? 'bg-green-100 text-green-700' : 
-                                            student.pilihan2.predikat && student.pilihan2.predikat.includes('Memadai') ? 'bg-blue-100 text-blue-700' :
-                                            'bg-red-100 text-red-700'
-                                        }`}>{student.pilihan2.predikat || "-"}</span>
-                                    </div>
-                                    <h5 className="font-bold text-lg text-gray-800 mb-1">{student.pilihan2.mapel}</h5>
-                                    <div className="text-3xl font-bold text-gray-700">{student.pilihan2.skor}</div>
-                                </div>
-                            </div>
-
-                            {/* Disclaimer Footer */}
-                            <div className="bg-gray-50 p-4 rounded text-xs text-gray-500">
-                                <p><strong>Catatan:</strong> Dokumen ini adalah hasil digital dari Daftar Kolektif Hasil Tes Kemampuan Akademik (DKHTKA) Tahun 2025.</p>
-                            </div>
-                        </div>
-
-                        {/* Footer Actions */}
-                        <div className="bg-gray-100 p-4 flex justify-end space-x-3">
-                            <button onClick={onClose} className="px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-200 transition font-medium">
-                                Tutup
-                            </button>
-                            <button onClick={handlePrint} className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition font-medium shadow-lg flex items-center">
-                                <i className="fas fa-print mr-2"></i> Cetak Hasil
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
-        const PrintComponent = ({ student }) => {
-            if (!student) return null;
-            return (
-                <div className="print-area p-8 max-w-4xl mx-auto border bg-white">
-                    <div className="text-center border-b-2 border-black pb-4 mb-6">
-                        <h2 className="text-xl font-bold">KEMENTERIAN PENDIDIKAN DASAR DAN MENENGAH</h2>
-                        <h3 className="text-lg font-bold">DINAS PENDIDIKAN DAN KEBUDAYAAN PROVINSI BENGKULU</h3>
-                        <h4 className="text-md">SMA NEGERI 8 MUKOMUKO</h4>
-                        <p className="text-sm mt-2 font-bold">HASIL TES KEMAMPUAN AKADEMIK (DKHTKA) TAHUN 2025</p>
-                    </div>
-
-                    <table className="w-full mb-6">
-                        <tbody>
-                            <tr><td className="w-40 font-bold">Nama Peserta</td><td>: {student.nama}</td></tr>
-                            <tr><td className="font-bold">Nomor Peserta</td><td>: {student.nomor_peserta}</td></tr>
-                            <tr><td className="font-bold">NISN</td><td>: {student.nisn}</td></tr>
-                            <tr><td className="font-bold">Tempat/Tgl Lahir</td><td>: {student.ttl}</td></tr>
-                        </tbody>
-                    </table>
-
-                    <h3 className="font-bold mb-2 mt-4 text-lg">A. Mata Pelajaran Umum</h3>
-                    <table className="w-full border-collapse border border-gray-400 mb-6 text-sm">
-                        <thead>
-                            <tr className="bg-gray-200">
-                                <th className="border border-gray-400 p-2 text-left">Mata Pelajaran</th>
-                                <th className="border border-gray-400 p-2 text-center">Nilai</th>
-                                <th className="border border-gray-400 p-2 text-center">Keterangan</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td className="border border-gray-400 p-2">Bahasa Indonesia</td>
-                                <td className="border border-gray-400 p-2 text-center">{student.nilai.indo.skor}</td>
-                                <td className="border border-gray-400 p-2 text-center">{student.nilai.indo.predikat}</td>
-                            </tr>
-                            <tr>
-                                <td className="border border-gray-400 p-2">Matematika</td>
-                                <td className="border border-gray-400 p-2 text-center">{student.nilai.mtk.skor}</td>
-                                <td className="border border-gray-400 p-2 text-center">{student.nilai.mtk.predikat}</td>
-                            </tr>
-                            <tr>
-                                <td className="border border-gray-400 p-2">Bahasa Inggris</td>
-                                <td className="border border-gray-400 p-2 text-center">{student.nilai.inggris.skor}</td>
-                                <td className="border border-gray-400 p-2 text-center">{student.nilai.inggris.predikat}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-
-                    <h3 className="font-bold mb-2 mt-4 text-lg">B. Mata Pelajaran Pilihan</h3>
-                    <table className="w-full border-collapse border border-gray-400 mb-6 text-sm">
-                        <thead>
-                            <tr className="bg-gray-200">
-                                <th className="border border-gray-400 p-2 text-center w-10">No</th>
-                                <th className="border border-gray-400 p-2 text-left">Mata Pelajaran</th>
-                                <th className="border border-gray-400 p-2 text-center">Nilai</th>
-                                <th className="border border-gray-400 p-2 text-center">Keterangan</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td className="border border-gray-400 p-2 text-center">1</td>
-                                <td className="border border-gray-400 p-2">{student.pilihan1.mapel}</td>
-                                <td className="border border-gray-400 p-2 text-center">{student.pilihan1.skor}</td>
-                                <td className="border border-gray-400 p-2 text-center">{student.pilihan1.predikat}</td>
-                            </tr>
-                            <tr>
-                                <td className="border border-gray-400 p-2 text-center">2</td>
-                                <td className="border border-gray-400 p-2">{student.pilihan2.mapel}</td>
-                                <td className="border border-gray-400 p-2 text-center">{student.pilihan2.skor}</td>
-                                <td className="border border-gray-400 p-2 text-center">{student.pilihan2.predikat}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-
-                    <div className="mt-12 flex justify-end">
-                        <div className="text-center">
-                            <p>Mukomuko, 2025</p>
-                            <p>Kepala Sekolah,</p>
-                            <br/><br/><br/>
-                            <p className="font-bold underline">SARWENTY SARAGIH, S.Pd</p>
-                            <p>NIP. 197403232005022001</p>
-                        </div>
-                    </div>
-                </div>
-            )
-        }
-
         const App = () => {
-            const [data, setData] = useState(initialData);
+            const [data, setData] = useState([]);
             const [searchTerm, setSearchTerm] = useState("");
             const [results, setResults] = useState([]);
             const [hasSearched, setHasSearched] = useState(false);
             const [selectedStudent, setSelectedStudent] = useState(null);
-            const [isDataLoaded, setIsDataLoaded] = useState(false);
+            const [loading, setLoading] = useState(true);
+            const [isUploading, setIsUploading] = useState(false);
+            const [user, setUser] = useState(null);
             const fileInputRef = useRef(null);
+            const [isAdminMode, setIsAdminMode] = useState(false);
+
+            // Firebase Configuration & Init
+            const [fb, setFb] = useState(null);
+
+            useEffect(() => {
+                const initFirebase = async () => {
+                    // Wait for modules to load
+                    while (!window.firebaseModules) {
+                        await new Promise(resolve => setTimeout(resolve, 50));
+                    }
+                    const { initializeApp, getAuth, signInAnonymously, onAuthStateChanged, getFirestore, signInWithCustomToken } = window.firebaseModules;
+                    
+                    const firebaseConfig = JSON.parse(__firebase_config);
+                    const app = initializeApp(firebaseConfig);
+                    const auth = getAuth(app);
+                    const db = getFirestore(app);
+                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+                    setFb({ auth, db, appId, modules: window.firebaseModules });
+
+                    // Auth Logic
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+
+                    onAuthStateChanged(auth, (u) => setUser(u));
+                };
+                initFirebase();
+            }, []);
+
+            // Fetch Data Realtime
+            useEffect(() => {
+                if (!user || !fb) return;
+                
+                const { collection, onSnapshot, query } = fb.modules;
+                // RULE 1 & 2: Simple query, correct path
+                const q = query(collection(fb.db, 'artifacts', fb.appId, 'public', 'data', 'dkhtka_scores'));
+
+                const unsubscribe = onSnapshot(q, (snapshot) => {
+                    const fetchedData = [];
+                    snapshot.forEach(doc => {
+                        fetchedData.push(doc.data());
+                    });
+                    // Sort client-side to avoid complex index requirements
+                    fetchedData.sort((a, b) => parseInt(a.no_urut) - parseInt(b.no_urut));
+                    
+                    setData(fetchedData);
+                    setLoading(false);
+                }, (error) => {
+                    console.error("Error fetching data:", error);
+                    setLoading(false);
+                });
+
+                return () => unsubscribe();
+            }, [user, fb]);
 
             const parseScore = (raw) => {
                 if (!raw) return { skor: "0", predikat: "-" };
-                // Handle format string dari Excel yang mungkin mengandung newline atau kurung
-                // Contoh input: "43.04\n(Memadai)" atau "43.04 (Memadai)"
                 const cleaned = String(raw).replace(/[()]/g, '').replace(/\n/g, ' ').trim();
                 const parts = cleaned.split(' ');
-                
-                // Ambil bagian angka pertama
                 const skor = parts[0] || "0";
-                // Ambil sisa kata sebagai predikat
                 const predikat = parts.slice(1).join(' ') || "-";
-                
                 return { skor, predikat };
             };
 
-            const handleFileUpload = (e) => {
+            const handleFileUpload = async (e) => {
                 const file = e.target.files[0];
-                if (!file) return;
+                if (!file || !fb) return;
 
+                setIsUploading(true);
                 const reader = new FileReader();
-                reader.onload = (evt) => {
+
+                reader.onload = async (evt) => {
                     try {
                         const bstr = evt.target.result;
                         const wb = XLSX.read(bstr, { type: 'binary' });
-                        // Ambil sheet pertama
                         const wsname = wb.SheetNames[0];
                         const ws = wb.Sheets[wsname];
-                        // Convert ke array JSON (array of arrays untuk menghandle struktur kompleks)
                         const rawData = XLSX.utils.sheet_to_json(ws, { header: 1 });
                         
                         const parsedStudents = [];
                         
-                        // Loop mulai dari baris data (asumsi baris 3, index 2, berdasarkan struktur file)
                         rawData.forEach((row, index) => {
-                            // Validasi sederhana: pastikan kolom nomor urut ada isinya
                             if (!row[1] || isNaN(parseInt(row[1]))) return;
-
-                            // Mapping kolom Excel ke Data Aplikasi
-                            // [1] No Urut, [2] No Peserta+NISN, [4] Nama, [5] TTL
-                            // [6] Indo, [7] MTK, [8] Ing
-                            // [9] Pil1 Mapel, [11] Pil1 Nilai
-                            // [12] Pil2 Mapel, [13] Pil2 Nilai
-
                             const idString = row[2] || "";
                             const idParts = String(idString).trim().split(' ');
                             const nomor_peserta = idParts[0] || "-";
                             const nisn = idParts[1] || "-";
 
-                            const indo = parseScore(row[6]);
-                            const mtk = parseScore(row[7]);
-                            const inggris = parseScore(row[8]);
-                            
-                            const pil1_mapel = row[9] || "Pilihan 1";
-                            const pil1_nilai = parseScore(row[11]);
-                            
-                            const pil2_mapel = row[12] || "Pilihan 2";
-                            const pil2_nilai = parseScore(row[13]);
-
                             parsedStudents.push({
-                                id: index,
+                                id: String(row[1]), // Use No Urut as ID
                                 no_urut: row[1],
                                 nomor_peserta,
                                 nisn,
                                 nama: row[4] ? String(row[4]).toUpperCase() : "TANPA NAMA",
                                 ttl: row[5],
-                                nilai: { indo, mtk, inggris },
-                                pilihan1: { mapel: pil1_mapel, skor: pil1_nilai.skor, predikat: pil1_nilai.predikat },
-                                pilihan2: { mapel: pil2_mapel, skor: pil2_nilai.skor, predikat: pil2_nilai.predikat }
+                                nilai: { 
+                                    indo: parseScore(row[6]), 
+                                    mtk: parseScore(row[7]), 
+                                    inggris: parseScore(row[8]) 
+                                },
+                                pilihan1: { 
+                                    mapel: row[9] || "Pilihan 1", 
+                                    skor: parseScore(row[11]).skor, 
+                                    predikat: parseScore(row[11]).predikat 
+                                },
+                                pilihan2: { 
+                                    mapel: row[12] || "Pilihan 2", 
+                                    skor: parseScore(row[13]).skor, 
+                                    predikat: parseScore(row[13]).predikat 
+                                }
                             });
                         });
 
-                        if (parsedStudents.length > 0) {
-                            // Gabungkan data awal dengan data baru (menghindari duplikat id sederhana)
-                            setData(parsedStudents);
-                            setIsDataLoaded(true);
-                            alert(`Berhasil memuat ${parsedStudents.length} data siswa dari Excel!`);
-                            setSearchTerm(""); // Reset search
-                            setHasSearched(false);
-                        } else {
-                            alert("Format file Excel tidak dikenali atau kosong.");
+                        // Batch Write to Firestore
+                        const { writeBatch, doc, collection, getDocs } = fb.modules;
+                        
+                        // 1. Delete old data first (optional, but cleaner for full replace)
+                        const q = collection(fb.db, 'artifacts', fb.appId, 'public', 'data', 'dkhtka_scores');
+                        const snapshot = await getDocs(q);
+                        const deleteBatch = writeBatch(fb.db);
+                        snapshot.docs.forEach((d) => {
+                            deleteBatch.delete(d.ref);
+                        });
+                        await deleteBatch.commit();
+
+                        // 2. Add new data in batches (max 500 per batch)
+                        const batchSize = 400;
+                        for (let i = 0; i < parsedStudents.length; i += batchSize) {
+                            const batch = writeBatch(fb.db);
+                            const chunk = parsedStudents.slice(i, i + batchSize);
+                            chunk.forEach(student => {
+                                const ref = doc(fb.db, 'artifacts', fb.appId, 'public', 'data', 'dkhtka_scores', student.id);
+                                batch.set(ref, student);
+                            });
+                            await batch.commit();
                         }
 
+                        alert(`Berhasil menyimpan ${parsedStudents.length} data ke database online!`);
+                        setIsUploading(false);
+                        setIsAdminMode(false); // Close admin panel
                     } catch (err) {
                         console.error(err);
-                        alert("Gagal membaca file Excel. Pastikan file tidak rusak.");
+                        alert("Gagal upload ke database: " + err.message);
+                        setIsUploading(false);
                     }
                 };
                 reader.readAsBinaryString(file);
@@ -496,21 +243,36 @@
                 <div className="min-h-screen flex flex-col font-sans">
                     {/* Header */}
                     <header className="bg-blue-900 text-white shadow-lg bg-pattern no-print relative">
-                        {/* Upload Button Absolute Top Right */}
+                        {/* Hidden Admin Toggle */}
                         <div className="absolute top-4 right-4 z-10">
-                            <input 
-                                type="file" 
-                                accept=".xlsx, .xls" 
-                                ref={fileInputRef} 
-                                onChange={handleFileUpload} 
-                                className="hidden" 
-                            />
-                            <button 
-                                onClick={() => fileInputRef.current.click()}
-                                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow transition flex items-center"
-                            >
-                                <i className="fas fa-file-excel mr-2"></i> Upload Excel
-                            </button>
+                            {isAdminMode ? (
+                                <div className="bg-white p-2 rounded shadow-lg text-gray-800 flex flex-col gap-2 animate-fade-in">
+                                    <p className="text-xs font-bold text-gray-500">ADMIN MODE</p>
+                                    <input 
+                                        type="file" 
+                                        accept=".xlsx, .xls" 
+                                        ref={fileInputRef} 
+                                        onChange={handleFileUpload} 
+                                        className="hidden" 
+                                    />
+                                    <button 
+                                        onClick={() => fileInputRef.current.click()}
+                                        disabled={isUploading}
+                                        className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm font-bold flex items-center justify-center"
+                                    >
+                                        {isUploading ? <i className="fas fa-spinner fa-spin mr-2"></i> : <i className="fas fa-cloud-upload-alt mr-2"></i>}
+                                        Upload Excel Baru
+                                    </button>
+                                    <button onClick={() => setIsAdminMode(false)} className="text-xs text-red-500 underline">Tutup</button>
+                                </div>
+                            ) : (
+                                <button 
+                                    onClick={() => setIsAdminMode(true)}
+                                    className="bg-blue-800 bg-opacity-50 hover:bg-opacity-100 text-white px-3 py-1 rounded-full text-xs transition"
+                                >
+                                    <i className="fas fa-cog mr-1"></i> Admin Upload
+                                </button>
+                            )}
                         </div>
 
                         <div className="container mx-auto px-4 py-8 text-center">
@@ -521,6 +283,12 @@
                             </div>
                             <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-2">SMAPANMU Info</h1>
                             <p className="text-blue-200 text-lg">Portal Informasi Akademik SMA Negeri 8 Mukomuko</p>
+                            
+                            {/* Live Data Status Indicator */}
+                            <div className="mt-2 inline-flex items-center px-3 py-1 rounded-full bg-blue-800 bg-opacity-50 text-xs text-blue-100">
+                                <span className={`w-2 h-2 rounded-full mr-2 ${data.length > 0 ? 'bg-green-400 animate-pulse' : 'bg-yellow-400'}`}></span>
+                                {loading ? "Menghubungkan ke Database..." : `${data.length} Data Siswa Online`}
+                            </div>
                         </div>
                     </header>
 
@@ -531,18 +299,6 @@
                             <div className="text-center mb-8">
                                 <h2 className="text-2xl font-bold text-gray-800">Cek Hasil DKHTKA 2025</h2>
                                 <p className="text-gray-500">Masukkan Nama Siswa untuk melihat hasil.</p>
-                                
-                                {!isDataLoaded && (
-                                    <div className="mt-4 p-3 bg-yellow-50 text-yellow-800 rounded-lg text-sm text-left inline-block max-w-lg border border-yellow-200">
-                                        <p className="font-bold mb-1"><i className="fas fa-exclamation-circle mr-1"></i> Tips:</p>
-                                        <p>Data siswa <strong>Anggi, Siti, Nova, Okta, Zefanya, dan Indah</strong> sudah ada di sistem ini. <br/>Untuk siswa lainnya, silakan klik tombol <strong>"Upload Excel"</strong> di pojok kanan atas.</p>
-                                    </div>
-                                )}
-                                {isDataLoaded && (
-                                    <div className="mt-4 p-3 bg-green-50 text-green-800 rounded-lg text-sm inline-block border border-green-200 animate-fade-in">
-                                        <i className="fas fa-check-circle mr-1"></i> Data lengkap dari Excel berhasil dimuat!
-                                    </div>
-                                )}
                             </div>
 
                             {/* Search Box */}
@@ -554,13 +310,14 @@
                                         placeholder="Cari Nama Siswa (Contoh: Anggi)..."
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
+                                        disabled={loading || data.length === 0}
                                     />
                                     {searchTerm && (
                                         <button type="button" onClick={clearSearch} className="bg-white text-gray-400 px-4 hover:text-gray-600">
                                             <i className="fas fa-times"></i>
                                         </button>
                                     )}
-                                    <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white px-8 font-bold text-lg transition duration-200">
+                                    <button type="submit" disabled={loading || data.length === 0} className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-8 font-bold text-lg transition duration-200">
                                         Cari
                                     </button>
                                 </div>
@@ -599,8 +356,7 @@
                                             <i className="fas fa-search text-gray-400 text-4xl mb-4"></i>
                                             <p className="text-gray-600 font-bold text-lg">Data tidak ditemukan.</p>
                                             <p className="text-sm text-gray-500 mt-2 max-w-md mx-auto">
-                                                Pastikan ejaan nama benar. <br/>
-                                                { !isDataLoaded && <span className="text-red-500 font-bold">Cobalah upload file Excel Anda untuk memuat semua data siswa.</span> }
+                                                Pastikan ejaan nama benar.
                                             </p>
                                         </div>
                                     )}
@@ -618,10 +374,10 @@
                                     </div>
                                     <div className="p-4">
                                         <div className="bg-green-50 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 text-green-600">
-                                            <i className="fas fa-file-excel"></i>
+                                            <i className="fas fa-cloud"></i>
                                         </div>
-                                        <h4 className="font-bold text-gray-700 mb-1">Upload Excel</h4>
-                                        <p className="text-sm">Gunakan file Excel (.xlsx) Anda untuk memuat semua data otomatis.</p>
+                                        <h4 className="font-bold text-gray-700 mb-1">Online Database</h4>
+                                        <p className="text-sm">Data tersimpan di cloud, dapat diakses dari perangkat manapun.</p>
                                     </div>
                                     <div className="p-4">
                                         <div className="bg-purple-50 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 text-purple-600">
@@ -652,18 +408,127 @@
             );
         };
 
+        // Reuse existing components (ScoreCard, StudentDetail, PrintComponent)
+        // ... (We include them here to ensure the file is self-contained)
+
+        const ScoreCard = ({ label, score, predikat, colorClass }) => (
+            <div className={`p-4 rounded-lg border ${colorClass} bg-opacity-10 flex flex-col items-center justify-center text-center h-full`}>
+                <span className="text-xs font-semibold uppercase tracking-wider text-gray-600 mb-1">{label}</span>
+                <span className="text-2xl font-bold text-gray-800">{score}</span>
+                <span className={`text-xs font-medium px-2 py-0.5 rounded-full mt-1 ${
+                    predikat && predikat.includes('Istimewa') ? 'bg-purple-100 text-purple-700' :
+                    predikat && predikat.includes('Baik') ? 'bg-green-100 text-green-700' :
+                    predikat && predikat.includes('Memadai') ? 'bg-blue-100 text-blue-700' :
+                    'bg-red-100 text-red-700'
+                }`}>
+                    {predikat || "-"}
+                </span>
+            </div>
+        );
+
+        const StudentDetail = ({ student, onClose }) => {
+            if (!student) return null;
+            const handlePrint = () => window.print();
+
+            return (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm overflow-y-auto no-print">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl overflow-hidden relative animate-fade-in">
+                        <div className="bg-blue-900 text-white p-6 flex justify-between items-start bg-pattern">
+                            <div>
+                                <h2 className="text-2xl font-bold">Hasil Tes Kemampuan Akademik</h2>
+                                <p className="text-blue-200 text-sm">SMA Negeri 8 Mukomuko - Tahun 2025</p>
+                            </div>
+                            <button onClick={onClose} className="text-white hover:text-gray-200 transition"><i className="fas fa-times text-xl"></i></button>
+                        </div>
+                        <div className="p-6 md:p-8">
+                            <div className="flex flex-col md:flex-row justify-between mb-8 border-b pb-6">
+                                <div>
+                                    <h3 className="text-3xl font-bold text-gray-800 mb-1">{student.nama}</h3>
+                                    <p className="text-gray-500"><i className="fas fa-id-card mr-2"></i>NISN: {student.nisn}</p>
+                                    <p className="text-gray-500"><i className="fas fa-calendar-alt mr-2"></i>{student.ttl}</p>
+                                </div>
+                                <div className="mt-4 md:mt-0 text-left md:text-right">
+                                    <div className="bg-gray-100 px-4 py-2 rounded-lg inline-block">
+                                        <span className="block text-xs text-gray-500 uppercase">Nomor Peserta</span>
+                                        <span className="font-mono font-bold text-lg">{student.nomor_peserta}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <h4 className="font-bold text-gray-700 mb-4 border-l-4 border-blue-600 pl-3">Mata Pelajaran Umum</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                                <ScoreCard label="Bahasa Indonesia" score={student.nilai.indo.skor} predikat={student.nilai.indo.predikat} colorClass="border-blue-200 bg-blue-50"/>
+                                <ScoreCard label="Matematika" score={student.nilai.mtk.skor} predikat={student.nilai.mtk.predikat} colorClass="border-green-200 bg-green-50"/>
+                                <ScoreCard label="Bahasa Inggris" score={student.nilai.inggris.skor} predikat={student.nilai.inggris.predikat} colorClass="border-yellow-200 bg-yellow-50"/>
+                            </div>
+                            <h4 className="font-bold text-gray-700 mb-4 border-l-4 border-purple-600 pl-3">Mata Pelajaran Pilihan</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                                <div className="p-5 border border-purple-100 bg-purple-50 rounded-lg">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <span className="text-xs font-bold uppercase text-purple-600">Pilihan 1</span>
+                                        <span className={`text-xs px-2 py-0.5 rounded-full ${student.pilihan1.predikat && student.pilihan1.predikat.includes('Baik') ? 'bg-green-100 text-green-700' : student.pilihan1.predikat && student.pilihan1.predikat.includes('Memadai') ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>{student.pilihan1.predikat || "-"}</span>
+                                    </div>
+                                    <h5 className="font-bold text-lg text-gray-800 mb-1">{student.pilihan1.mapel}</h5>
+                                    <div className="text-3xl font-bold text-gray-700">{student.pilihan1.skor}</div>
+                                </div>
+                                <div className="p-5 border border-purple-100 bg-purple-50 rounded-lg">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <span className="text-xs font-bold uppercase text-purple-600">Pilihan 2</span>
+                                        <span className={`text-xs px-2 py-0.5 rounded-full ${student.pilihan2.predikat && student.pilihan2.predikat.includes('Baik') ? 'bg-green-100 text-green-700' : student.pilihan2.predikat && student.pilihan2.predikat.includes('Memadai') ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>{student.pilihan2.predikat || "-"}</span>
+                                    </div>
+                                    <h5 className="font-bold text-lg text-gray-800 mb-1">{student.pilihan2.mapel}</h5>
+                                    <div className="text-3xl font-bold text-gray-700">{student.pilihan2.skor}</div>
+                                </div>
+                            </div>
+                            <div className="bg-gray-50 p-4 rounded text-xs text-gray-500"><p><strong>Catatan:</strong> Dokumen ini adalah hasil digital dari Daftar Kolektif Hasil Tes Kemampuan Akademik (DKHTKA) Tahun 2025.</p></div>
+                        </div>
+                        <div className="bg-gray-100 p-4 flex justify-end space-x-3">
+                            <button onClick={onClose} className="px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-200 transition font-medium">Tutup</button>
+                            <button onClick={handlePrint} className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition font-medium shadow-lg flex items-center"><i className="fas fa-print mr-2"></i> Cetak Hasil</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const PrintComponent = ({ student }) => {
+            if (!student) return null;
+            return (
+                <div className="print-area p-8 max-w-4xl mx-auto border bg-white">
+                    <div className="text-center border-b-2 border-black pb-4 mb-6">
+                        <h2 className="text-xl font-bold">KEMENTERIAN PENDIDIKAN DASAR DAN MENENGAH</h2>
+                        <h3 className="text-lg font-bold">DINAS PENDIDIKAN DAN KEBUDAYAAN PROVINSI BENGKULU</h3>
+                        <h4 className="text-md">SMA NEGERI 8 MUKOMUKO</h4>
+                        <p className="text-sm mt-2 font-bold">HASIL TES KEMAMPUAN AKADEMIK (DKHTKA) TAHUN 2025</p>
+                    </div>
+                    <table className="w-full mb-6"><tbody>
+                        <tr><td className="w-40 font-bold">Nama Peserta</td><td>: {student.nama}</td></tr>
+                        <tr><td className="font-bold">Nomor Peserta</td><td>: {student.nomor_peserta}</td></tr>
+                        <tr><td className="font-bold">NISN</td><td>: {student.nisn}</td></tr>
+                        <tr><td className="font-bold">Tempat/Tgl Lahir</td><td>: {student.ttl}</td></tr>
+                    </tbody></table>
+                    <h3 className="font-bold mb-2 mt-4 text-lg">A. Mata Pelajaran Umum</h3>
+                    <table className="w-full border-collapse border border-gray-400 mb-6 text-sm"><thead><tr className="bg-gray-200"><th className="border border-gray-400 p-2 text-left">Mata Pelajaran</th><th className="border border-gray-400 p-2 text-center">Nilai</th><th className="border border-gray-400 p-2 text-center">Keterangan</th></tr></thead><tbody>
+                        <tr><td className="border border-gray-400 p-2">Bahasa Indonesia</td><td className="border border-gray-400 p-2 text-center">{student.nilai.indo.skor}</td><td className="border border-gray-400 p-2 text-center">{student.nilai.indo.predikat}</td></tr>
+                        <tr><td className="border border-gray-400 p-2">Matematika</td><td className="border border-gray-400 p-2 text-center">{student.nilai.mtk.skor}</td><td className="border border-gray-400 p-2 text-center">{student.nilai.mtk.predikat}</td></tr>
+                        <tr><td className="border border-gray-400 p-2">Bahasa Inggris</td><td className="border border-gray-400 p-2 text-center">{student.nilai.inggris.skor}</td><td className="border border-gray-400 p-2 text-center">{student.nilai.inggris.predikat}</td></tr>
+                    </tbody></table>
+                    <h3 className="font-bold mb-2 mt-4 text-lg">B. Mata Pelajaran Pilihan</h3>
+                    <table className="w-full border-collapse border border-gray-400 mb-6 text-sm"><thead><tr className="bg-gray-200"><th className="border border-gray-400 p-2 text-center w-10">No</th><th className="border border-gray-400 p-2 text-left">Mata Pelajaran</th><th className="border border-gray-400 p-2 text-center">Nilai</th><th className="border border-gray-400 p-2 text-center">Keterangan</th></tr></thead><tbody>
+                        <tr><td className="border border-gray-400 p-2 text-center">1</td><td className="border border-gray-400 p-2">{student.pilihan1.mapel}</td><td className="border border-gray-400 p-2 text-center">{student.pilihan1.skor}</td><td className="border border-gray-400 p-2 text-center">{student.pilihan1.predikat}</td></tr>
+                        <tr><td className="border border-gray-400 p-2 text-center">2</td><td className="border border-gray-400 p-2">{student.pilihan2.mapel}</td><td className="border border-gray-400 p-2 text-center">{student.pilihan2.skor}</td><td className="border border-gray-400 p-2 text-center">{student.pilihan2.predikat}</td></tr>
+                    </tbody></table>
+                    <div className="mt-12 flex justify-end"><div className="text-center"><p>Mukomuko, 2025</p><p>Kepala Sekolah,</p><br/><br/><br/><p className="font-bold underline">SARWENTY SARAGIH, S.Pd</p><p>NIP. 197403232005022001</p></div></div>
+                </div>
+            )
+        }
+
         ReactDOM.createRoot(document.getElementById('root')).render(<App />);
     </script>
 
     <style>
         /* Animasi Tambahan */
-        @keyframes fade-in {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-in {
-            animation: fade-in 0.3s ease-out forwards;
-        }
+        @keyframes fade-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fade-in 0.3s ease-out forwards; }
     </style>
 </body>
 </html>
