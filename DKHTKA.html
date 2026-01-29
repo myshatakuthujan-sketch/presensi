@@ -206,7 +206,7 @@
                             await batch.commit();
                         }
 
-                        alert(`Berhasil menyimpan ${parsedStudents.length} data ke database online!`);
+                        alert(`Berhasil menyimpan ${parsedStudents.length} data ke database online! Sekarang semua orang bisa melihat data ini.`);
                         setIsUploading(false);
                         setIsAdminMode(false); // Close admin panel
                     } catch (err) {
@@ -261,7 +261,7 @@
                                         className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm font-bold flex items-center justify-center"
                                     >
                                         {isUploading ? <i className="fas fa-spinner fa-spin mr-2"></i> : <i className="fas fa-cloud-upload-alt mr-2"></i>}
-                                        Upload Excel Baru
+                                        Upload Excel
                                     </button>
                                     <button onClick={() => setIsAdminMode(false)} className="text-xs text-red-500 underline">Tutup</button>
                                 </div>
@@ -270,7 +270,7 @@
                                     onClick={() => setIsAdminMode(true)}
                                     className="bg-blue-800 bg-opacity-50 hover:bg-opacity-100 text-white px-3 py-1 rounded-full text-xs transition"
                                 >
-                                    <i className="fas fa-cog mr-1"></i> Admin Upload
+                                    <i className="fas fa-cog mr-1"></i> Admin
                                 </button>
                             )}
                         </div>
@@ -287,7 +287,7 @@
                             {/* Live Data Status Indicator */}
                             <div className="mt-2 inline-flex items-center px-3 py-1 rounded-full bg-blue-800 bg-opacity-50 text-xs text-blue-100">
                                 <span className={`w-2 h-2 rounded-full mr-2 ${data.length > 0 ? 'bg-green-400 animate-pulse' : 'bg-yellow-400'}`}></span>
-                                {loading ? "Menghubungkan ke Database..." : `${data.length} Data Siswa Online`}
+                                {loading ? "Menghubungkan Database..." : `${data.length} Data Siswa Online`}
                             </div>
                         </div>
                     </header>
@@ -299,6 +299,12 @@
                             <div className="text-center mb-8">
                                 <h2 className="text-2xl font-bold text-gray-800">Cek Hasil DKHTKA 2025</h2>
                                 <p className="text-gray-500">Masukkan Nama Siswa untuk melihat hasil.</p>
+                                
+                                {data.length === 0 && !loading && (
+                                    <div className="mt-4 p-3 bg-yellow-50 text-yellow-800 rounded-lg text-sm inline-block border border-yellow-200">
+                                        <i className="fas fa-exclamation-triangle mr-1"></i> Database Kosong. Silakan klik tombol <strong>"Admin"</strong> di pojok kanan atas untuk upload Excel.
+                                    </div>
+                                )}
                             </div>
 
                             {/* Search Box */}
@@ -407,9 +413,6 @@
                 </div>
             );
         };
-
-        // Reuse existing components (ScoreCard, StudentDetail, PrintComponent)
-        // ... (We include them here to ensure the file is self-contained)
 
         const ScoreCard = ({ label, score, predikat, colorClass }) => (
             <div className={`p-4 rounded-lg border ${colorClass} bg-opacity-10 flex flex-col items-center justify-center text-center h-full`}>
@@ -524,11 +527,5 @@
 
         ReactDOM.createRoot(document.getElementById('root')).render(<App />);
     </script>
-
-    <style>
-        /* Animasi Tambahan */
-        @keyframes fade-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade-in { animation: fade-in 0.3s ease-out forwards; }
-    </style>
 </body>
 </html>
