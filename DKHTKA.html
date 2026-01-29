@@ -15,6 +15,9 @@
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
+    <!-- SheetJS for Excel Reading (Library Baru) -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+    
     <!-- Font Awesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
@@ -56,13 +59,88 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect } = React;
+        const { useState, useEffect, useRef } = React;
 
-        // --- DATA SISWA (Berdasarkan PDF yang diupload) ---
-        // Anda bisa menambahkan data lainnya di sini sesuai format
-        const studentData = [
+        // Data Sampel Awal (Diambil dari snippet file Excel Anda)
+        // Data ini akan muncul otomatis tanpa perlu upload
+        const initialData = [
             {
                 id: 1,
+                no_urut: "1",
+                nomor_peserta: "T3-25-26-07-0008-0001-8",
+                nisn: "0072229971",
+                nama: "ANGGI OCTAVIANI",
+                ttl: "Mekar jaya, 19 Oktober 2007",
+                nilai: {
+                    indo: { skor: "43.04", predikat: "Memadai" },
+                    mtk: { skor: "39.04", predikat: "Memadai" },
+                    inggris: { skor: "5.00", predikat: "Kurang" }
+                },
+                pilihan1: { mapel: "Geografi", skor: "70.16", predikat: "Memadai" },
+                pilihan2: { mapel: "Sejarah", skor: "53.39", predikat: "Kurang" }
+            },
+            {
+                id: 2,
+                no_urut: "2",
+                nomor_peserta: "T3-25-26-07-0008-0002-7",
+                nisn: "0066192047",
+                nama: "SITI NURSAADAH",
+                ttl: "Bukit Haraapan, 9 Desember 2006",
+                nilai: {
+                    indo: { skor: "43.13", predikat: "Memadai" },
+                    mtk: { skor: "39.41", predikat: "Memadai" },
+                    inggris: { skor: "5.00", predikat: "Kurang" }
+                },
+                pilihan1: { mapel: "Biologi", skor: "42.89", predikat: "Kurang" },
+                pilihan2: { mapel: "Geografi", skor: "67.02", predikat: "Kurang" }
+            },
+            {
+                id: 3,
+                no_urut: "3",
+                nomor_peserta: "T3-25-26-07-0008-0003-6",
+                nisn: "0078686873",
+                nama: "NOVA SANTIKA",
+                ttl: "Bukit Harapan, 4 November 2007",
+                nilai: {
+                    indo: { skor: "58.51", predikat: "Baik" },
+                    mtk: { skor: "35.62", predikat: "Memadai" },
+                    inggris: { skor: "33.51", predikat: "Baik" }
+                },
+                pilihan1: { mapel: "Sosiologi", skor: "53.06", predikat: "Memadai" },
+                pilihan2: { mapel: "Geografi", skor: "65.57", predikat: "Kurang" }
+            },
+            {
+                id: 137,
+                no_urut: "137",
+                nomor_peserta: "T3-25-26-07-0008-0137-8",
+                nisn: "0076824929",
+                nama: "OKTA RAMADHANI",
+                ttl: "TAPAN, 7 Oktober 2007",
+                nilai: {
+                    indo: { skor: "43.46", predikat: "Memadai" },
+                    mtk: { skor: "35.39", predikat: "Memadai" },
+                    inggris: { skor: "26.89", predikat: "Memadai" }
+                },
+                pilihan1: { mapel: "Biologi", skor: "39.03", predikat: "Kurang" },
+                pilihan2: { mapel: "PPKN", skor: "47.63", predikat: "Kurang" }
+            },
+            {
+                id: 138,
+                no_urut: "138",
+                nomor_peserta: "T3-25-26-07-0008-0138-7",
+                nisn: "0076622146",
+                nama: "ZEFANYA BERLAN F.S.",
+                ttl: "BENGKULU, 6 September 2007",
+                nilai: {
+                    indo: { skor: "72.54", predikat: "Istimewa" },
+                    mtk: { skor: "39.77", predikat: "Memadai" },
+                    inggris: { skor: "22.28", predikat: "Memadai" }
+                },
+                pilihan1: { mapel: "Matematika TL", skor: "33.80", predikat: "Memadai" },
+                pilihan2: { mapel: "B. Inggris TL", skor: "41.89", predikat: "Kurang" }
+            },
+            {
+                id: 139,
                 no_urut: "139",
                 nomor_peserta: "T3-25-26-07-0008-0139-6",
                 nisn: "0075361418",
@@ -73,38 +151,8 @@
                     mtk: { skor: "50.39", predikat: "Baik" },
                     inggris: { skor: "25.85", predikat: "Memadai" }
                 },
-                pilihan1: { mapel: "Bahasa Indonesia Tingkat Lanjut", skor: "73.62", predikat: "Baik" },
+                pilihan1: { mapel: "B. Indonesia TL", skor: "73.62", predikat: "Baik" },
                 pilihan2: { mapel: "Biologi", skor: "52.34", predikat: "Memadai" }
-            },
-            {
-                id: 2,
-                no_urut: "140",
-                nomor_peserta: "T3-25-26-07-0008-0140-5",
-                nisn: "0065802165",
-                nama: "DEDE ARI AGUSTINA",
-                ttl: "Windusari, 27 Agustus 2008",
-                nilai: {
-                    indo: { skor: "53.58", predikat: "Baik" },
-                    mtk: { skor: "35.81", predikat: "Memadai" },
-                    inggris: { skor: "32.69", predikat: "Baik" }
-                },
-                pilihan1: { mapel: "Matematika Tingkat Lanjut", skor: "43.21", predikat: "Memadai" },
-                pilihan2: { mapel: "Biologi", skor: "48.06", predikat: "Memadai" }
-            },
-            {
-                id: 3,
-                no_urut: "1",
-                nomor_peserta: "T3-25-26-07-0008-0001-8",
-                nisn: "0072229971",
-                nama: "ANGGI OCTAVIANI",
-                ttl: "Mekar Jaya, 12 September 2007",
-                nilai: {
-                    indo: { skor: "72.54", predikat: "Istimewa" },
-                    mtk: { skor: "39.77", predikat: "Memadai" },
-                    inggris: { skor: "22.28", predikat: "Memadai" }
-                },
-                pilihan1: { mapel: "Matematika Tingkat Lanjut", skor: "33.80", predikat: "Memadai" },
-                pilihan2: { mapel: "Bahasa Inggris Tingkat Lanjut", skor: "41.89", predikat: "Kurang" }
             }
         ];
 
@@ -114,12 +162,12 @@
                 <span className="text-xs font-semibold uppercase tracking-wider text-gray-600 mb-1">{label}</span>
                 <span className="text-2xl font-bold text-gray-800">{score}</span>
                 <span className={`text-xs font-medium px-2 py-0.5 rounded-full mt-1 ${
-                    predikat === 'Istimewa' ? 'bg-purple-100 text-purple-700' :
-                    predikat === 'Baik' ? 'bg-green-100 text-green-700' :
-                    predikat === 'Memadai' ? 'bg-blue-100 text-blue-700' :
+                    predikat && predikat.includes('Istimewa') ? 'bg-purple-100 text-purple-700' :
+                    predikat && predikat.includes('Baik') ? 'bg-green-100 text-green-700' :
+                    predikat && predikat.includes('Memadai') ? 'bg-blue-100 text-blue-700' :
                     'bg-red-100 text-red-700'
                 }`}>
-                    {predikat}
+                    {predikat || "-"}
                 </span>
             </div>
         );
@@ -194,8 +242,10 @@
                                     <div className="flex justify-between items-center mb-2">
                                         <span className="text-xs font-bold uppercase text-purple-600">Pilihan 1</span>
                                         <span className={`text-xs px-2 py-0.5 rounded-full ${
-                                            student.pilihan1.predikat === 'Baik' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
-                                        }`}>{student.pilihan1.predikat}</span>
+                                            student.pilihan1.predikat && student.pilihan1.predikat.includes('Baik') ? 'bg-green-100 text-green-700' : 
+                                            student.pilihan1.predikat && student.pilihan1.predikat.includes('Memadai') ? 'bg-blue-100 text-blue-700' :
+                                            'bg-red-100 text-red-700'
+                                        }`}>{student.pilihan1.predikat || "-"}</span>
                                     </div>
                                     <h5 className="font-bold text-lg text-gray-800 mb-1">{student.pilihan1.mapel}</h5>
                                     <div className="text-3xl font-bold text-gray-700">{student.pilihan1.skor}</div>
@@ -205,8 +255,10 @@
                                     <div className="flex justify-between items-center mb-2">
                                         <span className="text-xs font-bold uppercase text-purple-600">Pilihan 2</span>
                                         <span className={`text-xs px-2 py-0.5 rounded-full ${
-                                            student.pilihan2.predikat === 'Baik' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
-                                        }`}>{student.pilihan2.predikat}</span>
+                                            student.pilihan2.predikat && student.pilihan2.predikat.includes('Baik') ? 'bg-green-100 text-green-700' : 
+                                            student.pilihan2.predikat && student.pilihan2.predikat.includes('Memadai') ? 'bg-blue-100 text-blue-700' :
+                                            'bg-red-100 text-red-700'
+                                        }`}>{student.pilihan2.predikat || "-"}</span>
                                     </div>
                                     <h5 className="font-bold text-lg text-gray-800 mb-1">{student.pilihan2.mapel}</h5>
                                     <div className="text-3xl font-bold text-gray-700">{student.pilihan2.skor}</div>
@@ -321,19 +373,113 @@
         }
 
         const App = () => {
+            const [data, setData] = useState(initialData);
             const [searchTerm, setSearchTerm] = useState("");
             const [results, setResults] = useState([]);
             const [hasSearched, setHasSearched] = useState(false);
             const [selectedStudent, setSelectedStudent] = useState(null);
+            const [isDataLoaded, setIsDataLoaded] = useState(false);
+            const fileInputRef = useRef(null);
+
+            const parseScore = (raw) => {
+                if (!raw) return { skor: "0", predikat: "-" };
+                // Handle format string dari Excel yang mungkin mengandung newline atau kurung
+                // Contoh input: "43.04\n(Memadai)" atau "43.04 (Memadai)"
+                const cleaned = String(raw).replace(/[()]/g, '').replace(/\n/g, ' ').trim();
+                const parts = cleaned.split(' ');
+                
+                // Ambil bagian angka pertama
+                const skor = parts[0] || "0";
+                // Ambil sisa kata sebagai predikat
+                const predikat = parts.slice(1).join(' ') || "-";
+                
+                return { skor, predikat };
+            };
+
+            const handleFileUpload = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (evt) => {
+                    try {
+                        const bstr = evt.target.result;
+                        const wb = XLSX.read(bstr, { type: 'binary' });
+                        // Ambil sheet pertama
+                        const wsname = wb.SheetNames[0];
+                        const ws = wb.Sheets[wsname];
+                        // Convert ke array JSON (array of arrays untuk menghandle struktur kompleks)
+                        const rawData = XLSX.utils.sheet_to_json(ws, { header: 1 });
+                        
+                        const parsedStudents = [];
+                        
+                        // Loop mulai dari baris data (asumsi baris 3, index 2, berdasarkan struktur file)
+                        rawData.forEach((row, index) => {
+                            // Validasi sederhana: pastikan kolom nomor urut ada isinya
+                            if (!row[1] || isNaN(parseInt(row[1]))) return;
+
+                            // Mapping kolom Excel ke Data Aplikasi
+                            // [1] No Urut, [2] No Peserta+NISN, [4] Nama, [5] TTL
+                            // [6] Indo, [7] MTK, [8] Ing
+                            // [9] Pil1 Mapel, [11] Pil1 Nilai
+                            // [12] Pil2 Mapel, [13] Pil2 Nilai
+
+                            const idString = row[2] || "";
+                            const idParts = String(idString).trim().split(' ');
+                            const nomor_peserta = idParts[0] || "-";
+                            const nisn = idParts[1] || "-";
+
+                            const indo = parseScore(row[6]);
+                            const mtk = parseScore(row[7]);
+                            const inggris = parseScore(row[8]);
+                            
+                            const pil1_mapel = row[9] || "Pilihan 1";
+                            const pil1_nilai = parseScore(row[11]);
+                            
+                            const pil2_mapel = row[12] || "Pilihan 2";
+                            const pil2_nilai = parseScore(row[13]);
+
+                            parsedStudents.push({
+                                id: index,
+                                no_urut: row[1],
+                                nomor_peserta,
+                                nisn,
+                                nama: row[4] ? String(row[4]).toUpperCase() : "TANPA NAMA",
+                                ttl: row[5],
+                                nilai: { indo, mtk, inggris },
+                                pilihan1: { mapel: pil1_mapel, skor: pil1_nilai.skor, predikat: pil1_nilai.predikat },
+                                pilihan2: { mapel: pil2_mapel, skor: pil2_nilai.skor, predikat: pil2_nilai.predikat }
+                            });
+                        });
+
+                        if (parsedStudents.length > 0) {
+                            // Gabungkan data awal dengan data baru (menghindari duplikat id sederhana)
+                            setData(parsedStudents);
+                            setIsDataLoaded(true);
+                            alert(`Berhasil memuat ${parsedStudents.length} data siswa dari Excel!`);
+                            setSearchTerm(""); // Reset search
+                            setHasSearched(false);
+                        } else {
+                            alert("Format file Excel tidak dikenali atau kosong.");
+                        }
+
+                    } catch (err) {
+                        console.error(err);
+                        alert("Gagal membaca file Excel. Pastikan file tidak rusak.");
+                    }
+                };
+                reader.readAsBinaryString(file);
+            };
 
             const handleSearch = (e) => {
                 e.preventDefault();
-                if (!searchTerm.trim()) return;
+                const term = searchTerm.trim().toLowerCase();
+                if (!term) return;
 
-                const filtered = studentData.filter(student => 
-                    student.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    student.nisn.includes(searchTerm) ||
-                    student.nomor_peserta.includes(searchTerm)
+                const filtered = data.filter(student => 
+                    (student.nama && student.nama.toLowerCase().includes(term)) ||
+                    (student.nisn && String(student.nisn).includes(term)) ||
+                    (student.nomor_peserta && student.nomor_peserta.toLowerCase().includes(term))
                 );
 
                 setResults(filtered);
@@ -349,7 +495,24 @@
             return (
                 <div className="min-h-screen flex flex-col font-sans">
                     {/* Header */}
-                    <header className="bg-blue-900 text-white shadow-lg bg-pattern no-print">
+                    <header className="bg-blue-900 text-white shadow-lg bg-pattern no-print relative">
+                        {/* Upload Button Absolute Top Right */}
+                        <div className="absolute top-4 right-4 z-10">
+                            <input 
+                                type="file" 
+                                accept=".xlsx, .xls" 
+                                ref={fileInputRef} 
+                                onChange={handleFileUpload} 
+                                className="hidden" 
+                            />
+                            <button 
+                                onClick={() => fileInputRef.current.click()}
+                                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow transition flex items-center"
+                            >
+                                <i className="fas fa-file-excel mr-2"></i> Upload Excel
+                            </button>
+                        </div>
+
                         <div className="container mx-auto px-4 py-8 text-center">
                             <div className="flex justify-center mb-4">
                                 <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center text-blue-900 shadow-lg">
@@ -367,7 +530,19 @@
                             
                             <div className="text-center mb-8">
                                 <h2 className="text-2xl font-bold text-gray-800">Cek Hasil DKHTKA 2025</h2>
-                                <p className="text-gray-500">Masukkan Nama, NISN, atau Nomor Peserta untuk melihat hasil.</p>
+                                <p className="text-gray-500">Masukkan Nama Siswa untuk melihat hasil.</p>
+                                
+                                {!isDataLoaded && (
+                                    <div className="mt-4 p-3 bg-yellow-50 text-yellow-800 rounded-lg text-sm text-left inline-block max-w-lg border border-yellow-200">
+                                        <p className="font-bold mb-1"><i className="fas fa-exclamation-circle mr-1"></i> Tips:</p>
+                                        <p>Data siswa <strong>Anggi, Siti, Nova, Okta, Zefanya, dan Indah</strong> sudah ada di sistem ini. <br/>Untuk siswa lainnya, silakan klik tombol <strong>"Upload Excel"</strong> di pojok kanan atas.</p>
+                                    </div>
+                                )}
+                                {isDataLoaded && (
+                                    <div className="mt-4 p-3 bg-green-50 text-green-800 rounded-lg text-sm inline-block border border-green-200 animate-fade-in">
+                                        <i className="fas fa-check-circle mr-1"></i> Data lengkap dari Excel berhasil dimuat!
+                                    </div>
+                                )}
                             </div>
 
                             {/* Search Box */}
@@ -376,7 +551,7 @@
                                     <input
                                         type="text"
                                         className="flex-grow px-6 py-4 outline-none text-lg text-gray-700 placeholder-gray-400"
-                                        placeholder="Cari Nama / NISN..."
+                                        placeholder="Cari Nama Siswa (Contoh: Anggi)..."
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
                                     />
@@ -406,7 +581,7 @@
                                                     <div className="mb-4 md:mb-0 text-center md:text-left">
                                                         <h4 className="text-lg font-bold text-gray-800 group-hover:text-blue-600 transition">{student.nama}</h4>
                                                         <div className="text-sm text-gray-500 flex flex-col md:flex-row gap-2 md:gap-4">
-                                                            <span><i className="fas fa-id-badge mr-1 w-5 text-center"></i>{student.nisn}</span>
+                                                            <span><i className="fas fa-id-badge mr-1 w-5 text-center"></i>{student.nisn || "-"}</span>
                                                             <span><i className="fas fa-user-graduate mr-1 w-5 text-center"></i>{student.nomor_peserta}</span>
                                                         </div>
                                                     </div>
@@ -422,8 +597,11 @@
                                     ) : (
                                         <div className="text-center py-12 bg-gray-50 rounded-lg border border-dashed border-gray-300">
                                             <i className="fas fa-search text-gray-400 text-4xl mb-4"></i>
-                                            <p className="text-gray-600 font-medium">Data tidak ditemukan.</p>
-                                            <p className="text-sm text-gray-400 mt-1">Pastikan ejaan nama atau nomor NISN sudah benar.</p>
+                                            <p className="text-gray-600 font-bold text-lg">Data tidak ditemukan.</p>
+                                            <p className="text-sm text-gray-500 mt-2 max-w-md mx-auto">
+                                                Pastikan ejaan nama benar. <br/>
+                                                { !isDataLoaded && <span className="text-red-500 font-bold">Cobalah upload file Excel Anda untuk memuat semua data siswa.</span> }
+                                            </p>
                                         </div>
                                     )}
                                 </div>
@@ -436,14 +614,14 @@
                                             <i className="fas fa-search"></i>
                                         </div>
                                         <h4 className="font-bold text-gray-700 mb-1">Cari Data</h4>
-                                        <p className="text-sm">Masukkan identitas siswa untuk mencari data spesifik.</p>
+                                        <p className="text-sm">Masukkan nama siswa untuk mencari data spesifik.</p>
                                     </div>
                                     <div className="p-4">
                                         <div className="bg-green-50 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 text-green-600">
-                                            <i className="fas fa-file-alt"></i>
+                                            <i className="fas fa-file-excel"></i>
                                         </div>
-                                        <h4 className="font-bold text-gray-700 mb-1">Lihat Rincian</h4>
-                                        <p className="text-sm">Akses nilai lengkap untuk mata pelajaran umum dan pilihan.</p>
+                                        <h4 className="font-bold text-gray-700 mb-1">Upload Excel</h4>
+                                        <p className="text-sm">Gunakan file Excel (.xlsx) Anda untuk memuat semua data otomatis.</p>
                                     </div>
                                     <div className="p-4">
                                         <div className="bg-purple-50 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 text-purple-600">
