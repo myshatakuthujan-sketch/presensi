@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>(09IF) Immortal Fighters - Kingdom #3909</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Raleway:wght@300;400;600&display=swap');
+
+        :root {
+            --rok-gold: #fbbf24;
+            --rok-red: #991b1b;
+            --rok-bright-red: #ef4444;
+            --rok-dark: #0f0a0a;
+        }
+
+        body {
+            font-family: 'Raleway', sans-serif;
+            background-color: var(--rok-dark);
+            color: #e5e7eb;
+            scroll-behavior: smooth;
+        }
+
+        h1, h2, h3, h4, .nav-brand {
+            font-family: 'Cinzel', serif;
+        }
+
+        .hero-gradient {
+            background: linear-gradient(rgba(10, 5, 5, 0.9), rgba(15, 10, 10, 0.95)), url('https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&q=80&w=2000');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }
+
+        .glass-panel {
+            background: rgba(153, 27, 27, 0.05);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            border-radius: 1rem;
+        }
+
+        .logo-shield {
+            background: linear-gradient(135deg, #991b1b, #ef4444);
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+            border: 2px solid var(--rok-gold);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.5);
+        }
+
+        .logo-glow {
+            filter: drop-shadow(0 0 15px rgba(239, 68, 68, 0.6));
+            animation: pulse-glow 3s ease-in-out infinite;
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% { filter: drop-shadow(0 0 10px rgba(239, 68, 68, 0.4)); }
+            50% { filter: drop-shadow(0 0 25px rgba(251, 191, 36, 0.6)); }
+        }
+
+        .animate-float {
+            animation: float 4s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+        }
+
+        .red-gradient-text {
+            background: linear-gradient(to bottom, #ffffff, #fbbf24);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0f0a0a; }
+        ::-webkit-scrollbar-thumb { background: #991b1b; border-radius: 10px; }
+
+        .member-table tr:nth-child(even) { background: rgba(255, 255, 255, 0.02); }
+        .member-table tr:hover { background: rgba(153, 27, 27, 0.1); }
+        
+        .calendar-wrapper {
+            position: relative;
+            width: 100%;
+            height: 600px;
+            border-radius: 1rem;
+            overflow: hidden;
+            border: 1px solid rgba(251, 191, 36, 0.3);
+        }
+
+        @media (min-width: 768px) {
+            .calendar-wrapper { height: 800px; }
+        }
+
+        .announcement-card {
+            border-left: 4px solid var(--rok-bright-red);
+            background: linear-gradient(90deg, rgba(153, 27, 27, 0.2) 0%, transparent 100%);
+        }
+
+        /* Mobile Nav Animation */
+        #mobile-menu {
+            transition: all 0.3s ease-in-out;
+            transform: translateY(-100%);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #mobile-menu.active {
+            transform: translateY(0);
+            opacity: 1;
+            pointer-events: all;
+        }
+    </style>
+</head>
+<body class="overflow-x-hidden">
+
+    <!-- Navigation -->
+    <nav class="fixed w-full z-[100] bg-black/90 border-b border-red-600/30 px-4 md:px-8 py-4 flex justify-between items-center backdrop-blur-lg">
+        <div class="flex items-center gap-3">
+            <div class="logo-shield h-8 w-8 md:h-10 md:w-10 border border-amber-500/50">
+                <span class="text-[8px] md:text-[10px] font-black text-white">09IF</span>
+            </div>
+            <span class="nav-brand text-lg md:text-xl font-bold text-white tracking-widest leading-none">
+                <span class="text-amber-500">(09IF)</span> IMMORTAL
+            </span>
+        </div>
+
+        <!-- Desktop Links -->
+        <div class="hidden lg:flex gap-8 text-xs font-bold uppercase tracking-[0.2em] text-gray-300 items-center">
+            <a href="#home" class="hover:text-amber-500 transition">Beranda</a>
+            <a href="#announcements" class="hover:text-amber-500 transition">Pengumuman</a>
+            <a href="#members" class="hover:text-amber-500 transition">Anggota</a>
+            <a href="#events" class="hover:text-amber-500 transition">Kalender</a>
+            <a href="#join" class="px-5 py-2 bg-red-700 text-white rounded shadow-lg shadow-red-900/50 hover:bg-red-600 transition">Gabung</a>
+        </div>
+
+        <!-- Mobile Toggle -->
+        <button id="menu-toggle" class="lg:hidden text-white text-2xl focus:outline-none">
+            <i class="fas fa-bars"></i>
+        </button>
+    </nav>
+
+    <!-- Mobile Menu Overlay -->
+    <div id="mobile-menu" class="fixed inset-0 bg-black z-[90] flex flex-col items-center justify-center gap-8 lg:hidden">
+        <a href="#home" onclick="toggleMenu()" class="text-xl font-bold text-white hover:text-amber-500 tracking-widest uppercase">Beranda</a>
+        <a href="#announcements" onclick="toggleMenu()" class="text-xl font-bold text-white hover:text-amber-500 tracking-widest uppercase">Pengumuman</a>
+        <a href="#members" onclick="toggleMenu()" class="text-xl font-bold text-white hover:text-amber-500 tracking-widest uppercase">Anggota</a>
+        <a href="#events" onclick="toggleMenu()" class="text-xl font-bold text-white hover:text-amber-500 tracking-widest uppercase">Kalender</a>
+        <a href="#join" onclick="toggleMenu()" class="px-8 py-3 bg-red-700 text-white rounded font-bold tracking-widest">GABUNG ALIANSI</a>
+    </div>
+
+    <!-- Hero Section -->
+    <section id="home" class="relative min-h-screen flex items-center justify-center text-center px-6 hero-gradient">
+        <div class="z-10 w-full max-w-4xl py-20">
+            <div class="mb-8 md:mb-10 animate-float flex justify-center">
+                <div class="logo-glow">
+                    <div class="logo-shield w-28 h-28 md:w-40 md:h-40 border-4 border-amber-500 shadow-2xl relative">
+                        <div class="flex flex-col items-center">
+                            <span class="text-2xl md:text-4xl font-black text-white tracking-tighter">09IF</span>
+                            <div class="h-0.5 w-8 md:w-12 bg-amber-500 my-1"></div>
+                            <span class="text-[7px] md:text-[10px] font-bold text-amber-200 uppercase tracking-widest">Immortal</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <h1 class="text-4xl sm:text-6xl md:text-8xl font-black mb-4 tracking-tighter text-white uppercase leading-tight">
+                IMMORTAL <br class="sm:hidden"> <span class="red-gradient-text">FIGHTERS</span>
+            </h1>
+            <p class="text-base md:text-2xl lg:text-3xl text-red-500 font-bold mb-10 uppercase tracking-[0.2em] md:tracking-[0.4em] drop-shadow-md">
+                Kingdom #3909 • Aliansi (09IF)
+            </p>
+            <div class="flex flex-wrap justify-center gap-4">
+                <a href="#announcements" class="w-full sm:w-auto px-8 py-4 bg-amber-600 hover:bg-amber-500 text-black font-black rounded-sm transition duration-300 transform hover:scale-105 shadow-xl uppercase tracking-widest text-sm">
+                    PENGUMUMAN TERBARU
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Announcement Section -->
+    <section id="announcements" class="py-16 md:py-24 bg-black border-y border-red-900/30 px-6">
+        <div class="max-w-4xl mx-auto">
+            <div class="flex items-center gap-4 mb-10">
+                <div class="w-10 h-10 md:w-12 md:h-12 rounded bg-red-600/20 flex items-center justify-center text-red-500 border border-red-600/40 shrink-0">
+                    <i class="fas fa-bullhorn text-lg md:text-xl"></i>
+                </div>
+                <div>
+                    <h2 class="text-xl md:text-2xl font-black uppercase tracking-widest text-white">Papan Pengumuman</h2>
+                    <p class="text-[10px] md:text-xs text-gray-500 uppercase tracking-widest">Informasi Penting dari Pemimpin</p>
+                </div>
+            </div>
+
+            <div id="ann-loader" class="py-10 text-center">
+                <div class="animate-pulse text-gray-600 uppercase text-[10px] tracking-widest">Mengambil info pusat perintah...</div>
+            </div>
+
+            <div id="ann-container" class="space-y-4 hidden">
+                <!-- Data injected here -->
+            </div>
+            
+            <div id="ann-empty" class="hidden text-center py-10 text-gray-600 italic uppercase text-[10px] tracking-widest">
+                Belum ada pengumuman hari ini.
+            </div>
+        </div>
+    </section>
+
+    <!-- Members Section -->
+    <section id="members" class="py-20 md:py-32 bg-zinc-950 px-4 md:px-6">
+        <div class="max-w-5xl mx-auto">
+            <div class="text-center mb-12 md:mb-16">
+                <h2 class="text-3xl md:text-5xl font-black mb-4 italic tracking-widest uppercase text-white">Database <span class="text-red-600">Prajurit</span></h2>
+                <div class="h-1 w-20 md:w-24 bg-red-600 mx-auto mt-4"></div>
+            </div>
+
+            <div id="member-loader" class="flex justify-center items-center py-10">
+                <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-amber-500"></div>
+            </div>
+
+            <div class="glass-panel overflow-hidden shadow-2xl border border-white/5 hidden" id="member-table-container">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left member-table min-w-[600px]">
+                        <thead class="bg-red-900/40 text-amber-500 uppercase text-[10px] md:text-xs font-black tracking-widest border-b border-red-600/30">
+                            <tr>
+                                <th class="px-4 md:px-6 py-4 text-center w-16">No.</th>
+                                <th class="px-4 md:px-6 py-4">Nama Gubernur</th>
+                                <th class="px-4 md:px-6 py-4 text-center">Jabatan</th>
+                                <th class="px-4 md:px-6 py-4 text-center">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="member-list" class="text-xs md:text-sm text-gray-300">
+                            <!-- Data injected here -->
+                        </tbody>
+                    </table>
+                </div>
+                <!-- Swipe indicator for mobile -->
+                <div class="md:hidden p-3 bg-red-900/10 text-[9px] text-center text-gray-500 uppercase tracking-widest italic border-t border-white/5">
+                    <i class="fas fa-arrows-alt-h mr-1"></i> Geser tabel ke samping untuk info lengkap
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Calendar Section -->
+    <section id="events" class="py-20 md:py-32 px-4 md:px-6 bg-zinc-900/30">
+        <div class="max-w-6xl mx-auto">
+            <div class="text-center mb-12 md:mb-16">
+                <h2 class="text-2xl md:text-4xl font-black mb-4 uppercase tracking-widest text-white">Kalender <span class="text-red-600">Event RoK</span></h2>
+                <p class="text-[10px] md:text-xs text-gray-500 uppercase tracking-widest">Jadwal Global dari ROKHub.xyz</p>
+                <div class="h-1 w-20 md:w-24 bg-red-600 mx-auto mt-4"></div>
+            </div>
+
+            <div class="calendar-wrapper shadow-2xl">
+                <iframe 
+                    src="https://rokhub.xyz/rok-events-calendar" 
+                    class="w-full h-full border-none bg-white" 
+                    title="ROK Events Calendar"
+                    loading="lazy">
+                </iframe>
+            </div>
+
+            <div class="mt-8 flex flex-col md:flex-row justify-between items-center gap-6 text-gray-500">
+                <div class="flex items-center gap-2 text-[10px] uppercase tracking-widest text-center md:text-left">
+                    <i class="fas fa-info-circle text-amber-500"></i>
+                    Gunakan scroll di dalam kotak untuk melihat jadwal.
+                </div>
+                <a href="https://rokhub.xyz/rok-events-calendar" target="_blank" class="bg-zinc-800 hover:bg-zinc-700 px-4 py-2 rounded text-amber-500 text-[10px] transition uppercase tracking-widest flex items-center gap-2 border border-white/5">
+                    <i class="fas fa-external-link-alt"></i> Buka Situs ROKHub
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer id="join" class="relative py-20 md:py-32 bg-black border-t border-red-600/20 px-6">
+        <div class="max-w-2xl mx-auto text-center">
+            <h2 class="text-3xl md:text-5xl font-black text-white mb-8 uppercase tracking-tighter">ANGKAT <span class="text-amber-500 text-shadow-glow">PEDANGMU</span></h2>
+            <div class="flex flex-col sm:flex-row justify-center gap-4 mb-16">
+                <a href="https://wa.me/905540040152" target="_blank" class="w-full sm:w-auto bg-emerald-700 hover:bg-emerald-600 text-white font-black py-4 px-10 rounded uppercase tracking-widest flex items-center justify-center gap-3 transition-all shadow-lg shadow-emerald-900/20">
+                    <i class="fab fa-whatsapp text-xl"></i> Chat WhatsApp
+                </a>
+            </div>
+            <div class="text-gray-800 text-[8px] md:text-[10px] tracking-[0.4em] md:tracking-[0.6em] font-bold uppercase border-t border-white/5 pt-10">
+                &copy; 2026 09IF IMMORTAL FIGHTERS • KINGDOM 3909
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        const spreadsheetId = '1utgzEcft4ovmmphPhVGLup0HwNHJwEikIFkYTcFZZus';
+        const memberGid = '0';
+        const announcementGid = '1549785639';
+
+        // Navigation Toggle Logic
+        const menuToggle = document.getElementById('menu-toggle');
+        const mobileMenu = document.getElementById('mobile-menu');
+        
+        function toggleMenu() {
+            mobileMenu.classList.toggle('active');
+            const icon = menuToggle.querySelector('i');
+            if (mobileMenu.classList.contains('active')) {
+                icon.classList.replace('fa-bars', 'fa-times');
+                document.body.style.overflow = 'hidden';
+            } else {
+                icon.classList.replace('fa-times', 'fa-bars');
+                document.body.style.overflow = '';
+            }
+        }
+
+        menuToggle.addEventListener('click', toggleMenu);
+
+        async function fetchData(gid) {
+            try {
+                const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:json&gid=${gid}`;
+                const response = await fetch(url);
+                const text = await response.text();
+                return JSON.parse(text.substring(47, text.length - 2));
+            } catch (error) {
+                console.error("Gagal memuat GID:", gid, error);
+                return null;
+            }
+        }
+
+        async function loadAnnouncements() {
+            const loader = document.getElementById('ann-loader');
+            const container = document.getElementById('ann-container');
+            const emptyMsg = document.getElementById('ann-empty');
+            
+            try {
+                const data = await fetchData(announcementGid);
+                if (!data || !data.table || !data.table.rows) throw new Error("Format error");
+
+                const rows = data.table.rows;
+                container.innerHTML = '';
+                let count = 0;
+
+                [...rows].reverse().forEach(row => {
+                    if (!row.c) return;
+                    const date = row.c[0] ? (row.c[0].f || row.c[0].v) : '';
+                    const message = row.c[1] ? row.c[1].v : '';
+
+                    if (message && message.toString().trim() !== "") {
+                        count++;
+                        const div = document.createElement('div');
+                        div.className = 'announcement-card p-5 md:p-6 glass-panel flex flex-col sm:flex-row sm:items-start gap-4';
+                        div.innerHTML = `
+                            <div class="sm:min-w-[120px]">
+                                <span class="text-[9px] font-bold text-red-500 uppercase tracking-widest block mb-1">Update Log</span>
+                                <span class="text-xs md:text-sm font-black text-white">${date}</span>
+                            </div>
+                            <div class="flex-1">
+                                <p class="text-gray-300 text-sm md:text-base leading-relaxed">${message}</p>
+                            </div>
+                        `;
+                        container.appendChild(div);
+                    }
+                });
+
+                loader.classList.add('hidden');
+                if (count > 0) {
+                    container.classList.remove('hidden');
+                    emptyMsg.classList.add('hidden');
+                } else {
+                    emptyMsg.classList.remove('hidden');
+                }
+            } catch (e) {
+                loader.innerHTML = '<span class="text-red-950 text-[10px] tracking-widest">ERROR: GAGAL MENGHUBUNGKAN KE SERVER</span>';
+            }
+        }
+
+        async function loadMembers() {
+            const loader = document.getElementById('member-loader');
+            const container = document.getElementById('member-table-container');
+            
+            try {
+                const data = await fetchData(memberGid);
+                if (!data) return;
+
+                const rows = data.table.rows;
+                const list = document.getElementById('member-list');
+                
+                list.innerHTML = '';
+                rows.forEach((row, index) => {
+                    if (!row.c || !row.c[0]) return;
+
+                    const name = row.c[0] ? row.c[0].v : '???';
+                    const jabatan = row.c[1] ? row.c[1].v : '-';
+                    const status = row.c[3] ? row.c[3].v : 'Active';
+
+                    const tr = document.createElement('tr');
+                    tr.className = 'border-b border-white/5';
+                    tr.innerHTML = `
+                        <td class="px-4 md:px-6 py-4 font-black text-amber-500/30 text-center">${index + 1}</td>
+                        <td class="px-4 md:px-6 py-4 font-bold text-white text-[11px] md:text-sm tracking-wide uppercase">${name}</td>
+                        <td class="px-4 md:px-6 py-4 text-center text-amber-400 font-semibold italic uppercase text-[9px] md:text-[10px]">${jabatan}</td>
+                        <td class="px-4 md:px-6 py-4 text-center">
+                            <span class="px-2 py-1 bg-green-900/20 text-green-500 text-[8px] md:text-[10px] rounded border border-green-500/20 font-bold uppercase">
+                                ${status}
+                            </span>
+                        </td>
+                    `;
+                    list.appendChild(tr);
+                });
+
+                loader.classList.add('hidden');
+                container.classList.remove('hidden');
+            } catch (e) { console.error(e); }
+        }
+
+        window.onload = () => {
+            loadAnnouncements();
+            loadMembers();
+        };
+    </script>
+</body>
+</html>
