@@ -40,8 +40,38 @@
             <p class="text-sm mt-2 opacity-80">Tahun 2026</p>
         </div>
 
+        <!-- Wadah Waktu Mundur (Countdown) -->
+        <div id="countdownContainer" class="p-8 text-center hidden">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-blue-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <h3 class="text-xl font-bold text-slate-800 mb-2">Pengumuman Belum Dibuka</h3>
+            <p class="text-sm text-slate-600 mb-6">Akses akan otomatis terbuka dalam:</p>
+            
+            <div class="flex justify-center gap-3 text-center">
+                <div class="bg-blue-100 rounded-xl p-3 w-[72px] shadow-sm">
+                    <div id="cdDays" class="text-2xl font-bold text-blue-700">00</div>
+                    <div class="text-[10px] font-semibold text-blue-600 uppercase tracking-wider mt-1">Hari</div>
+                </div>
+                <div class="bg-blue-100 rounded-xl p-3 w-[72px] shadow-sm">
+                    <div id="cdHours" class="text-2xl font-bold text-blue-700">00</div>
+                    <div class="text-[10px] font-semibold text-blue-600 uppercase tracking-wider mt-1">Jam</div>
+                </div>
+                <div class="bg-blue-100 rounded-xl p-3 w-[72px] shadow-sm">
+                    <div id="cdMins" class="text-2xl font-bold text-blue-700">00</div>
+                    <div class="text-[10px] font-semibold text-blue-600 uppercase tracking-wider mt-1">Menit</div>
+                </div>
+                <div class="bg-blue-100 rounded-xl p-3 w-[72px] shadow-sm">
+                    <div id="cdSecs" class="text-2xl font-bold text-blue-700">00</div>
+                    <div class="text-[10px] font-semibold text-blue-600 uppercase tracking-wider mt-1">Detik</div>
+                </div>
+            </div>
+            
+            <p class="text-xs text-slate-500 mt-8 font-medium">Jadwal Buka: 04 Mei 2026 Pukul 16.00 WIB</p>
+        </div>
+
         <!-- Bagian Konten Utama -->
-        <div class="p-6">
+        <div id="mainContent" class="p-6 hidden">
             <p class="text-center text-slate-600 mb-6 text-sm">
                 Silakan masukkan <strong>NISN</strong> atau <strong>Nama Lengkap</strong> Anda pada kolom di bawah ini untuk melihat hasil kelulusan dan mengunduh SKL.
             </p>
@@ -114,6 +144,10 @@
     </div>
 
     <script>
+        // --- KONFIGURASI WAKTU BUKA PENGUMUMAN ---
+        // Format waktu: "Bulan Tanggal, Tahun Jam:Menit:Detik"
+        const waktuBuka = new Date("May 4, 2026 16:00:00").getTime();
+
         // --- KONFIGURASI URL & KOLOM ---
         // ID Spreadsheet dan GID didapat dari URL yang Anda berikan
         const sheetID = "1x-yg-kNf-nHtxk2B7V4jDeN5p_3QnHuSH9CEuegAzeg";
@@ -152,8 +186,49 @@
             messageBox.classList.add("hidden");
         }
 
+        // Fungsi Timer Waktu Mundur
+        function jalankanWaktuMundur() {
+            const sekarang = new Date().getTime();
+            const selisih = waktuBuka - sekarang;
+
+            const countdownContainer = document.getElementById("countdownContainer");
+            const mainContent = document.getElementById("mainContent");
+
+            // Jika waktu sudah lewat target
+            if (selisih < 0) {
+                countdownContainer.classList.add("hidden");
+                mainContent.classList.remove("hidden");
+                return true; // Menandakan pengumuman sudah buka
+            } else {
+                // Kalkulasi waktu
+                const hari = Math.floor(selisih / (1000 * 60 * 60 * 24));
+                const jam = Math.floor((selisih % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const menit = Math.floor((selisih % (1000 * 60 * 60)) / (1000 * 60));
+                const detik = Math.floor((selisih % (1000 * 60)) / 1000);
+
+                // Tampilkan ke layar
+                document.getElementById("cdDays").textContent = hari.toString().padStart(2, '0');
+                document.getElementById("cdHours").textContent = jam.toString().padStart(2, '0');
+                document.getElementById("cdMins").textContent = menit.toString().padStart(2, '0');
+                document.getElementById("cdSecs").textContent = detik.toString().padStart(2, '0');
+                
+                countdownContainer.classList.remove("hidden");
+                mainContent.classList.add("hidden");
+                return false; // Menandakan pengumuman belum buka
+            }
+        }
+
         // Memuat data saat halaman pertama kali dibuka
         window.onload = function() {
+            // Jalankan dan pantau waktu mundur setiap 1 detik
+            const sudahBukaAwal = jalankanWaktuMundur();
+            const intervalWaktu = setInterval(() => {
+                const sudahBuka = jalankanWaktuMundur();
+                if(sudahBuka) {
+                    clearInterval(intervalWaktu);
+                }
+            }, 1000);
+
             loadingIndicator.classList.remove("hidden");
             btnCari.disabled = true;
             btnCari.classList.add("opacity-50", "cursor-not-allowed");
