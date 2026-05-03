@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pengumuman Kelulusan SMAN 8 MUKOMUKO</title>
+    
+    <!-- Memuat Tailwind CSS untuk styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Memuat PapaParse untuk membaca CSV dari Google Sheets -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    
+    <style>
+        /* Animasi loading sederhana */
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen flex items-center justify-center p-4 font-sans text-slate-800">
+
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
+        
+        <!-- Bagian Header -->
+        <div class="bg-blue-600 p-6 text-center text-white">
+            <img src="21logo mapan.png" alt="Logo SMAN 8 MUKOMUKO" class="w-24 h-24 mx-auto mb-4 object-contain bg-white rounded-full p-1 drop-shadow-lg">
+            <h1 class="text-2xl font-bold mb-1">Pengumuman Kelulusan</h1>
+            <h2 class="text-lg font-medium opacity-90">SMAN 8 MUKOMUKO</h2>
+            <p class="text-sm mt-2 opacity-80">Tahun 2026</p>
+        </div>
+
+        <!-- Bagian Konten Utama -->
+        <div class="p-6">
+            <p class="text-center text-slate-600 mb-6 text-sm">
+                Silakan masukkan <strong>NISN</strong> atau <strong>Nama Lengkap</strong> Anda pada kolom di bawah ini untuk melihat hasil kelulusan dan mengunduh SKL.
+            </p>
+
+            <!-- Form Pencarian -->
+            <div class="space-y-4">
+                <div>
+                    <input type="text" id="searchInput" 
+                        class="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" 
+                        placeholder="Contoh: 0012345678 atau Budi"
+                        autocomplete="off">
+                </div>
+                <button onclick="cariData()" id="btnCari"
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors flex justify-center items-center">
+                    Cari Data
+                </button>
+            </div>
+
+            <!-- Pesan Notifikasi (Custom Alert) -->
+            <div id="messageBox" class="hidden mt-4 p-4 rounded-lg text-sm text-center font-medium">
+                <!-- Teks pesan akan muncul di sini -->
+            </div>
+
+            <!-- Indikator Loading -->
+            <div id="loadingIndicator" class="hidden mt-6 text-center">
+                <div class="loader mb-2"></div>
+                <p class="text-sm text-slate-500" id="loadingText">Menyiapkan data dari server...</p>
+            </div>
+
+            <!-- Hasil Pencarian -->
+            <div id="resultCard" class="hidden mt-6 border border-slate-200 rounded-xl overflow-hidden bg-slate-50">
+                <div class="p-5 border-b border-slate-200">
+                    <div class="mb-4">
+                        <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Nama Siswa</span>
+                        <p id="resNama" class="text-lg font-bold text-slate-800 capitalize">-</p>
+                    </div>
+                    <div class="flex justify-between gap-4">
+                        <div>
+                            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">NISN</span>
+                            <p id="resNISN" class="font-medium text-slate-700">-</p>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Kelas</span>
+                            <p id="resKelas" class="font-medium text-slate-700">-</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="p-5 flex flex-col items-center justify-center bg-white">
+                    <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Status Kelulusan</span>
+                    <div class="bg-green-100 text-green-700 border border-green-200 font-bold text-xl px-8 py-2 rounded-full mb-4 tracking-widest shadow-sm">
+                        LULUS
+                    </div>
+                    
+                    <!-- Tombol Download SKL -->
+                    <a id="resDownload" href="#" target="_blank" 
+                        class="w-full text-center bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors flex justify-center items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        Download SKL
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-slate-50 p-4 text-center border-t border-slate-200">
+            <p class="text-xs text-slate-400">&copy; SMAN 8 MUKOMUKO. Seluruh hak cipta dilindungi.</p>
+        </div>
+    </div>
+
+    <script>
+        // --- KONFIGURASI URL & KOLOM ---
+        // ID Spreadsheet dan GID didapat dari URL yang Anda berikan
+        const sheetID = "1x-yg-kNf-nHtxk2B7V4jDeN5p_3QnHuSH9CEuegAzeg";
+        const gid = "980281387";
+        // Mengubah URL menjadi format export CSV agar bisa dibaca oleh script
+        const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetID}/export?format=csv&gid=${gid}`;
+        
+        // Atur posisi indeks kolom (A=0, B=1, C=2, D=3, E=4, dst)
+        const INDEX_NAMA = 1;  // Kolom B untuk Nama
+        const INDEX_KELAS = 43; // Kolom AR untuk Kelas (A=0 ... AR=43)
+        const INDEX_NISN = 4;  // Kolom E untuk NISN
+        
+        // Kolom CG berada di indeks ke-84 (A=0 ... CG=84)
+        const INDEX_SKL = 84;
+
+        let dataSiswa = [];
+        let isDataLoaded = false;
+
+        // Elemen-elemen DOM
+        const inputField = document.getElementById("searchInput");
+        const messageBox = document.getElementById("messageBox");
+        const loadingIndicator = document.getElementById("loadingIndicator");
+        const loadingText = document.getElementById("loadingText");
+        const resultCard = document.getElementById("resultCard");
+        const btnCari = document.getElementById("btnCari");
+
+        // Fungsi untuk menampilkan pesan (pengganti alert)
+        function showMessage(text, type = "error") {
+            messageBox.textContent = text;
+            messageBox.className = `mt-4 p-3 rounded-lg text-sm text-center font-medium block ${
+                type === "error" ? "bg-red-100 text-red-700 border border-red-200" : "bg-yellow-100 text-yellow-800 border border-yellow-200"
+            }`;
+        }
+
+        function hideMessage() {
+            messageBox.classList.add("hidden");
+        }
+
+        // Memuat data saat halaman pertama kali dibuka
+        window.onload = function() {
+            loadingIndicator.classList.remove("hidden");
+            btnCari.disabled = true;
+            btnCari.classList.add("opacity-50", "cursor-not-allowed");
+            
+            Papa.parse(csvUrl, {
+                download: true,
+                header: false, // Membaca sebagai array per baris untuk mempermudah indeks kolom
+                skipEmptyLines: true,
+                complete: function(results) {
+                    dataSiswa = results.data;
+                    isDataLoaded = true;
+                    loadingIndicator.classList.add("hidden");
+                    btnCari.disabled = false;
+                    btnCari.classList.remove("opacity-50", "cursor-not-allowed");
+                    console.log("Data berhasil dimuat. Total baris:", dataSiswa.length);
+                },
+                error: function(err) {
+                    loadingIndicator.classList.add("hidden");
+                    showMessage("Gagal memuat data. Pastikan Google Sheet Anda disetel ke 'Siapa saja yang memiliki link (Anyone with the link)'.", "error");
+                    console.error("PapaParse Error:", err);
+                }
+            });
+        };
+
+        // Fungsi pencarian data
+        function cariData() {
+            const keyword = inputField.value.trim().toLowerCase();
+            
+            // Reset tampilan
+            hideMessage();
+            resultCard.classList.add("hidden");
+
+            if (!keyword) {
+                showMessage("Mohon masukkan NISN atau Nama terlebih dahulu.", "warning");
+                return;
+            }
+
+            if (!isDataLoaded) {
+                showMessage("Data sedang dimuat, mohon tunggu sebentar lalu coba lagi.", "warning");
+                return;
+            }
+
+            // Tampilkan loading pencarian
+            loadingText.textContent = "Mencari data siswa...";
+            loadingIndicator.classList.remove("hidden");
+
+            // Simulasi delay sedikit agar UI terasa responsif
+            setTimeout(() => {
+                let siswaDitemukan = null;
+
+                // Loop data mulai dari indeks 1 (mengabaikan baris 0 yang biasanya adalah Header Excel)
+                for (let i = 1; i < dataSiswa.length; i++) {
+                    const row = dataSiswa[i];
+                    
+                    // Pastikan baris memiliki data yang cukup
+                    if (row && row.length > INDEX_NAMA) {
+                        const nisn = (row[INDEX_NISN] || "").toString().trim().toLowerCase();
+                        const nama = (row[INDEX_NAMA] || "").toString().trim().toLowerCase();
+
+                        // Pencocokan: NISN harus persis sama, atau Nama mengandung kata kunci
+                        if (nisn === keyword || (nama !== "" && nama.includes(keyword))) {
+                            siswaDitemukan = row;
+                            break; // Berhenti mencari jika sudah ketemu
+                        }
+                    }
+                }
+
+                loadingIndicator.classList.add("hidden");
+
+                if (siswaDitemukan) {
+                    tampilkanHasil(siswaDitemukan);
+                } else {
+                    showMessage(`Data untuk pencarian "${inputField.value}" tidak ditemukan. Silakan periksa kembali ejaan atau nomor NISN.`, "error");
+                }
+            }, 400); // 400ms delay
+        }
+
+        // Fungsi untuk menampilkan kartu hasil ke layar
+        function tampilkanHasil(row) {
+            document.getElementById("resNama").textContent = row[INDEX_NAMA] || "Tidak Ada Nama";
+            document.getElementById("resNISN").textContent = row[INDEX_NISN] || "-";
+            document.getElementById("resKelas").textContent = row[INDEX_KELAS] || "-";
+            
+            const btnDownload = document.getElementById("resDownload");
+            const linkSKL = row[INDEX_SKL]; // Mengambil dari kolom CG (indeks 84)
+
+            if (linkSKL && linkSKL.trim().startsWith("http")) {
+                btnDownload.href = linkSKL.trim();
+                btnDownload.classList.remove("hidden");
+                btnDownload.style.display = "flex";
+            } else {
+                // Jika tidak ada link di baris tersebut
+                btnDownload.style.display = "none";
+            }
+
+            resultCard.classList.remove("hidden");
+        }
+
+        // Menambahkan fitur pencarian dengan menekan tombol Enter pada keyboard
+        inputField.addEventListener("keypress", function(event) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                cariData();
+            }
+        });
+    </script>
+</body>
+</html>
